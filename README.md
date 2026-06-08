@@ -75,8 +75,8 @@ You can also run `pnpm exec code-map` without a config. In that mode code-map au
 The config can live anywhere in your repository:
 
 ```bash
-pnpm exec code-map --config docs/03-technical/code-map/project-map.json
-CODE_MAP_CONFIG=docs/03-technical/code-map/project-map.json pnpm exec code-map --scan
+pnpm exec code-map --config code-map/project-map.json
+CODE_MAP_CONFIG=code-map/project-map.json pnpm exec code-map --scan
 ```
 
 Plugin paths in `templates.plugins` are resolved relative to the `project-map.json` file. Repository paths such as `sourceRoots.frontend` and `project.graphOutput` are resolved from the directory where you run `code-map`.
@@ -98,13 +98,13 @@ pnpm add -D github:abbaing/code-map
 From the repository root:
 
 ```bash
-pnpm exec code-map --init --out docs/03-technical/code-map
+pnpm exec code-map --init --out code-map
 ```
 
-This writes a detected config such as `docs/03-technical/code-map/my-app.project-map.json`. Rename it if you want a stable path:
+This writes a detected config such as `code-map/my-app.project-map.json`. Rename it if you want a stable path:
 
 ```txt
-docs/03-technical/code-map/project-map.json
+code-map/project-map.json
 ```
 
 **3. Review the important paths**
@@ -113,8 +113,8 @@ docs/03-technical/code-map/project-map.json
 {
   "project": {
     "name": "My App",
-    "graphOutput": "docs/03-technical/code-map/graph.json",
-    "runtimeLinks": "docs/03-technical/code-map/runtime-links.json"
+    "graphOutput": "code-map/graph.json",
+    "runtimeLinks": "code-map/runtime-links.json"
   },
   "sourceRoots": {
     "frontend": "front/src",
@@ -136,7 +136,7 @@ docs/03-technical/code-map/project-map.json
 Save it at the path configured in `project.runtimeLinks`, for example:
 
 ```txt
-docs/03-technical/code-map/runtime-links.json
+code-map/runtime-links.json
 ```
 
 **5. Add package scripts**
@@ -144,8 +144,8 @@ docs/03-technical/code-map/runtime-links.json
 ```json
 {
   "scripts": {
-    "codemap": "code-map --config docs/03-technical/code-map/project-map.json",
-    "codemap:scan": "code-map --scan --config docs/03-technical/code-map/project-map.json"
+    "codemap": "code-map --config code-map/project-map.json",
+    "codemap:scan": "code-map --scan --config code-map/project-map.json"
   }
 }
 ```
@@ -153,7 +153,7 @@ docs/03-technical/code-map/runtime-links.json
 **6. Ignore the generated graph**
 
 ```gitignore
-docs/03-technical/code-map/graph.json
+code-map/graph.json
 ```
 
 Commit the config. Usually do not commit `graph.json`; it contains your repository topology and is regenerated on demand.
@@ -176,8 +176,8 @@ http://localhost:1133
 Example files:
 
 ```txt
-docs/03-technical/code-map/templates/my-guardrails.mjs
-docs/03-technical/code-map/rules/my-guardrails.mjs
+code-map/templates/my-guardrails.mjs
+code-map/rules/my-guardrails.mjs
 ```
 
 Load the plugin from `project-map.json`:

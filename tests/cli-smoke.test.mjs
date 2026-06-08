@@ -51,7 +51,7 @@ assert.equal(graph.projectMap.sourceRoots.frontend, 'src')
 assert.equal(graph.stats.backFiles, 0)
 
 const arbitraryRoot = path.join(tempRoot, 'arbitrary')
-const arbitraryConfigDir = path.join(arbitraryRoot, 'docs/03-technical/code-map')
+const arbitraryConfigDir = path.join(arbitraryRoot, 'code-map')
 const arbitraryTemplatesDir = path.join(arbitraryConfigDir, 'templates')
 fs.mkdirSync(path.join(arbitraryRoot, 'src'), { recursive: true })
 fs.mkdirSync(arbitraryTemplatesDir, { recursive: true })
@@ -68,8 +68,8 @@ const arbitraryConfig = {
   schemaVersion: 1,
   project: {
     name: 'Arbitrary Config App',
-    graphOutput: 'docs/03-technical/code-map/graph.json',
-    runtimeLinks: 'docs/03-technical/code-map/runtime-links.json'
+    graphOutput: 'code-map/graph.json',
+    runtimeLinks: 'code-map/runtime-links.json'
   },
   sourceRoots: { frontend: 'src' },
   templates: {
