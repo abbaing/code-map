@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Code Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/viewer.css" />
+  </head>
+  <body class="bg-gray-100 text-gray-900 text-sm font-sans">
+    <div class="flex flex-col min-h-screen">
+
+      <!-- top bar -->
+      <header class="bg-white border-b border-gray-200 shrink-0">
+        <div class="flex items-center justify-between gap-4 px-4 py-2">
+          <!-- left: logo + title + pill -->
+          <div class="flex items-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <rect width="18" height="18" fill="#164e63" rx="4"/>
+              <rect x="1" y="7" width="5" height="4" fill="white" stroke="#93c5fd" stroke-width="0.6"/>
+              <rect x="12" y="2" width="5" height="4" fill="white" stroke="#93c5fd" stroke-width="0.6"/>
+              <rect x="12" y="12" width="5" height="4" fill="white" stroke="#93c5fd" stroke-width="0.6"/>
+              <line x1="6" y1="8.2" x2="12" y2="4.5"  stroke="#93c5fd" stroke-width="1"/>
+              <line x1="6" y1="9.8" x2="12" y2="13.5" stroke="#93c5fd" stroke-width="1"/>
+            </svg>
+            <h1 class="text-base font-semibold leading-none">Code Map</h1>
+            <button id="metaPill" class="text-[11px] text-gray-400 border border-gray-200 rounded px-1.5 py-0.5 hover:border-gray-300 hover:text-gray-600 bg-transparent cursor-pointer leading-none">Latest report</button>
+          </div>
+          <!-- right: actions dropdown -->
+          <div class="relative">
+            <button id="actionsBtn" class="btn">···</button>
+            <div id="actionsMenu" class="hidden absolute right-0 top-9 z-30 bg-white border border-gray-200 rounded-lg shadow-lg py-1 w-48">
+              <button id="refreshBtn" class="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50">Refresh map</button>
+              <label id="importLabel" class="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer block" for="importFile">Import graph</label>
+              <button id="exportBtn" class="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50">Export graph</button>
+              <input id="importFile" class="hidden" type="file" accept="application/json,.json" />
+            </div>
+          </div>
+        </div>
+
+        <!-- sub-nav: tabs only -->
+        <div class="flex items-center px-4 border-t border-gray-100">
+          <button id="tabOverview"  class="nav-tab active">Modules</button>
+          <button id="tabGraph"     class="nav-tab">Graph</button>
+          <button id="tabDomain"    class="nav-tab">Domain</button>
+          <button id="tabFindings"  class="nav-tab">Findings</button>
+          <button id="tabSettings"  class="nav-tab">Settings</button>
+        </div>
+
+        <!-- stats popover -->
+        <div id="statsPopover" class="hidden absolute top-10 left-4 z-30 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-sm" style="min-width:220px"></div>
+      </header>
+
+      <!-- body -->
+      <div class="flex flex-1 min-h-0">
+
+        <!-- ── overview pane ── -->
+        <div id="overviewPane" class="hidden flex-1 relative min-h-0 overflow-auto">
+          <!-- toolbar + panel float over the scrollable area -->
+          <div class="float-toolbar">
+            <button id="filterBtn" class="float-btn" aria-label="Filters">
+              <svg width="14" height="14" viewBox="0 0 15 15" fill="none">
+                <path d="M1 3h13M3 7.5h9M5.5 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+          <div id="filterPanel" class="filter-panel hidden">
+            <div class="p-3 space-y-2">
+              <input id="search" type="search" placeholder="Name, path or endpoint..." class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm" />
+<div class="space-y-1.5 pt-1 border-t border-gray-100">
+                <p class="text-xs text-gray-400">Health score</p>
+                <div id="healthChecks" class="space-y-1"></div>
+              </div>
+            </div>
+          </div>
+          <!-- scrollable grid -->
+          <div class="p-5 grid gap-3 content-start" id="overviewScroll" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))"></div>
+        </div>
+
+        <!-- ── graph/domain pane ── -->
+        <div id="findingsPane" class="hidden flex-1 min-h-0 overflow-auto bg-gray-50">
+          <div class="p-5 space-y-3">
+            <div class="bg-white border border-gray-200 rounded-lg p-3">
+              <div class="findings-filters">
+                <input id="findingsSearch" type="search" placeholder="Rule, path, message..." class="border border-gray-200 rounded px-2 py-1.5 text-sm" />
+                <select id="findingsSeverity" class="border border-gray-200 rounded px-2 py-1.5 text-sm bg-white"></select>
+                <select id="findingsRule" class="border border-gray-200 rounded px-2 py-1.5 text-sm bg-white"></select>
+                <select id="findingsModule" class="border border-gray-200 rounded px-2 py-1.5 text-sm bg-white"></select>
+              </div>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div id="findingsTable" class="divide-y divide-gray-100"></div>
+            </div>
+          </div>
+        </div>
+
+        <main id="canvasWrap" class="canvas-wrap flex-1 relative min-w-0">
+          <svg id="graph" role="img" aria-label="Code graph"></svg>
+          <div id="status" class="absolute left-3 bottom-3 bg-white/90 border border-gray-200 rounded px-2 py-1 text-xs text-gray-400">Ready</div>
+          <div id="nodeLimitBanner" class="hidden absolute top-2 left-1/2 -translate-x-1/2 bg-white/95 border border-gray-200 rounded px-3 py-1 text-xs text-gray-400 pointer-events-none whitespace-nowrap"></div>
+          <div id="popover" class="popover"></div>
+          <!-- graph toolbar -->
+          <div class="float-toolbar">
+            <button id="graphFilterBtn" class="float-btn" aria-label="Filters">
+              <svg width="14" height="14" viewBox="0 0 15 15" fill="none">
+                <path d="M1 3h13M3 7.5h9M5.5 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <div class="float-divider"></div>
+            <button id="zoomInBtn"    class="float-btn" aria-label="Zoom in">+</button>
+            <span   id="zoomValue"    class="float-zoom-value">100%</span>
+            <button id="zoomOutBtn"   class="float-btn" aria-label="Zoom out">−</button>
+            <div class="float-divider"></div>
+            <button id="zoomResetBtn" class="float-btn" aria-label="Reset zoom" title="Reset zoom">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <path d="M6.5 1.5A5 5 0 1 1 2 6.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                <path d="M1.5 3.5V1.5H3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <!-- graph filter panel -->
+          <div id="graphFilterPanel" class="filter-panel hidden">
+            <div class="p-3 space-y-2">
+<label class="flex items-center gap-2 text-sm">
+                <input id="orphansOnly" type="checkbox" />
+                <span class="flex-1">Orphans only</span>
+                <span id="orphanCount" class="text-xs text-gray-400">0</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input id="uncoveredOnly" type="checkbox" />
+                <span class="flex-1">No coverage</span>
+                <span id="uncoveredCount" class="text-xs text-gray-400">0</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input id="reviewOnly" type="checkbox" />
+                <span class="flex-1">Needs review</span>
+                <span id="reviewCount" class="text-xs text-gray-400">0</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input id="findingsOnly" type="checkbox" />
+                <span class="flex-1">Has findings</span>
+                <span id="findingsCount" class="text-xs text-gray-400">0</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input id="hideAuxiliary" type="checkbox" checked />
+                <span class="flex-1">Hide auxiliary</span>
+              </label>
+              <div class="space-y-1.5 pt-1 border-t border-gray-100">
+                <p class="text-xs text-gray-400">Types</p>
+                <div id="typeChecks" class="space-y-1.5"></div>
+              </div>
+            </div>
+          </div>
+          <!-- module detail: always-visible summary top-right when a module is active -->
+          <div id="moduleDetail" class="hidden absolute top-3 right-3 z-20 bg-white/95 border border-gray-200 rounded-lg shadow-md p-3 text-xs" style="width:280px;max-height:calc(100% - 24px);overflow-y:auto"></div>
+        </main>
+
+
+        <!-- ── settings pane ── -->
+        <div id="settingsPane" class="hidden flex-1 min-h-0 overflow-auto bg-gray-50">
+          <div class="p-6 max-w-2xl space-y-8">
+
+            <!-- Module Labels -->
+            <section>
+              <h2 class="text-sm font-semibold text-gray-700 mb-3">Module Labels</h2>
+              <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <table class="w-full text-sm">
+                  <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 w-1/2">ID</th>
+                      <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 w-1/2">Label</th>
+                    </tr>
+                  </thead>
+                  <tbody id="settingsModulesBody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <!-- Type Colors -->
+            <section>
+              <h2 class="text-sm font-semibold text-gray-700 mb-3">Type Colors</h2>
+              <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <table class="w-full text-sm">
+                  <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 w-1/2">Type</th>
+                      <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 w-1/2">Color</th>
+                    </tr>
+                  </thead>
+                  <tbody id="settingsTypesBody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <!-- Rules -->
+            <section>
+              <h2 class="text-sm font-semibold text-gray-700 mb-3">Rules</h2>
+              <div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100" id="settingsRulesBody"></div>
+            </section>
+
+            <!-- Import / Export -->
+            <section>
+              <h2 class="text-sm font-semibold text-gray-700 mb-3">Config File</h2>
+              <div class="flex gap-3">
+                <label id="settingsImportBtn" class="btn cursor-pointer" for="settingsImportFile">Import Config</label>
+                <input id="settingsImportFile" class="hidden" type="file" accept="application/json,.json" />
+                <button id="settingsExportBtn" class="btn">Export Config</button>
+              </div>
+            </section>
+
+            <!-- Save -->
+            <div class="flex justify-end pt-2 border-t border-gray-200">
+              <button id="settingsSaveBtn" class="btn btn-primary">Save &amp; Rescan</button>
+            </div>
+
+          </div>
+        </div>
+
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <script defer src="/viewer-state.js"></script>
+    <script defer src="/viewer-utils.js"></script>
+    <script defer src="/viewer-data.js"></script>
+    <script defer src="/viewer-overview.js"></script>
+    <script defer src="/viewer-findings.js"></script>
+    <script defer src="/viewer-graph.js"></script>
+    <script defer src="/viewer-selection.js"></script>
+    <script defer src="/viewer-actions.js"></script>
+    <script defer src="/viewer-init.js"></script>
+  </body>
+</html>

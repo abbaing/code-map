@@ -1,0 +1,62 @@
+{
+  "name": "@abbaing/code-map",
+  "version": "0.1.0",
+  "description": "Architectural graph generator and interactive viewer for your codebase.",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abbaing/code-map.git"
+  },
+  "bugs": {
+    "url": "https://github.com/abbaing/code-map/issues"
+  },
+  "homepage": "https://github.com/abbaing/code-map#readme",
+  "bin": {
+    "code-map": "./cli.mjs"
+  },
+  "scripts": {
+    "test": "node tests/generic-templates.test.mjs && node tests/cli-smoke.test.mjs",
+    "pack:dry": "npm pack --dry-run"
+  },
+  "files": [
+    "cli.mjs",
+    "config.mjs",
+    "classify.mjs",
+    "detect.mjs",
+    "endpoints.mjs",
+    "graph.mjs",
+    "quality.mjs",
+    "resolve.mjs",
+    "scan.mjs",
+    "scan-back.mjs",
+    "scan-front.mjs",
+    "scan-utils.mjs",
+    "server.mjs",
+    "LICENSE",
+    "COMMERCIAL.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md",
+    "TRADEMARK.md",
+    "rules/",
+    "templates/",
+    "tests/",
+    "fixtures/",
+    "viewer/",
+    "schemas/",
+    "presets/",
+    "runtime-links.json"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "architecture",
+    "code-map",
+    "dependency-graph",
+    "codebase-visualization",
+    "static-analysis",
+    "developer-tools"
+  ],
+  "license": "AGPL-3.0-only"
+}

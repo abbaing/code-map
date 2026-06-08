@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/code-map/project-map.schema.json",
+  "title": "Code Map Project Map",
+  "type": "object",
+  "required": ["schemaVersion", "project", "sourceRoots", "layers"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "project": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "graphOutput": { "type": "string" },
+        "runtimeLinks": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "sourceRoots": {
+      "type": "object",
+      "required": ["frontend"],
+      "properties": {
+        "frontend": { "type": "string", "minLength": 1 },
+        "backend": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "templates": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": true
+    },
+    "ignoredDirs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "imports": {
+      "type": "object",
+      "properties": {
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["prefix", "path"],
+            "properties": {
+              "prefix": { "type": "string", "minLength": 1 },
+              "path": { "type": "string", "minLength": 1 }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "modules": { "type": "object" },
+    "layers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "label": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "types": { "type": "object" },
+    "frontend": { "type": "object" },
+    "rules": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "options": { "type": "object" },
+        "suppressions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["reason"],
+            "properties": {
+              "ruleId": { "type": "string" },
+              "pathPattern": { "type": "string" },
+              "reason": { "type": "string", "minLength": 1 },
+              "expiresOn": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "backend": { "type": "object" }
+  },
+  "additionalProperties": true
+}

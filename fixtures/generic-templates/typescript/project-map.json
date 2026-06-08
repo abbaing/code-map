@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "project": {
+    "name": "TypeScript Fixture",
+    "graphOutput": "tools/code-map/fixtures/generic-templates/typescript/graph.json",
+    "runtimeLinks": "tools/code-map/runtime-links.json"
+  },
+  "sourceRoots": {
+    "frontend": "tools/code-map/fixtures/generic-templates/typescript/front/src",
+    "backend": "tools/code-map/fixtures/generic-templates/typescript/back"
+  },
+  "templates": {
+    "enabled": ["filesystem", "typescript", "quality"]
+  },
+  "imports": {
+    "aliases": []
+  },
+  "modules": {
+    "shared": "shared",
+    "labels": {}
+  },
+  "layers": [{ "id": "auxiliary", "label": "Auxiliary" }],
+  "frontend": {
+    "entryPoints": [],
+    "classifiers": [],
+    "coverableTypes": []
+  },
+  "rules": {
+    "enabled": [],
+    "options": {},
+    "suppressions": []
+  },
+  "backend": {
+    "classifiers": []
+  }
+}

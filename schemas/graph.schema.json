@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/code-map/graph.schema.json",
+  "title": "Code Map Graph",
+  "type": "object",
+  "required": ["version", "generatedAt", "stats", "nodes", "edges"],
+  "properties": {
+    "version": { "type": "integer" },
+    "projectMap": { "$ref": "./project-map.schema.json" },
+    "generatedAt": { "type": "string" },
+    "repoRoot": { "type": "string" },
+    "stats": {
+      "type": "object",
+      "required": ["nodes", "edges"],
+      "properties": {
+        "nodes": { "type": "integer" },
+        "edges": { "type": "integer" },
+        "orphans": { "type": "integer" }
+      },
+      "additionalProperties": true
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "type", "layer", "module"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "type": { "type": "string" },
+          "layer": { "type": "string" },
+          "module": { "type": "string" },
+          "path": { "type": "string" },
+          "meta": { "type": "object" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "from", "to", "type"],
+        "properties": {
+          "id": { "type": "string" },
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "type": { "type": "string" },
+          "label": { "type": "string" },
+          "confidence": { "type": "string" },
+          "source": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "suppressedFindings": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "templates": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "architecture": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "ruleMetadata": {
+      "type": "object",
+      "additionalProperties": { "type": "object" }
+    },
+    "orphans": { "type": "array" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "ruleId", "severity", "message"],
+        "properties": {
+          "id": { "type": "string" },
+          "ruleId": { "type": "string" },
+          "severity": { "type": "string" },
+          "category": { "type": "string" },
+          "confidence": { "type": "string" },
+          "effort": { "type": "string" },
+          "nodeId": { "type": "string" },
+          "message": { "type": "string" },
+          "why": { "type": "string" },
+          "fixHint": { "type": "string" },
+          "docsPath": { "type": "string" },
+          "path": { "type": "string" },
+          "line": { "type": "integer" },
+          "evidence": { "type": "string" },
+          "source": { "type": "string" },
+          "suppressed": { "type": "boolean" },
+          "suppression": { "type": "object" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}
