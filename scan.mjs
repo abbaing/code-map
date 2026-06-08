@@ -52,6 +52,7 @@ function collectFileKind(projectMap, kind) {
 }
 
 function phaseApplyRuntimeLinks(graph, projectMap) {
+  if (!projectMap.project.runtimeLinks) return
   const runtimeLinksPath = resolveRepoPath(projectMap.project.runtimeLinks)
   if (!fs.existsSync(runtimeLinksPath)) return
   const parsed = JSON.parse(readText(runtimeLinksPath))
@@ -336,6 +337,7 @@ function addInternalComponentQuality(graph, parent, internal) {
 function buildGraph() {
   const projectMap = getProjectMap()
   const registry = buildTemplateRegistry(projectMap)
+  const effectiveProjectMap = buildEffectiveProjectMap(projectMap, registry)
   const graph = new Graph()
   clearFindings()
 
@@ -354,7 +356,7 @@ function buildGraph() {
 
   return {
     version: 1,
-    projectMap,
+    projectMap: effectiveProjectMap,
     generatedAt: new Date().toISOString(),
     repoRoot,
     stats: {
@@ -379,9 +381,28 @@ function buildGraph() {
     architecture: registry.architecture ?? [],
     ruleMetadata: registry.ruleMetadata ?? {},
     warnings: [
-      `Static analysis is heuristic. Add runtime-only relationships to ${projectMap.project.runtimeLinks}.`
+      projectMap.project.runtimeLinks
+        ? `Static analysis is heuristic. Add runtime-only relationships to ${projectMap.project.runtimeLinks}.`
+        : 'Static analysis is heuristic. Configure project.runtimeLinks to add runtime-only relationships.'
     ]
   }
+}
+
+function buildEffectiveProjectMap(projectMap, registry) {
+  return {
+    ...projectMap,
+    layers: mergeById(registry.layers ?? [], projectMap.layers ?? []),
+    types: {
+      labels: { ...(registry.types?.labels ?? {}), ...(projectMap.types?.labels ?? {}) },
+      colors: { ...(registry.types?.colors ?? {}), ...(projectMap.types?.colors ?? {}) }
+    }
+  }
+}
+
+function mergeById(left = [], right = []) {
+  const byId = new Map(left.map(item => [item.id, item]))
+  for (const item of right) byId.set(item.id, { ...(byId.get(item.id) ?? {}), ...item })
+  return [...byId.values()]
 }
 
 function createScanContext(graph, projectMap, registry, files) {

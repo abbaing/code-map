@@ -29,7 +29,7 @@ Usage:
 
 Environment variables:
   CODE_MAP_CONFIG   Path to project-map.json (same as --config)
-  CODE_MAP_PORT     Port for the viewer server (default: 4179)
+  CODE_MAP_PORT     Port for the viewer server (default: 1133)
 
 Config:
   --config may point anywhere in the repo. Plugin paths are resolved relative

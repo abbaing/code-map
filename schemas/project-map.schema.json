@@ -3,7 +3,7 @@
   "$id": "https://example.com/code-map/project-map.schema.json",
   "title": "Code Map Project Map",
   "type": "object",
-  "required": ["schemaVersion", "project", "sourceRoots", "layers"],
+  "required": ["schemaVersion", "project", "sourceRoots"],
   "properties": {
     "$schema": { "type": "string" },
     "schemaVersion": { "type": "integer", "minimum": 1 },

@@ -44,8 +44,7 @@
     "fixtures/",
     "viewer/",
     "schemas/",
-    "presets/",
-    "runtime-links.json"
+    "presets/"
   ],
   "engines": {
     "node": ">=20"

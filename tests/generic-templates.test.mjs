@@ -112,4 +112,17 @@ loadProjectMap({
 const frontendOnlyGraph = writeGraph(path.join(tempRoot, 'frontend-only.graph.json'))
 assert.equal(frontendOnlyGraph.stats.backFiles, 0, 'frontend-only scan should not require sourceRoots.backend')
 
+loadProjectMap({
+  schemaVersion: 1,
+  project: { name: 'Template Defaults', graphOutput: path.join(tempRoot, 'template-defaults.graph.json') },
+  sourceRoots: { frontend: path.join(frontendOnlyRoot, 'src') },
+  templates: { enabled: ['filesystem', 'typescript', 'react', 'quality'] },
+  imports: { aliases: [] },
+  modules: { frontendFeaturePattern: '^$' }
+})
+
+const templateDefaultsGraph = writeGraph(path.join(tempRoot, 'template-defaults.graph.json'))
+assert.equal(templateDefaultsGraph.projectMap.layers.some(layer => layer.id === 'ui-route'), true, 'template layers should be exported without config layers')
+assert.equal(templateDefaultsGraph.projectMap.types.labels.component, 'Component', 'template type labels should be exported without config types')
+
 console.log('generic template fixtures passed')

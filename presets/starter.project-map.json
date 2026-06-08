@@ -2,8 +2,7 @@
   "schemaVersion": 1,
   "project": {
     "name": "My Project",
-    "graphOutput": "graph.json",
-    "runtimeLinks": "runtime-links.json"
+    "graphOutput": "graph.json"
   },
   "sourceRoots": {
     "frontend": "src",
@@ -26,15 +25,6 @@
       "quality"
     ]
   },
-  "ignoredDirs": [
-    "node_modules",
-    "dist",
-    "build",
-    "coverage",
-    "bin",
-    "obj",
-    ".git"
-  ],
   "imports": {
     "aliases": [
       {
@@ -45,123 +35,17 @@
   },
   "modules": {
     "shared": "shared",
-    "labels": {},
-    "utilityControllers": ["version", "health", "status"],
-    "bootstrapStems": ["program", "startup"],
-    "infrastructureFolders": [
-      "assets", "components", "config", "constants", "context",
-      "data", "entities", "extensions", "helpers", "hooks",
-      "layouts", "lib", "middleware", "migrations", "models",
-      "repositories", "routes", "schemas", "services", "stores",
-      "styles", "types", "utils"
-    ]
-  },
-  "layers": [
-    { "id": "ui-route", "label": "Routes" },
-    { "id": "ui-page", "label": "Pages" },
-    { "id": "ui-main-component", "label": "Main Components" },
-    { "id": "ui-component-logic", "label": "Components / Logic" },
-    { "id": "front-service", "label": "Frontend Services" },
-    { "id": "front-repository", "label": "Frontend Repositories" },
-    { "id": "front-schema", "label": "Schemas" },
-    { "id": "api-endpoint", "label": "API Endpoints" },
-    { "id": "api-controller", "label": "Controllers" },
-    { "id": "application-boundary", "label": "Handlers / Boundaries" },
-    { "id": "domain", "label": "Entities" },
-    { "id": "database-table", "label": "DB Tables" }
-  ],
-  "types": {
-    "labels": {
-      "auxiliary": "Auxiliary",
-      "config": "Config",
-      "command": "Command",
-      "schema": "Schema",
-      "component": "Component",
-      "controller": "Controller",
-      "endpoint": "API Endpoint",
-      "entity": "Entity",
-      "handler": "Handler",
-      "hook": "Hook",
-      "main-component": "Main Component",
-      "page": "Page",
-      "query": "Query",
-      "repository": "Repository",
-      "route": "Route",
-      "service": "Service",
-      "store": "Store",
-      "subcomponent": "Subcomponent",
-      "table": "DB Table"
-    },
-    "colors": {
-      "route": "#7c3aed",
-      "page": "#0891b2",
-      "main-component": "#0891b2",
-      "component": "#0891b2",
-      "subcomponent": "#0891b2",
-      "hook": "#2563eb",
-      "service": "#2563eb",
-      "repository": "#2563eb",
-      "endpoint": "#c2410c",
-      "controller": "#c2410c",
-      "query": "#15803d",
-      "command": "#15803d",
-      "handler": "#15803d",
-      "entity": "#9333ea",
-      "table": "#9333ea",
-      "auxiliary": "#94a3b8",
-      "config": "#cbd5e1",
-      "store": "#64748b"
-    }
+    "labels": {}
   },
   "frontend": {
-    "featureFolderPattern": "/features/{module}/",
-    "entryPoints": [],
-    "componentMainNamePattern": "Main$|Main[A-Z]|View$|Container$|Content$",
-    "classifiers": [
-      { "contains": "/routes/", "type": "route", "layer": "ui-route" },
-      { "contains": "/pages/", "type": "page", "layer": "ui-page" },
-      { "contains": "/hooks/", "type": "hook", "layer": "ui-component-logic" },
-      { "contains": "/services/", "type": "service", "layer": "front-service" },
-      { "contains": "/repositories/", "type": "repository", "layer": "front-repository" },
-      { "contains": "/schemas/", "type": "config", "layer": "config" },
-      { "contains": "/utils/", "type": "auxiliary", "layer": "auxiliary" }
-    ],
-    "coverableTypes": [
-      "route", "page", "main-component", "component", "subcomponent",
-      "hook", "service", "repository"
-    ]
+    "entryPoints": []
   },
   "rules": {
-    "enabled": [
-      "technology.typescript.relative-imports",
-      "technology.typescript.no-any",
-      "framework.react.component-max-lines",
-      "framework.react.route-file-shape"
-    ],
     "options": {
       "framework.react.component-max-lines": {
         "max": 200
       }
-    },
-    "suppressions": []
+    }
   },
-  "backend": {
-    "entryPointSuffixes": ["/Program.cs"],
-    "dtoPathFragment": "/DTOs/",
-    "validatorPathFragment": "/Validators/",
-    "mappingPathFragment": "/Mappings/",
-    "controllerPathFragment": "/Controllers/",
-    "handlerPathFragment": "/Handlers/",
-    "repositoryPathFragment": "/Repositories/",
-    "entityConfigurationPathFragment": "/Configurations/Entities/",
-    "dataContextPathFragment": "/Data/Context/",
-    "entityPathFragment": "/Entities/",
-    "classifiers": [
-      { "contains": "/Controllers/", "type": "controller", "layer": "api-controller" },
-      { "contains": "/Queries/", "type": "query", "layer": "application-boundary" },
-      { "contains": "/Commands/", "type": "command", "layer": "application-boundary" },
-      { "contains": "/Handlers/", "type": "handler", "layer": "application-boundary" },
-      { "contains": "/Entities/", "type": "entity", "layer": "domain" }
-    ]
-  }
+  "backend": {}
 }

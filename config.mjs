@@ -6,6 +6,70 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export const repoRoot = process.cwd()
 export const defaultProjectMapPath = path.join(__dirname, 'presets/starter.project-map.json')
 
+const defaultIgnoredDirs = ['node_modules', 'dist', 'build', 'coverage', 'bin', 'obj', '.git']
+const defaultInfrastructureFolders = [
+  'assets',
+  'behaviors',
+  'components',
+  'config',
+  'configurations',
+  'constants',
+  'context',
+  'contracts',
+  'data',
+  'entities',
+  'exceptions',
+  'extensions',
+  'helpers',
+  'hooks',
+  'interceptors',
+  'layouts',
+  'lib',
+  'middleware',
+  'middlewares',
+  'migrations',
+  'models',
+  'repositories',
+  'routes',
+  'schemas',
+  'services',
+  'specifications',
+  'stores',
+  'styles',
+  'test',
+  'tests',
+  'types',
+  'utils',
+  'utilities',
+  'validation',
+  'valueobjects',
+  'value-objects'
+]
+const defaultFrontendClassifiers = [
+  { contains: '/routes/', type: 'route', layer: 'ui-route' },
+  { contains: '/pages/', type: 'page', layer: 'ui-page' },
+  { contains: '/hooks/', type: 'hook', layer: 'ui-component-logic' },
+  { contains: '/services/', type: 'service', layer: 'front-service' },
+  { contains: '/repositories/', type: 'repository', layer: 'front-repository' },
+  { contains: '/config/', type: 'config', layer: 'config' },
+  { contains: '/stores/', type: 'auxiliary', layer: 'auxiliary' },
+  { contains: '/types/', type: 'auxiliary', layer: 'auxiliary' },
+  { contains: '/schemas/', type: 'config', layer: 'config' },
+  { contains: '/utils/', type: 'auxiliary', layer: 'auxiliary' },
+  { contains: '/lib/', type: 'auxiliary', layer: 'auxiliary' }
+]
+const defaultBackendClassifiers = [
+  { contains: '/Controllers/', type: 'controller', layer: 'api-controller' },
+  { contains: '/Queries/', type: 'query', layer: 'application-boundary' },
+  { contains: '/Commands/', type: 'command', layer: 'application-boundary' },
+  { contains: '/Handlers/', type: 'handler', layer: 'application-boundary' },
+  { contains: '/DTOs/', type: 'dto', layer: 'hidden-dto' },
+  { contains: '/Repositories/', type: 'auxiliary', layer: 'auxiliary' },
+  { contains: '/Configurations/Entities/', type: 'auxiliary', layer: 'auxiliary' },
+  { contains: '/Data/Context/', type: 'auxiliary', layer: 'auxiliary' },
+  { contains: '/Entities/', type: 'entity', layer: 'domain' }
+]
+
 function findLocalProjectMapPath(cwd = process.cwd()) {
   try {
     const files = fs.readdirSync(cwd)
@@ -80,7 +144,7 @@ export function normalizeProjectMap(projectMap, configPath = null) {
     project: {
       name: project.name ?? 'Code Map',
       graphOutput: project.graphOutput ?? 'graph.json',
-      runtimeLinks: project.runtimeLinks ?? 'runtime-links.json'
+      ...(project.runtimeLinks ? { runtimeLinks: project.runtimeLinks } : {})
     },
     sourceRoots: {
       frontend: sourceRoots.frontend,
@@ -104,16 +168,16 @@ export function normalizeProjectMap(projectMap, configPath = null) {
       ],
       ...(projectMap.templates ?? {})
     },
-    ignoredDirs: projectMap.ignoredDirs ?? ['node_modules', 'dist', 'build', 'coverage', 'bin', 'obj', '.git'],
+    ignoredDirs: projectMap.ignoredDirs ?? defaultIgnoredDirs,
     imports: {
       aliases: projectMap.imports?.aliases ?? []
     },
     modules: {
       shared: 'shared',
       labels: {},
-      utilityControllers: [],
-      bootstrapStems: [],
-      infrastructureFolders: [],
+      utilityControllers: ['version', 'health', 'status', 'probe'],
+      bootstrapStems: ['program', 'startup', 'dependencyinjection', 'servicecollectionextensions'],
+      infrastructureFolders: defaultInfrastructureFolders,
       ...projectMap.modules
     },
     layers: projectMap.layers ?? [],
@@ -122,9 +186,9 @@ export function normalizeProjectMap(projectMap, configPath = null) {
       colors: projectMap.types?.colors ?? {}
     },
     frontend: {
-      classifiers: [],
+      classifiers: defaultFrontendClassifiers,
       entryPoints: [],
-      coverableTypes: [],
+      coverableTypes: ['route', 'page', 'main-component', 'component', 'subcomponent', 'hook', 'service', 'repository'],
       componentMainNamePattern: 'Main$|Main[A-Z]|View$|Container$|Content$',
       featureFolderPattern: '/features/{module}/',
       ...projectMap.frontend
@@ -135,7 +199,7 @@ export function normalizeProjectMap(projectMap, configPath = null) {
       ...projectMap.rules
     },
     backend: {
-      classifiers: [],
+      classifiers: defaultBackendClassifiers,
       entryPointSuffixes: ['/Program.cs'],
       dtoPathFragment: '/DTOs/',
       controllerPathFragment: '/Controllers/',
@@ -157,8 +221,8 @@ export function validateProjectMap(projectMap, configPath = defaultProjectMapPat
   if (!Number.isInteger(projectMap?.schemaVersion)) errors.push('schemaVersion must be an integer.')
   if (!projectMap?.project?.name) errors.push('project.name is required.')
   if (!projectMap?.sourceRoots?.frontend) errors.push('sourceRoots.frontend is required.')
-  if (!Array.isArray(projectMap?.layers) || projectMap.layers.length === 0) errors.push('layers must contain at least one layer.')
-  if (!Array.isArray(projectMap?.imports?.aliases)) errors.push('imports.aliases must be an array.')
+  if (projectMap?.layers !== undefined && (!Array.isArray(projectMap.layers) || projectMap.layers.length === 0)) errors.push('layers must contain at least one layer when provided.')
+  if (projectMap?.imports?.aliases !== undefined && !Array.isArray(projectMap.imports.aliases)) errors.push('imports.aliases must be an array.')
   if (errors.length > 0) {
     throw new Error(`Invalid project map ${toRepoPath(configPath)}:\n${errors.map(error => `- ${error}`).join('\n')}`)
   }

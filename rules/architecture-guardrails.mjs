@@ -17,7 +17,7 @@ const ORCHESTRATION_SIGNALS = [
 export const ARCHITECTURE_RULES = [
   {
     id: 'framework.react.component-folder-entry',
-    legacyIds: ['frontend.component-folder-entry', 'repo.halley.component-folder-entry'],
+    legacyIds: ['frontend.component-folder-entry'],
     defaultEnabled: true,
     meta: {
       severity: 'warning',
@@ -40,7 +40,7 @@ export const ARCHITECTURE_RULES = [
   },
   {
     id: 'architecture.mvvm.thin-view-entry',
-    legacyIds: ['frontend.main-no-orchestration', 'repo.halley.main-no-orchestration'],
+    legacyIds: ['frontend.main-no-orchestration'],
     defaultEnabled: true,
     meta: {
       severity: 'error',
@@ -66,7 +66,6 @@ export const ARCHITECTURE_RULES = [
   },
   {
     id: 'architecture.feature-sliced.no-cross-feature-internals',
-    legacyIds: ['repo.halley.feature-boundaries'],
     defaultEnabled: true,
     meta: {
       severity: 'warning',
@@ -91,7 +90,6 @@ export const ARCHITECTURE_RULES = [
   },
   {
     id: 'architecture.mvvm.viewmodel-hook-naming',
-    legacyIds: ['repo.halley.hook-viewmodel-naming'],
     defaultEnabled: true,
     meta: {
       severity: 'warning',
@@ -118,7 +116,6 @@ export const ARCHITECTURE_RULES = [
   },
   {
     id: 'architecture.layered.no-ui-imports-in-data-adapters',
-    legacyIds: ['repo.halley.service-repository-no-ui-imports'],
     defaultEnabled: true,
     meta: {
       severity: 'error',
@@ -141,7 +138,6 @@ export const ARCHITECTURE_RULES = [
   },
   {
     id: 'architecture.mvc.thin-controller',
-    legacyIds: ['repo.halley.controller-thin'],
     defaultEnabled: true,
     meta: {
       severity: 'warning',
@@ -170,7 +166,6 @@ export const ARCHITECTURE_RULES = [
   },
   {
     id: 'architecture.clean-architecture.layer-boundaries',
-    legacyIds: ['repo.halley.backend-layer-boundaries'],
     defaultEnabled: true,
     meta: {
       severity: 'error',

@@ -420,8 +420,7 @@ export function detectProject(repoRoot) {
 
   return {
     name,
-    graphOutput: 'graph.json',
-    runtimeLinks: 'runtime-links.json'
+    graphOutput: 'graph.json'
   }
 }
 

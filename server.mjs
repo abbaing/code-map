@@ -12,7 +12,7 @@ const repoRoot = process.cwd()
 const viewerRoot = path.join(__dirname, 'viewer')
 const indexPath = path.join(viewerRoot, 'viewer.html')
 
-const port = Number(process.env.CODE_MAP_PORT) || 4179
+const port = Number(process.env.CODE_MAP_PORT) || 1133
 
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
