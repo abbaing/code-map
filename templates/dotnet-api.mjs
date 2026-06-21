@@ -1,4 +1,4 @@
-import { scanBackFiles, scanControllers, scanRequestHandlers, initBackFileIndex } from '../scan-back.mjs'
+import { scanBackFiles, scanControllers, scanRequestDispatches, scanRequestHandlers, initBackFileIndex } from '../scan-back.mjs'
 import { isBackTestFile } from '../scan-utils.mjs'
 
 export const dotnetApiTemplate = {
@@ -37,6 +37,7 @@ export const dotnetApiTemplate = {
       { id: 'dotnet.index', run: context => initBackFileIndex(context.files.allBackFiles) },
       { id: 'dotnet.files', run: context => scanBackFiles(context.graph, context.files.backFiles) },
       { id: 'dotnet.controllers', assign: 'controllerEndpoints', run: context => scanControllers(context.graph, context.controllerFiles()) },
+      { id: 'dotnet.dispatches', run: context => scanRequestDispatches(context.graph, context.files.backFiles) },
       { id: 'dotnet.handlers', run: context => scanRequestHandlers(context.graph, context.files.backFiles) }
     ]
   }

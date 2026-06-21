@@ -51,6 +51,30 @@ for (const ruleId of [
   assert.equal(architectureRules.has(ruleId), true, `architecture fixture should emit ${ruleId}`)
 }
 
+const architectureNodes = new Map(architectureGraph.nodes.map(node => [node.label, node]))
+const architectureOrphans = new Set(architectureGraph.orphans.map(orphan => orphan.label))
+
+assert.equal(
+  ['command', 'query'].includes(architectureNodes.get('ICommand.cs')?.type),
+  false,
+  'marker interfaces must not be classified as request nodes'
+)
+assert.equal(
+  architectureNodes.get('CreateAccountCommand')?.type,
+  'command',
+  'commands under /Commands/ should be classified as command nodes'
+)
+assert.equal(
+  architectureOrphans.has('CreateAccountCommand'),
+  false,
+  'a [FromBody] dispatched command must receive a sends edge from its controller'
+)
+assert.equal(
+  architectureOrphans.has('NotifyAccountCommand'),
+  false,
+  'a command dispatched from an application handler must receive a sends edge'
+)
+
 const originalCwd = process.cwd()
 const originalConfigEnv = process.env.CODE_MAP_CONFIG
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-map-test-'))

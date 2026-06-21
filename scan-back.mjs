@@ -17,7 +17,10 @@ export function findBackFileByName(fileName) {
 export function scanBackFiles(graph, files) {
   for (const file of files) {
     const repoPath = toRepoPath(file)
-    const [type, layer] = classifyBack(repoPath)
+    let [type, layer] = classifyBack(repoPath)
+    if ((type === 'command' || type === 'query') && isMarkerInterfaceFile(file)) {
+      [type, layer] = ['auxiliary', 'auxiliary']
+    }
     graph.addNode(`file:${repoPath}`, {
       label: displayLabel(repoPath),
       type,
@@ -26,6 +29,13 @@ export function scanBackFiles(graph, files) {
       path: repoPath
     })
   }
+}
+
+function isMarkerInterfaceFile(file) {
+  const stem = path.basename(file, '.cs')
+  const looksLikeInterface = /^I[A-Z]/.test(stem)
+  if (!looksLikeInterface) return false
+  return new RegExp(`\\binterface\\s+${escapeRegExp(stem)}\\b`).test(readText(file))
 }
 
 export function scanControllers(graph, files) {
@@ -60,22 +70,54 @@ export function scanControllers(graph, files) {
       }
     }
 
-    for (const match of content.matchAll(/new\s+([A-Z]\w+(?:Query|Command))\b/g)) {
-      const requestName = match[1]
-      const requestPath = findBackFileByName(`${requestName}.cs`)
-      const target = requestPath ? `file:${toRepoPath(requestPath)}` : `request:${requestName}`
-      graph.addNode(target, {
-        label: requestName,
-        type: requestName.endsWith('Query') ? 'query' : 'command',
-        layer: 'application-boundary',
-        module,
-        path: requestPath ? toRepoPath(requestPath) : undefined
-      })
-      graph.addEdge(id, target, 'sends', { confidence: 'high' })
+    for (const requestName of collectDispatchedRequests(content)) {
+      linkRequest(graph, id, requestName, module, 'high')
     }
   }
 
   return endpoints
+}
+
+function collectDispatchedRequests(content) {
+  const requests = new Set()
+  for (const match of content.matchAll(/new\s+([A-Z]\w+(?:Query|Command))\b/g)) {
+    requests.add(match[1])
+  }
+  for (const match of content.matchAll(/(?:\[From(?:Body|Query|Route|Form)\][^,()]*?\b|\(\s*|,\s*)([A-Z]\w+(?:Query|Command))\s+\w+/g)) {
+    requests.add(match[1])
+  }
+  return requests
+}
+
+function linkRequest(graph, sourceId, requestName, module, confidence) {
+  const requestPath = findBackFileByName(`${requestName}.cs`)
+  const target = requestPath ? `file:${toRepoPath(requestPath)}` : `request:${requestName}`
+  graph.addNode(target, {
+    label: requestName,
+    type: requestName.endsWith('Query') ? 'query' : 'command',
+    layer: 'application-boundary',
+    module,
+    path: requestPath ? toRepoPath(requestPath) : undefined
+  })
+  graph.addEdge(sourceId, target, 'sends', { confidence })
+}
+
+export function scanRequestDispatches(graph, files) {
+  const controllerFragment = getProjectMap().backend?.controllerPathFragment ?? '/Controllers/'
+  for (const file of files) {
+    const repoPath = toRepoPath(file)
+    if (repoPath.includes(controllerFragment)) continue
+    const id = `file:${repoPath}`
+    if (!graph.hasNode(id)) continue
+    const module = featureFromRepoPath(repoPath)
+    const content = readText(file)
+    const ownRequest = path.basename(file, '.cs').replace(/Handler$/, '')
+    for (const match of content.matchAll(/new\s+([A-Z]\w+(?:Query|Command))\b/g)) {
+      const requestName = match[1]
+      if (requestName === ownRequest) continue
+      linkRequest(graph, id, requestName, module, 'medium')
+    }
+  }
 }
 
 export function scanRequestHandlers(graph, files) {
