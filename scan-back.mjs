@@ -7,11 +7,23 @@ import { addEndpoint, normalizeEndpoint } from './endpoints.mjs'
 let backFilesByName = new Map()
 
 export function initBackFileIndex(allBackFiles) {
-  backFilesByName = new Map(allBackFiles.map(file => [path.basename(file).toLowerCase(), file]))
+  backFilesByName = new Map()
+  for (const file of allBackFiles) {
+    const key = path.basename(file).toLowerCase()
+    const bucket = backFilesByName.get(key)
+    if (bucket) bucket.push(file)
+    else backFilesByName.set(key, [file])
+  }
 }
 
-export function findBackFileByName(fileName) {
-  return backFilesByName.get(fileName.toLowerCase())
+export function findBackFileByName(fileName, preferModule) {
+  const bucket = backFilesByName.get(fileName.toLowerCase())
+  if (!bucket) return undefined
+  if (preferModule) {
+    const sameModule = bucket.find(file => featureFromRepoPath(toRepoPath(file)) === preferModule)
+    if (sameModule) return sameModule
+  }
+  return bucket[0]
 }
 
 export function scanBackFiles(graph, files) {
@@ -90,7 +102,7 @@ function collectDispatchedRequests(content) {
 }
 
 function linkRequest(graph, sourceId, requestName, module, confidence) {
-  const requestPath = findBackFileByName(`${requestName}.cs`)
+  const requestPath = findBackFileByName(`${requestName}.cs`, module)
   const target = requestPath ? `file:${toRepoPath(requestPath)}` : `request:${requestName}`
   graph.addNode(target, {
     label: requestName,

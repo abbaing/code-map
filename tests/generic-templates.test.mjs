@@ -2,31 +2,126 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { detect, detectSummary } from '../detect.mjs'
 import { getConfigPathFromArgs, loadProjectMap } from '../config.mjs'
 import { writeGraph } from '../scan.mjs'
+import { architectureFixture, createFixtureTree, typescriptFixture } from './fixtures.mjs'
 
-const testDir = path.dirname(fileURLToPath(import.meta.url))
-const packageRoot = path.resolve(testDir, '..')
+const fixtureRoot = createFixtureTree(typescriptFixture, architectureFixture)
 
-function scanTypeScriptFixture(name) {
-  const configPath = path.join(packageRoot, 'fixtures/generic-templates/typescript/project-map.json')
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-  config.project.graphOutput = path.join(process.env.TEMP ?? process.env.TMP ?? '.', `${name}.graph.json`)
-  config.project.runtimeLinks = path.join(packageRoot, 'runtime-links.json')
-  config.sourceRoots.frontend = path.join(packageRoot, 'fixtures/generic-templates/typescript/front/src')
-  delete config.sourceRoots.backend
-  const outputPath = path.join(process.env.TEMP ?? process.env.TMP ?? '.', `${name}.graph.json`)
-  loadProjectMap(config)
-  return writeGraph(outputPath)
+function repoRelative(absolutePath) {
+  return path.relative(process.cwd(), absolutePath).replaceAll(path.sep, '/')
 }
 
-function scanPackageFixture(relativeConfigPath, name) {
-  const configPath = path.join(packageRoot, relativeConfigPath)
-  const outputPath = path.join(process.env.TEMP ?? process.env.TMP ?? '.', `${name}.graph.json`)
-  loadProjectMap(configPath)
-  return writeGraph(outputPath)
+function escapeForRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function scanTypeScriptFixture(name) {
+  const frontendRoot = path.join(fixtureRoot, 'typescript/front/src')
+  loadProjectMap({
+    schemaVersion: 1,
+    project: {
+      name: 'TypeScript Fixture',
+      graphOutput: path.join(fixtureRoot, `${name}.graph.json`)
+    },
+    sourceRoots: { frontend: frontendRoot },
+    templates: { enabled: ['filesystem', 'typescript', 'quality'] },
+    imports: { aliases: [] },
+    modules: { shared: 'shared', labels: {} },
+    layers: [{ id: 'auxiliary', label: 'Auxiliary' }],
+    frontend: { entryPoints: [], classifiers: [], coverableTypes: [] },
+    rules: { enabled: [], options: {}, suppressions: [] },
+    backend: { classifiers: [] }
+  })
+  return writeGraph(path.join(fixtureRoot, `${name}.graph.json`))
+}
+
+function scanArchitectureFixture(name) {
+  const frontendRoot = path.join(fixtureRoot, 'architecture/front/src')
+  const backendRoot = path.join(fixtureRoot, 'architecture/back')
+  const frontendPattern = escapeForRegExp(repoRelative(frontendRoot))
+  const backendPattern = escapeForRegExp(repoRelative(backendRoot))
+  loadProjectMap({
+    schemaVersion: 1,
+    project: {
+      name: 'Architecture Fixture',
+      graphOutput: path.join(fixtureRoot, `${name}.graph.json`)
+    },
+    sourceRoots: { frontend: frontendRoot, backend: backendRoot },
+    templates: {
+      enabled: [
+        'filesystem',
+        'typescript',
+        'react',
+        'architecture.feature-sliced',
+        'architecture.mvvm',
+        'dotnet-api',
+        'architecture.mvc',
+        'architecture.clean-architecture',
+        'quality'
+      ]
+    },
+    imports: { aliases: [{ prefix: '@/', path: frontendRoot }] },
+    modules: {
+      shared: 'shared',
+      frontendFeaturePattern: `^${frontendPattern}/features/([^/]+)`,
+      backendProjectFolderPattern: `^${backendPattern}/[^/]+/([^/]+)`,
+      backendControllerPattern: `^${backendPattern}/[^/]+/Controllers/(.+?)Controller\\.cs$`,
+      backendEntityDomainPattern: `^${backendPattern}/[^/]+/Entities/([^/]+)`,
+      labels: {}
+    },
+    layers: [
+      { id: 'ui-component-logic', label: 'Components' },
+      { id: 'ui-main-component', label: 'Main Components' },
+      { id: 'front-repository', label: 'Repositories' },
+      { id: 'api-controller', label: 'Controllers' },
+      { id: 'domain', label: 'Domain' }
+    ],
+    frontend: {
+      entryPoints: [],
+      featureFolderPattern: '/features/{module}/',
+      classifiers: [{ contains: '/repositories/', type: 'repository', layer: 'front-repository' }],
+      coverableTypes: []
+    },
+    rules: {
+      enabled: [
+        'framework.react.component-folder-entry',
+        'architecture.mvvm.thin-view-entry',
+        'architecture.feature-sliced.no-cross-feature-internals',
+        'architecture.mvvm.viewmodel-hook-naming',
+        'architecture.layered.no-ui-imports-in-data-adapters',
+        'architecture.mvc.thin-controller',
+        'architecture.clean-architecture.layer-boundaries'
+      ],
+      options: {
+        'framework.react.component-folder-entry': {
+          includePatterns: [`^${frontendPattern}/features/[^/]+/components/`]
+        },
+        'architecture.clean-architecture.layer-boundaries': { namespacePrefix: 'Demo' }
+      },
+      suppressions: []
+    },
+    backend: {
+      entryPointSuffixes: ['/Program.cs'],
+      dtoPathFragment: '/DTOs/',
+      validatorPathFragment: '/Validators/',
+      mappingPathFragment: '/Mappings/',
+      controllerPathFragment: '/Controllers/',
+      handlerPathFragment: '/Handlers/',
+      repositoryPathFragment: '/Repositories/',
+      entityConfigurationPathFragment: '/Configurations/Entities/',
+      dataContextPathFragment: '/Data/Context/',
+      entityPathFragment: '/Entities/',
+      classifiers: [
+        { contains: '/Controllers/', type: 'controller', layer: 'api-controller' },
+        { contains: '/Queries/', type: 'query', layer: 'application-boundary' },
+        { contains: '/Commands/', type: 'command', layer: 'application-boundary' },
+        { contains: '/Entities/', type: 'entity', layer: 'domain' }
+      ]
+    }
+  })
+  return writeGraph(path.join(fixtureRoot, `${name}.graph.json`))
 }
 
 const typescriptGraph = scanTypeScriptFixture('typescript-template-fixture')
@@ -36,7 +131,7 @@ assert.equal(typeScriptRules.has('technology.typescript.relative-imports'), true
 assert.equal(typeScriptRules.has('technology.typescript.no-any'), true, 'typescript template should detect any')
 assert.equal([...typeScriptRules].every(ruleId => ruleId.startsWith('technology.') || ruleId.startsWith('framework.')), true, 'generic templates must emit generic rule ids')
 
-const architectureGraph = scanPackageFixture('fixtures/generic-templates/architecture/project-map.json', 'architecture-template-fixture')
+const architectureGraph = scanArchitectureFixture('architecture-template-fixture')
 const architectureRules = new Set(architectureGraph.findings.map(finding => finding.ruleId))
 
 for (const ruleId of [
@@ -74,6 +169,20 @@ assert.equal(
   false,
   'a command dispatched from an application handler must receive a sends edge'
 )
+
+const orphanPaths = new Set(architectureGraph.orphans.map(orphan => orphan.path))
+const duplicateRequestPaths = architectureGraph.nodes
+  .filter(node => node.path?.endsWith('/Queries/GetStatusQuery.cs'))
+  .map(node => node.path)
+
+assert.equal(duplicateRequestPaths.length, 2, 'fixture should expose the same request name in two modules')
+for (const requestPath of duplicateRequestPaths) {
+  assert.equal(
+    orphanPaths.has(requestPath),
+    false,
+    `same-named request in distinct modules must each be linked to its own dispatcher (${requestPath})`
+  )
+}
 
 const originalCwd = process.cwd()
 const originalConfigEnv = process.env.CODE_MAP_CONFIG
@@ -148,5 +257,8 @@ loadProjectMap({
 const templateDefaultsGraph = writeGraph(path.join(tempRoot, 'template-defaults.graph.json'))
 assert.equal(templateDefaultsGraph.projectMap.layers.some(layer => layer.id === 'ui-route'), true, 'template layers should be exported without config layers')
 assert.equal(templateDefaultsGraph.projectMap.types.labels.component, 'Component', 'template type labels should be exported without config types')
+
+fs.rmSync(fixtureRoot, { recursive: true, force: true })
+fs.rmSync(tempRoot, { recursive: true, force: true })
 
 console.log('generic template fixtures passed')

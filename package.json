@@ -41,7 +41,6 @@
     "rules/",
     "templates/",
     "tests/",
-    "fixtures/",
     "viewer/",
     "schemas/",
     "presets/"
