@@ -27,10 +27,15 @@ public class AccountsCommandController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateAccountCommand command)
     {
+        // var ghost = await _mediator.Send(new GhostCommand());
         var result = await _mediator.Send(command);
         return Ok(result);
     }
 }
+`,
+  'architecture/back/Demo.Application/Accounts/Commands/GhostCommand.cs': `namespace Demo.Application.Accounts.Commands;
+
+public record GhostCommand() : ICommand;
 `,
   'architecture/back/Demo.API/Controllers/AccountsController.cs': `using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -138,6 +143,7 @@ export function ReportsMain() {
 }
 `,
   'architecture/front/src/features/reports/hooks/useReports.ts': `import { useProspecting } from '@/features/prospecting/hooks/useProspecting'
+// import { Widget } from '@/features/reports/components/Widget'
 
 export function useReports() {
   return useProspecting()

@@ -1,4 +1,4 @@
-import { toRepoPath, displayLabel, readText } from './scan-utils.mjs'
+import { toRepoPath, displayLabel, importsOf, readText, stripTsComments } from './scan-utils.mjs'
 import { classifyFront, featureFromRepoPath } from './classify.mjs'
 import { addEndpoint, extractFrontendEndpoints } from './endpoints.mjs'
 import { resolveTsImport } from './resolve.mjs'
@@ -49,16 +49,15 @@ export function scanFront(graph, files) {
         : {}
     })
 
-    const imports = content.matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]/g)
-    for (const match of imports) {
-      const resolved = resolveTsImport(file, match[1])
+    for (const { specifier } of importsOf(content)) {
+      const resolved = resolveTsImport(file, specifier)
       if (resolved) {
         const target = `file:${toRepoPath(resolved)}`
         graph.addEdge(id, target, 'imports', { confidence: 'high' })
       }
     }
 
-    const dynamicImports = content.matchAll(/import\(\s*['"]([^'"]+)['"]\s*\)/g)
+    const dynamicImports = stripTsComments(content).matchAll(/import\(\s*['"]([^'"]+)['"]\s*\)/g)
     for (const match of dynamicImports) {
       const resolved = resolveTsImport(file, match[1])
       if (resolved) {

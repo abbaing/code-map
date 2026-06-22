@@ -34,6 +34,35 @@ export function readText(filePath) {
   return fs.readFileSync(filePath, 'utf8')
 }
 
+export function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+export function stripCSharpStringLiterals(content) {
+  return content
+    .replace(/\$?"""[\s\S]*?"""/g, '""')
+    .replace(/@(?:"(?:""|[^"])*")/g, '""')
+    .replace(/\$?"(?:\\.|[^"\\])*"/g, '""')
+    .replace(/'(?:\\.|[^'\\])'/g, "''")
+}
+
+export function stripCSharpComments(content) {
+  return content
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1')
+}
+
+export function stripTsComments(content) {
+  return content
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1')
+}
+
+export function importsOf(content) {
+  return [...stripTsComments(content).matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]/g)]
+    .map(match => ({ specifier: match[1], index: match.index ?? 0 }))
+}
+
 export function kebab(value) {
   return value
     .replace(/([a-z0-9])([A-Z])/g, '$1-$2')

@@ -5,16 +5,13 @@ import path from 'node:path'
 import { detect, detectSummary } from '../detect.mjs'
 import { getConfigPathFromArgs, loadProjectMap } from '../config.mjs'
 import { writeGraph } from '../scan.mjs'
+import { escapeRegExp } from '../scan-utils.mjs'
 import { architectureFixture, createFixtureTree, typescriptFixture } from './fixtures.mjs'
 
 const fixtureRoot = createFixtureTree(typescriptFixture, architectureFixture)
 
 function repoRelative(absolutePath) {
   return path.relative(process.cwd(), absolutePath).replaceAll(path.sep, '/')
-}
-
-function escapeForRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 function scanTypeScriptFixture(name) {
@@ -40,8 +37,8 @@ function scanTypeScriptFixture(name) {
 function scanArchitectureFixture(name) {
   const frontendRoot = path.join(fixtureRoot, 'architecture/front/src')
   const backendRoot = path.join(fixtureRoot, 'architecture/back')
-  const frontendPattern = escapeForRegExp(repoRelative(frontendRoot))
-  const backendPattern = escapeForRegExp(repoRelative(backendRoot))
+  const frontendPattern = escapeRegExp(repoRelative(frontendRoot))
+  const backendPattern = escapeRegExp(repoRelative(backendRoot))
   loadProjectMap({
     schemaVersion: 1,
     project: {
@@ -183,6 +180,18 @@ for (const requestPath of duplicateRequestPaths) {
     `same-named request in distinct modules must each be linked to its own dispatcher (${requestPath})`
   )
 }
+
+assert.equal(
+  architectureOrphans.has('GhostCommand.cs'),
+  true,
+  'a command only referenced inside a comment must not receive a sends edge'
+)
+
+const commentedImportEdge = architectureGraph.edges.find(edge =>
+  edge.type === 'imports'
+  && edge.from.endsWith('/reports/hooks/useReports.ts')
+  && edge.to.endsWith('/reports/components/Widget.tsx'))
+assert.equal(commentedImportEdge, undefined, 'a commented-out import must not create an imports edge')
 
 const originalCwd = process.cwd()
 const originalConfigEnv = process.env.CODE_MAP_CONFIG

@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { toRepoPath, displayLabel, readText } from './scan-utils.mjs'
+import { toRepoPath, displayLabel, escapeRegExp, readText, stripCSharpComments, stripCSharpStringLiterals } from './scan-utils.mjs'
 import { getProjectMap } from './config.mjs'
 import { classifyBack, featureFromRepoPath } from './classify.mjs'
 import { addEndpoint, normalizeEndpoint } from './endpoints.mjs'
@@ -91,11 +91,12 @@ export function scanControllers(graph, files) {
 }
 
 function collectDispatchedRequests(content) {
+  const code = stripCSharpComments(stripCSharpStringLiterals(content))
   const requests = new Set()
-  for (const match of content.matchAll(/new\s+([A-Z]\w+(?:Query|Command))\b/g)) {
+  for (const match of code.matchAll(/new\s+([A-Z]\w+(?:Query|Command))\b/g)) {
     requests.add(match[1])
   }
-  for (const match of content.matchAll(/(?:\[From(?:Body|Query|Route|Form)\][^,()]*?\b|\(\s*|,\s*)([A-Z]\w+(?:Query|Command))\s+\w+/g)) {
+  for (const match of code.matchAll(/(?:\[From(?:Body|Query|Route|Form)\][^,()]*?\b|\(\s*|,\s*)([A-Z]\w+(?:Query|Command))\s+\w+/g)) {
     requests.add(match[1])
   }
   return requests
@@ -122,7 +123,7 @@ export function scanRequestDispatches(graph, files) {
     const id = `file:${repoPath}`
     if (!graph.hasNode(id)) continue
     const module = featureFromRepoPath(repoPath)
-    const content = readText(file)
+    const content = stripCSharpComments(stripCSharpStringLiterals(readText(file)))
     const ownRequest = path.basename(file, '.cs').replace(/Handler$/, '')
     for (const match of content.matchAll(/new\s+([A-Z]\w+(?:Query|Command))\b/g)) {
       const requestName = match[1]
@@ -280,18 +281,6 @@ function detectEntityUsage(content, entity, dbSet) {
     { pattern: new RegExp(`\\b${escapedEntity}\\b`), reason: `entity ${entity}`, confidence: 'medium' }
   ]
   return checks.find(check => check.pattern?.test(content)) ?? null
-}
-
-function stripCSharpStringLiterals(content) {
-  return content
-    .replace(/\$?"""[\s\S]*?"""/g, '""')
-    .replace(/@(?:"(?:""|[^"])*")/g, '""')
-    .replace(/\$?"(?:\\.|[^"\\])*"/g, '""')
-    .replace(/'(?:\\.|[^'\\])'/g, "''")
-}
-
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 function parseEntityProperties(content) {

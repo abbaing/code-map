@@ -1,4 +1,4 @@
-import { readText, toRepoPath } from '../scan-utils.mjs'
+import { importsOf, readText, toRepoPath } from '../scan-utils.mjs'
 import { classifyFront } from '../classify.mjs'
 
 export function runFileRules(files, rules, defaultRules, repoRules, classify = classifySource) {
@@ -53,10 +53,7 @@ export function lineOfIndex(content, index = 0) {
   return content.slice(0, index).split(/\r?\n/).length
 }
 
-export function importsOf(content) {
-  return [...content.matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]/g)]
-    .map(match => ({ specifier: match[1], index: match.index ?? 0 }))
-}
+export { importsOf }
 
 function classifySource(repoPath) {
   const [type, layer] = classifyFront(repoPath)

@@ -1,4 +1,5 @@
 import { getProjectMap } from '../config.mjs'
+import { escapeRegExp } from '../scan-utils.mjs'
 import { addFinding } from './findings.mjs'
 import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from './rule-runner.mjs'
 
@@ -292,6 +293,3 @@ function matchesAny(value, patterns) {
   return patterns.some(pattern => new RegExp(pattern).test(value))
 }
 
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
