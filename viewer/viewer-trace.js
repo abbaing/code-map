@@ -10,6 +10,8 @@ const TRACE_EDGE_TYPES = new Set([
   'maps-to-table'
 ])
 
+const SYSTEM_MODULE_EDGE_TYPES = new Set(['imports', 'lazy-imports', 'calls-api', 'sends', 'handled-by', 'depends-on'])
+
 const TRACE_STAGE_DEFINITIONS = [
   { id: 'route-root', label: 'Route component' },
   { id: 'route', label: 'Feature route' },
@@ -136,6 +138,58 @@ function buildModuleTraceContext(module) {
     complete: persistence.size > 0,
     showAll: true
   }
+}
+
+function buildSystemModuleGraph() {
+  if (!state.graph) return { nodes: [], edges: [] }
+  const sourceNodes = state.filteredNodes ?? state.graph.nodes
+  const sourceIds = new Set(sourceNodes.map(node => node.id))
+  const modules = new Map()
+  for (const node of sourceNodes) {
+    const module = node.module || 'shared'
+    const summary = modules.get(module) ?? {
+      id: `module:${module}`,
+      label: typeof formatModule === 'function' ? formatModule(module) : module,
+      type: 'module',
+      layer: 'module-overview',
+      module,
+      meta: { nodeCount: 0, frontendCount: 0, backendCount: 0, findingCount: 0, externalRelations: 0 }
+    }
+    summary.meta.nodeCount++
+    if (node.path?.startsWith('front/')) summary.meta.frontendCount++
+    if (node.path?.startsWith('back/')) summary.meta.backendCount++
+    summary.meta.findingCount += node.meta?.findings?.length ?? 0
+    modules.set(module, summary)
+  }
+
+  const nodeById = new Map(state.graph.nodes.map(node => [node.id, node]))
+  const aggregated = new Map()
+  for (const edge of state.graph.edges) {
+    if (!sourceIds.has(edge.from) || !sourceIds.has(edge.to) || !SYSTEM_MODULE_EDGE_TYPES.has(edge.type) || !traceEdgeAllowed(edge, nodeById)) continue
+    const fromModule = nodeById.get(edge.from)?.module || 'shared'
+    const toModule = nodeById.get(edge.to)?.module || 'shared'
+    if (fromModule === toModule || !modules.has(fromModule) || !modules.has(toModule)) continue
+    if ((fromModule === 'shared' || toModule === 'shared') && ['imports', 'depends-on'].includes(edge.type)) continue
+    const key = `${fromModule}::${toModule}`
+    const item = aggregated.get(key) ?? {
+      id: `module-edge:${key}`,
+      from: `module:${fromModule}`,
+      to: `module:${toModule}`,
+      type: 'module-dependency',
+      count: 0,
+      relationTypes: new Set()
+    }
+    item.count++
+    item.relationTypes.add(edge.type)
+    aggregated.set(key, item)
+  }
+
+  const edges = [...aggregated.values()].map(edge => ({ ...edge, relationTypes: [...edge.relationTypes].sort() }))
+  for (const edge of edges) {
+    modules.get(edge.from.slice('module:'.length)).meta.externalRelations++
+    modules.get(edge.to.slice('module:'.length)).meta.externalRelations++
+  }
+  return { nodes: [...modules.values()], edges }
 }
 
 function moduleTraceNodeIds(module) {

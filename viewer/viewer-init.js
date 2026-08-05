@@ -85,6 +85,12 @@ function bindNodeClick(svg) {
       return
     }
     const id = nodeEl.dataset.id
+    if (nodeEl.dataset.module) {
+      clearTimeout(clickTimer)
+      lastClickedId = null
+      drillIntoModule(nodeEl.dataset.module)
+      return
+    }
     if (id === lastClickedId) {
       clearTimeout(clickTimer)
       lastClickedId = null

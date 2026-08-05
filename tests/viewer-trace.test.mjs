@@ -31,7 +31,7 @@ const relations = [
 ]
 const edges = relations.map(([from, to, type, confidence]) => ({ id: `${from}:${type}:${to}`, from, to, type, confidence }))
 const context = vm.createContext({ state: { graph: { nodes, edges } } })
-const source = `${fs.readFileSync(new URL('../viewer/viewer-trace.js', import.meta.url), 'utf8')}\nglobalThis.traceApi = { buildTraceContext, buildModuleTraceContext };`
+const source = `${fs.readFileSync(new URL('../viewer/viewer-trace.js', import.meta.url), 'utf8')}\nglobalThis.traceApi = { buildTraceContext, buildModuleTraceContext, buildSystemModuleGraph };`
 vm.runInContext(source, context)
 
 const forward = context.traceApi.buildTraceContext('component', false)
@@ -79,6 +79,9 @@ const isolatedFallback = fallbackContext.traceApi.buildTraceContext('selected-fi
 assert.equal(isolatedFallback.complete, false, 'a component must not borrow persistence from another feature')
 assert.equal(isolatedFallback.nodeIds.has('other-route'), false)
 assert.equal(isolatedFallback.nodeIds.has('other-table'), false)
+const systemModules = fallbackContext.traceApi.buildSystemModuleGraph()
+assert.equal(systemModules.nodes.length, 3, 'the system graph should aggregate every visible module')
+assert.equal(systemModules.edges.length, 2, 'cross-module relations should be aggregated instead of truncated')
 
 const intentNodes = [
   { id: 'intent-route', label: 'UsersRoutes', type: 'route', module: 'users' },

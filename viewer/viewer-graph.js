@@ -5,6 +5,11 @@ function render() {
   const width = Math.max(vw, 900)
   const height = Math.max(vh, 700)
 
+  if (state.view === 'graph' && !state.activeModule && !state.selectedId) {
+    renderSystemModuleGraph(svg, width, height, vw, vh)
+    return
+  }
+
   const renderLimit = state.view === 'domain' ? DOMAIN_RENDER_LIMIT : NODE_RENDER_LIMIT
   state.trace = state.view === 'graph'
     ? state.selectedId
@@ -12,13 +17,14 @@ function render() {
       : buildModuleTraceContext(state.activeModule)
     : null
   const nodesToRender = nodesForRender(state.filteredNodes, renderLimit, state.trace)
-  const truncated = state.filteredNodes.length > renderLimit
+  const renderedIds = new Set(nodesToRender.map(node => node.id))
+  const truncated = state.filteredNodes.some(node => !renderedIds.has(node.id))
 
   if (truncated) {
     els.nodeLimitBanner.textContent = `Showing ${renderLimit} of ${state.filteredNodes.length} nodes. Use filters or drill into a module to see fewer.`
-    els.nodeLimitBanner.style.display = ''
+    els.nodeLimitBanner.classList.remove('hidden')
   } else {
-    els.nodeLimitBanner.style.display = 'none'
+    els.nodeLimitBanner.classList.add('hidden')
   }
 
   let layout = layoutNodes(nodesToRender, width, height)
@@ -36,6 +42,87 @@ function render() {
   } else {
     renderGraphView(svg, layout)
   }
+}
+
+function renderSystemModuleGraph(svg, width, height, viewportWidth, viewportHeight) {
+  const systemGraph = buildSystemModuleGraph()
+  const layout = layoutSystemModules(systemGraph.nodes, width, height)
+  const nodeById = new Map(layout.nodes.map(node => [node.id, node]))
+  const visibleEdges = systemGraph.edges.filter(edge => nodeById.has(edge.from) && nodeById.has(edge.to))
+  els.nodeLimitBanner.textContent = `System map · ${layout.nodes.length} modules · ${visibleEdges.length} module flows · Select a module for complete paths.`
+  els.nodeLimitBanner.classList.remove('hidden')
+  svg.style.width = '100%'
+  svg.style.height = '100%'
+  svg.setAttribute('viewBox', `${state.panX} ${state.panY} ${viewportWidth / state.zoom} ${viewportHeight / state.zoom}`)
+  els.zoomValue.textContent = `${Math.round(state.zoom * 100)}%`
+  svg.innerHTML = `
+    <defs>
+      <marker id="module-arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L7,3 z" fill="#94a3b8"></path>
+      </marker>
+    </defs>
+    <g class="module-overview-edges">
+      ${visibleEdges.map(edge => systemModuleEdgeSvg(edge, nodeById)).join('')}
+    </g>
+    <g class="module-overview-nodes">
+      ${layout.nodes.map(systemModuleNodeSvg).join('')}
+    </g>
+  `
+}
+
+function layoutSystemModules(nodes, width, height) {
+  const sorted = [...nodes].sort((a, b) => {
+    if (a.module === 'shared') return -1
+    if (b.module === 'shared') return 1
+    return b.meta.externalRelations - a.meta.externalRelations || a.label.localeCompare(b.label)
+  })
+  const columns = Math.min(5, Math.max(2, Math.ceil(Math.sqrt(sorted.length * 1.4))))
+  const cardWidth = 224
+  const cardHeight = 76
+  const columnGap = 88
+  const rowGap = 68
+  const left = 64
+  const top = 62
+  const positioned = sorted.map((node, index) => ({
+    ...node,
+    x: left + (index % columns) * (cardWidth + columnGap),
+    y: top + Math.floor(index / columns) * (cardHeight + rowGap),
+    width: cardWidth,
+    height: cardHeight
+  }))
+  const rows = Math.ceil(sorted.length / columns)
+  return {
+    nodes: positioned,
+    width: Math.max(width, left * 2 + columns * cardWidth + Math.max(0, columns - 1) * columnGap),
+    height: Math.max(height, top * 2 + rows * cardHeight + Math.max(0, rows - 1) * rowGap)
+  }
+}
+
+function systemModuleEdgeSvg(edge, nodeById) {
+  const from = nodeById.get(edge.from)
+  const to = nodeById.get(edge.to)
+  const x1 = from.x + from.width / 2
+  const y1 = from.y + from.height / 2
+  const x2 = to.x + to.width / 2
+  const y2 = to.y + to.height / 2
+  const curve = Math.max(28, Math.abs(x2 - x1) * 0.28)
+  const thickness = Math.min(2.5, 0.7 + Math.log2(edge.count + 1) * 0.35)
+  return `<path d="M ${x1} ${y1} C ${x1 + curve} ${y1}, ${x2 - curve} ${y2}, ${x2} ${y2}" fill="none" stroke="#94a3b8" stroke-width="${thickness}" stroke-opacity="0.2" marker-end="url(#module-arrow)"><title>${escapeHtml(`${edge.count} relations · ${edge.relationTypes.join(', ')}`)}</title></path>`
+}
+
+function systemModuleNodeSvg(node) {
+  const meta = node.meta
+  const accent = meta.frontendCount && meta.backendCount ? '#2563eb' : meta.frontendCount ? '#0f766e' : meta.backendCount ? '#7c3aed' : '#64748b'
+  const scope = meta.frontendCount && meta.backendCount ? 'Frontend + backend' : meta.frontendCount ? 'Frontend' : meta.backendCount ? 'Backend' : 'Shared support'
+  return `
+    <g class="node system-module-node" data-id="${escapeHtml(node.id)}" data-module="${escapeHtml(node.module)}" transform="translate(${node.x}, ${node.y})">
+      <rect width="${node.width}" height="${node.height}" rx="6"></rect>
+      <rect width="5" height="${node.height}" fill="${accent}" rx="5"></rect>
+      <text x="14" y="22">${escapeHtml(truncate(node.label, 27))}</text>
+      <text class="type" x="14" y="42">${escapeHtml(`${meta.nodeCount} components · ${meta.externalRelations} connections`)}</text>
+      <text class="type" x="14" y="60">${escapeHtml(scope)}${meta.findingCount ? ` · ${meta.findingCount} findings` : ''}</text>
+    </g>
+  `
 }
 
 function nodesForRender(filteredNodes, renderLimit, trace) {
