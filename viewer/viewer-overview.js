@@ -60,25 +60,25 @@ function moduleCardHtml(name, s) {
   const avgQ = s.qualityCount > 0 ? s.qualitySum / s.qualityCount : null
   const health = healthPill(avgQ)
   return `
-    <div class="module-card bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-blue-500 hover:shadow-md transition-shadow" data-module="${escapeHtml(name)}">
-      <div class="flex items-start justify-between gap-2">
-        <div>
-          <div class="font-semibold text-sm leading-tight">${escapeHtml(formatModule(name))}</div>
-          <div class="text-xs text-gray-500 mt-1">${s.nodes} component${s.nodes === 1 ? '' : 's'}</div>
-        </div>
-      </div>
-      <div class="mt-2 flex flex-wrap gap-1">
-        ${pillHtml(health.className, health.label, health.description)}
-        ${s.findings ? pillHtml('bg-red-50 text-red-700 border border-red-100', `${s.findings} finding${s.findings === 1 ? '' : 's'}`) : ''}
-      </div>
-    </div>
+    <button class="module-card" data-module="${escapeHtml(name)}">
+      <span class="module-name">
+        <strong>${escapeHtml(formatModule(name))}</strong>
+        <span>${escapeHtml(name)}</span>
+      </span>
+      <span class="module-cell">${pillHtml(health.className, health.label, health.description)}</span>
+      <span class="module-cell module-components">${s.nodes.toLocaleString()}</span>
+      <span class="module-cell module-findings ${s.findings ? 'text-red-700 font-semibold' : ''}">${s.findings.toLocaleString()}</span>
+      <span class="module-arrow" aria-hidden="true">›</span>
+    </button>
   `
 }
 
 function renderOverview() {
   const stats = buildModuleStats()
   const sorted = filterAndSortModuleStats(stats)
-  els.overviewScroll.innerHTML = sorted.map(([name, s]) => moduleCardHtml(name, s)).join('')
+  els.overviewScroll.innerHTML = sorted.length
+    ? sorted.map(([name, s]) => moduleCardHtml(name, s)).join('')
+    : '<div class="px-4 py-10 text-center text-sm text-gray-500">No modules match the current filters.</div>'
 }
 
 
@@ -149,9 +149,10 @@ function detailStat(label, value) {
 function drillIntoModule(moduleName) {
   state.activeModule = moduleName
   state.view = 'graph'
+  els.search.value = ''
   state.panX = 0
   state.panY = 0
-updateViewUI()
+  updateViewUI()
   applyFilters()
 }
 
@@ -169,4 +170,15 @@ function updateViewUI() {
   els.tabDomain.classList.toggle('active', isDomain)
   els.tabFindings.classList.toggle('active', isFindings)
   els.tabSettings.classList.toggle('active', isSettings)
+
+  const viewCopy = {
+    overview: ['Overview', 'Repository health and module inventory'],
+    graph: ['Graph', state.activeModule ? `Exploring ${formatModule(state.activeModule)}` : 'Dependencies between repository components'],
+    domain: ['Domain model', 'Entities and their structural relationships'],
+    findings: ['Findings', 'Architecture violations and maintainability risks'],
+    settings: ['Settings', 'Project labels, colors and active rules']
+  }
+  const [title, subtitle] = viewCopy[state.view] ?? viewCopy.overview
+  els.viewTitle.textContent = title
+  els.viewSubtitle.textContent = subtitle
 }

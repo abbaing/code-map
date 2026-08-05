@@ -7,217 +7,230 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/viewer.css" />
   </head>
-  <body class="bg-gray-100 text-gray-900 text-sm font-sans">
-    <div class="flex flex-col min-h-screen">
-
-      <!-- top bar -->
-      <header class="bg-white border-b border-gray-200 shrink-0">
-        <div class="flex items-center justify-between gap-4 px-4 py-2">
-          <!-- left: logo + title + pill -->
-          <div class="flex items-center gap-2">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-              <rect width="18" height="18" fill="#164e63" rx="4"/>
-              <rect x="1" y="7" width="5" height="4" fill="white" stroke="#93c5fd" stroke-width="0.6"/>
-              <rect x="12" y="2" width="5" height="4" fill="white" stroke="#93c5fd" stroke-width="0.6"/>
-              <rect x="12" y="12" width="5" height="4" fill="white" stroke="#93c5fd" stroke-width="0.6"/>
-              <line x1="6" y1="8.2" x2="12" y2="4.5"  stroke="#93c5fd" stroke-width="1"/>
-              <line x1="6" y1="9.8" x2="12" y2="13.5" stroke="#93c5fd" stroke-width="1"/>
+  <body>
+    <div class="app-shell">
+      <aside class="app-sidebar" aria-label="Primary navigation">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <rect x="2.5" y="7.5" width="5" height="5" rx="1" />
+              <rect x="12.5" y="2.5" width="5" height="5" rx="1" />
+              <rect x="12.5" y="12.5" width="5" height="5" rx="1" />
+              <path d="M7.5 9 12.5 5M7.5 11l5 4" />
             </svg>
-            <h1 class="text-base font-semibold leading-none">Code Map</h1>
-            <button id="metaPill" class="text-[11px] text-gray-400 border border-gray-200 rounded px-1.5 py-0.5 hover:border-gray-300 hover:text-gray-600 bg-transparent cursor-pointer leading-none">Latest report</button>
           </div>
-          <!-- right: actions dropdown -->
-          <div class="relative">
-            <button id="actionsBtn" class="btn">···</button>
-            <div id="actionsMenu" class="hidden absolute right-0 top-9 z-30 bg-white border border-gray-200 rounded-lg shadow-lg py-1 w-48">
-              <button id="refreshBtn" class="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50">Refresh map</button>
-              <label id="importLabel" class="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer block" for="importFile">Import graph</label>
-              <button id="exportBtn" class="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50">Export graph</button>
-              <input id="importFile" class="hidden" type="file" accept="application/json,.json" />
-            </div>
+          <div class="brand-copy">
+            <strong>Code Map</strong>
+            <span id="projectName">Architecture explorer</span>
           </div>
         </div>
 
-        <!-- sub-nav: tabs only -->
-        <div class="flex items-center px-4 border-t border-gray-100">
-          <button id="tabOverview"  class="nav-tab active">Modules</button>
-          <button id="tabGraph"     class="nav-tab">Graph</button>
-          <button id="tabDomain"    class="nav-tab">Domain</button>
-          <button id="tabFindings"  class="nav-tab">Findings</button>
-          <button id="tabSettings"  class="nav-tab">Settings</button>
-        </div>
-
-        <!-- stats popover -->
-        <div id="statsPopover" class="hidden absolute top-10 left-4 z-30 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-sm" style="min-width:220px"></div>
-      </header>
-
-      <!-- body -->
-      <div class="flex flex-1 min-h-0">
-
-        <!-- ── overview pane ── -->
-        <div id="overviewPane" class="hidden flex-1 relative min-h-0 overflow-auto">
-          <!-- toolbar + panel float over the scrollable area -->
-          <div class="float-toolbar">
-            <button id="filterBtn" class="float-btn" aria-label="Filters">
-              <svg width="14" height="14" viewBox="0 0 15 15" fill="none">
-                <path d="M1 3h13M3 7.5h9M5.5 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
+        <nav class="sidebar-nav">
+          <div class="nav-group">
+            <p class="nav-label">Workspace</p>
+            <button id="tabOverview" class="nav-item active">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="12" y="3" width="5" height="5" rx="1"/><rect x="3" y="12" width="5" height="5" rx="1"/><rect x="12" y="12" width="5" height="5" rx="1"/></svg>
+              <span>Overview</span>
             </button>
           </div>
-          <div id="filterPanel" class="filter-panel hidden">
-            <div class="p-3 space-y-2">
-              <input id="search" type="search" placeholder="Name, path or endpoint..." class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm" />
-<div class="space-y-1.5 pt-1 border-t border-gray-100">
-                <p class="text-xs text-gray-400">Health score</p>
-                <div id="healthChecks" class="space-y-1"></div>
-              </div>
-            </div>
-          </div>
-          <!-- scrollable grid -->
-          <div class="p-5 grid gap-3 content-start" id="overviewScroll" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))"></div>
-        </div>
 
-        <!-- ── graph/domain pane ── -->
-        <div id="findingsPane" class="hidden flex-1 min-h-0 overflow-auto bg-gray-50">
-          <div class="p-5 space-y-3">
-            <div class="bg-white border border-gray-200 rounded-lg p-3">
-              <div class="findings-filters">
-                <input id="findingsSearch" type="search" placeholder="Rule, path, message..." class="border border-gray-200 rounded px-2 py-1.5 text-sm" />
-                <select id="findingsSeverity" class="border border-gray-200 rounded px-2 py-1.5 text-sm bg-white"></select>
-                <select id="findingsRule" class="border border-gray-200 rounded px-2 py-1.5 text-sm bg-white"></select>
-                <select id="findingsModule" class="border border-gray-200 rounded px-2 py-1.5 text-sm bg-white"></select>
-              </div>
-            </div>
-            <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-              <div id="findingsTable" class="divide-y divide-gray-100"></div>
-            </div>
-          </div>
-        </div>
-
-        <main id="canvasWrap" class="canvas-wrap flex-1 relative min-w-0">
-          <svg id="graph" role="img" aria-label="Code graph"></svg>
-          <div id="status" class="absolute left-3 bottom-3 bg-white/90 border border-gray-200 rounded px-2 py-1 text-xs text-gray-400">Ready</div>
-          <div id="nodeLimitBanner" class="hidden absolute top-2 left-1/2 -translate-x-1/2 bg-white/95 border border-gray-200 rounded px-3 py-1 text-xs text-gray-400 pointer-events-none whitespace-nowrap"></div>
-          <div id="popover" class="popover"></div>
-          <!-- graph toolbar -->
-          <div class="float-toolbar">
-            <button id="graphFilterBtn" class="float-btn" aria-label="Filters">
-              <svg width="14" height="14" viewBox="0 0 15 15" fill="none">
-                <path d="M1 3h13M3 7.5h9M5.5 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
+          <div class="nav-group">
+            <p class="nav-label">Explore</p>
+            <button id="tabGraph" class="nav-item">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="5" cy="10" r="2"/><circle cx="15" cy="5" r="2"/><circle cx="15" cy="15" r="2"/><path d="M7 9l6-3M7 11l6 3"/></svg>
+              <span>Graph</span>
             </button>
-            <div class="float-divider"></div>
-            <button id="zoomInBtn"    class="float-btn" aria-label="Zoom in">+</button>
-            <span   id="zoomValue"    class="float-zoom-value">100%</span>
-            <button id="zoomOutBtn"   class="float-btn" aria-label="Zoom out">−</button>
-            <div class="float-divider"></div>
-            <button id="zoomResetBtn" class="float-btn" aria-label="Reset zoom" title="Reset zoom">
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                <path d="M6.5 1.5A5 5 0 1 1 2 6.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                <path d="M1.5 3.5V1.5H3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+            <button id="tabDomain" class="nav-item">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5.5 10 2l7 3.5-7 3.5-7-3.5Z"/><path d="m3 10 7 3.5 7-3.5M3 14.5 10 18l7-3.5"/></svg>
+              <span>Domain model</span>
             </button>
           </div>
-          <!-- graph filter panel -->
-          <div id="graphFilterPanel" class="filter-panel hidden">
-            <div class="p-3 space-y-2">
-<label class="flex items-center gap-2 text-sm">
-                <input id="orphansOnly" type="checkbox" />
-                <span class="flex-1">Orphans only</span>
-                <span id="orphanCount" class="text-xs text-gray-400">0</span>
-              </label>
-              <label class="flex items-center gap-2 text-sm">
-                <input id="uncoveredOnly" type="checkbox" />
-                <span class="flex-1">No coverage</span>
-                <span id="uncoveredCount" class="text-xs text-gray-400">0</span>
-              </label>
-              <label class="flex items-center gap-2 text-sm">
-                <input id="reviewOnly" type="checkbox" />
-                <span class="flex-1">Needs review</span>
-                <span id="reviewCount" class="text-xs text-gray-400">0</span>
-              </label>
-              <label class="flex items-center gap-2 text-sm">
-                <input id="findingsOnly" type="checkbox" />
-                <span class="flex-1">Has findings</span>
-                <span id="findingsCount" class="text-xs text-gray-400">0</span>
-              </label>
-              <label class="flex items-center gap-2 text-sm">
-                <input id="hideAuxiliary" type="checkbox" checked />
-                <span class="flex-1">Hide auxiliary</span>
-              </label>
-              <div class="space-y-1.5 pt-1 border-t border-gray-100">
-                <p class="text-xs text-gray-400">Types</p>
-                <div id="typeChecks" class="space-y-1.5"></div>
-              </div>
-            </div>
+
+          <div class="nav-group">
+            <p class="nav-label">Quality</p>
+            <button id="tabFindings" class="nav-item">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5 18 17H2L10 2.5Z"/><path d="M10 7v4.5M10 14.5v.1"/></svg>
+              <span>Findings</span>
+              <span id="sidebarFindingsCount" class="nav-count">0</span>
+            </button>
           </div>
-          <!-- module detail: always-visible summary top-right when a module is active -->
-          <div id="moduleDetail" class="hidden absolute top-3 right-3 z-20 bg-white/95 border border-gray-200 rounded-lg shadow-md p-3 text-xs" style="width:280px;max-height:calc(100% - 24px);overflow-y:auto"></div>
-        </main>
+        </nav>
 
-
-        <!-- ── settings pane ── -->
-        <div id="settingsPane" class="hidden flex-1 min-h-0 overflow-auto bg-gray-50">
-          <div class="p-6 max-w-2xl space-y-8">
-
-            <!-- Module Labels -->
-            <section>
-              <h2 class="text-sm font-semibold text-gray-700 mb-3">Module Labels</h2>
-              <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <table class="w-full text-sm">
-                  <thead class="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 w-1/2">ID</th>
-                      <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 w-1/2">Label</th>
-                    </tr>
-                  </thead>
-                  <tbody id="settingsModulesBody" class="divide-y divide-gray-100"></tbody>
-                </table>
-              </div>
-            </section>
-
-            <!-- Type Colors -->
-            <section>
-              <h2 class="text-sm font-semibold text-gray-700 mb-3">Type Colors</h2>
-              <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <table class="w-full text-sm">
-                  <thead class="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 w-1/2">Type</th>
-                      <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 w-1/2">Color</th>
-                    </tr>
-                  </thead>
-                  <tbody id="settingsTypesBody" class="divide-y divide-gray-100"></tbody>
-                </table>
-              </div>
-            </section>
-
-            <!-- Rules -->
-            <section>
-              <h2 class="text-sm font-semibold text-gray-700 mb-3">Rules</h2>
-              <div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100" id="settingsRulesBody"></div>
-            </section>
-
-            <!-- Import / Export -->
-            <section>
-              <h2 class="text-sm font-semibold text-gray-700 mb-3">Config File</h2>
-              <div class="flex gap-3">
-                <label id="settingsImportBtn" class="btn cursor-pointer" for="settingsImportFile">Import Config</label>
-                <input id="settingsImportFile" class="hidden" type="file" accept="application/json,.json" />
-                <button id="settingsExportBtn" class="btn">Export Config</button>
-              </div>
-            </section>
-
-            <!-- Save -->
-            <div class="flex justify-end pt-2 border-t border-gray-200">
-              <button id="settingsSaveBtn" class="btn btn-primary">Save &amp; Rescan</button>
-            </div>
-
-          </div>
+        <div class="sidebar-footer">
+          <button id="tabSettings" class="nav-item">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3"/><path d="M16 10a6 6 0 0 0-.1-1l1.6-1.2-1.5-2.6-1.9.8a6 6 0 0 0-1.7-1L12.2 3h-3l-.3 2a6 6 0 0 0-1.7 1l-1.9-.8-1.5 2.6L5.4 9a6 6 0 0 0 0 2l-1.6 1.2 1.5 2.6 1.9-.8a6 6 0 0 0 1.7 1l.3 2h3l.3-2a6 6 0 0 0 1.7-1l1.9.8 1.5-2.6L15.9 11a6 6 0 0 0 .1-1Z"/></svg>
+            <span>Settings</span>
+          </button>
+          <button id="metaPill" class="report-button">
+            <span class="report-dot"></span>
+            <span>Latest report</span>
+          </button>
         </div>
+      </aside>
 
-        <div id="toast" class="toast" role="status" aria-live="polite"></div>
-      </div>
+      <section class="workspace">
+        <header class="workspace-header">
+          <div class="view-context">
+            <div class="view-eyebrow">Architecture</div>
+            <div class="view-heading-row">
+              <h1 id="viewTitle">Overview</h1>
+              <span id="viewSubtitle">Repository health and module inventory</span>
+            </div>
+          </div>
+          <div class="header-actions">
+            <button id="refreshBtn" class="btn btn-primary">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 6V2.5M16 2.5h-3.5M16 2.5l-2.2 2.2a6 6 0 1 0 1.4 6.3"/></svg>
+              <span>Rescan</span>
+            </button>
+            <div class="menu-wrap">
+              <button id="actionsBtn" class="btn btn-icon" aria-label="More actions" aria-haspopup="menu">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4" cy="10" r="1"/><circle cx="10" cy="10" r="1"/><circle cx="16" cy="10" r="1"/></svg>
+              </button>
+              <div id="actionsMenu" class="action-menu hidden" role="menu">
+                <label id="importLabel" for="importFile" role="menuitem">Import graph</label>
+                <button id="exportBtn" role="menuitem">Export graph</button>
+                <input id="importFile" class="hidden" type="file" accept="application/json,.json" />
+              </div>
+            </div>
+          </div>
+          <div id="statsPopover" class="stats-popover hidden"></div>
+        </header>
+
+        <div class="workspace-body">
+          <section id="overviewPane" class="view-pane overview-pane">
+            <div class="overview-content">
+              <div class="metric-strip" aria-label="Repository summary">
+                <div class="metric-item"><span>Modules</span><strong id="metricModules">—</strong></div>
+                <div class="metric-item"><span>Components</span><strong id="metricNodes">—</strong></div>
+                <div class="metric-item"><span>Relations</span><strong id="metricEdges">—</strong></div>
+                <div class="metric-item"><span>Findings</span><strong id="metricFindings">—</strong></div>
+                <div class="metric-item"><span>Coverage</span><strong id="metricCoverage">—</strong></div>
+              </div>
+
+              <section class="collection-panel">
+                <div class="collection-header">
+                  <div>
+                    <h2>Modules</h2>
+                    <p>Architecture areas detected in the repository</p>
+                  </div>
+                  <div class="collection-actions">
+                    <label class="search-field">
+                      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4"/></svg>
+                      <input id="search" type="search" placeholder="Search modules" />
+                    </label>
+                    <button id="filterBtn" class="btn btn-icon" aria-label="Filter modules">
+                      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M5.5 10h9M8 15h4"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <div id="filterPanel" class="filter-panel overview-filter hidden">
+                  <div class="filter-section">
+                    <p class="filter-title">Health score</p>
+                    <div id="healthChecks" class="filter-options"></div>
+                  </div>
+                </div>
+                <div class="module-table-head" aria-hidden="true">
+                  <span>Module</span><span>Health</span><span>Components</span><span>Findings</span><span></span>
+                </div>
+                <div id="overviewScroll" class="module-list"></div>
+              </section>
+            </div>
+          </section>
+
+          <section id="findingsPane" class="view-pane findings-pane hidden">
+            <div class="findings-content">
+              <div class="collection-panel">
+                <div class="collection-header findings-header">
+                  <div>
+                    <h2>Architecture findings</h2>
+                    <p>Rule violations and maintainability risks</p>
+                  </div>
+                  <div class="findings-filters">
+                    <label class="search-field findings-search">
+                      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4"/></svg>
+                      <input id="findingsSearch" type="search" placeholder="Search findings" />
+                    </label>
+                    <select id="findingsSeverity"></select>
+                    <select id="findingsRule"></select>
+                    <select id="findingsModule"></select>
+                  </div>
+                </div>
+                <div id="findingsTable" class="findings-table"></div>
+              </div>
+            </div>
+          </section>
+
+          <main id="canvasWrap" class="canvas-wrap hidden">
+            <svg id="graph" role="img" aria-label="Code dependency graph"></svg>
+
+            <div class="graph-toolbar" aria-label="Graph controls">
+              <button id="graphFilterBtn" class="graph-tool" aria-label="Graph filters" title="Filters">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M5.5 10h9M8 15h4"/></svg>
+              </button>
+              <span class="toolbar-separator"></span>
+              <button id="zoomOutBtn" class="graph-tool" aria-label="Zoom out">−</button>
+              <span id="zoomValue" class="zoom-value">100%</span>
+              <button id="zoomInBtn" class="graph-tool" aria-label="Zoom in">+</button>
+              <span class="toolbar-separator"></span>
+              <button id="zoomResetBtn" class="graph-tool" aria-label="Reset zoom" title="Reset zoom">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.5 6.5A7 7 0 1 1 4 5.5"/><path d="M4 2.5v3h3"/></svg>
+              </button>
+            </div>
+
+            <aside id="graphFilterPanel" class="filter-panel graph-filter hidden">
+              <div class="panel-header"><strong>Graph filters</strong><span>Refine visible nodes</span></div>
+              <div class="filter-section filter-options">
+                <label><input id="orphansOnly" type="checkbox" /><span>Orphans only</span><small id="orphanCount">0</small></label>
+                <label><input id="uncoveredOnly" type="checkbox" /><span>No coverage</span><small id="uncoveredCount">0</small></label>
+                <label><input id="reviewOnly" type="checkbox" /><span>Needs review</span><small id="reviewCount">0</small></label>
+                <label><input id="findingsOnly" type="checkbox" /><span>Has findings</span><small id="findingsCount">0</small></label>
+                <label><input id="hideAuxiliary" type="checkbox" checked /><span>Hide auxiliary</span></label>
+              </div>
+              <div class="filter-section">
+                <p class="filter-title">Component types</p>
+                <div id="typeChecks" class="filter-options"></div>
+              </div>
+            </aside>
+
+            <aside id="moduleDetail" class="inspector hidden"></aside>
+            <div id="status" class="canvas-status">Ready</div>
+            <div id="nodeLimitBanner" class="node-limit hidden"></div>
+            <div id="popover" class="popover"></div>
+          </main>
+
+          <section id="settingsPane" class="view-pane settings-pane hidden">
+            <div class="settings-content">
+              <section class="settings-section">
+                <div class="settings-heading"><h2>Module labels</h2><p>Human-readable names used throughout the viewer.</p></div>
+                <div class="settings-surface">
+                  <table><thead><tr><th>ID</th><th>Label</th></tr></thead><tbody id="settingsModulesBody"></tbody></table>
+                </div>
+              </section>
+              <section class="settings-section">
+                <div class="settings-heading"><h2>Type colors</h2><p>Semantic colors applied to graph node types.</p></div>
+                <div class="settings-surface">
+                  <table><thead><tr><th>Type</th><th>Color</th></tr></thead><tbody id="settingsTypesBody"></tbody></table>
+                </div>
+              </section>
+              <section class="settings-section">
+                <div class="settings-heading"><h2>Rules</h2><p>Enable or disable architecture guardrails.</p></div>
+                <div id="settingsRulesBody" class="settings-surface settings-rules"></div>
+              </section>
+              <section class="settings-section settings-config-row">
+                <div class="settings-heading"><h2>Configuration file</h2><p>Import or export the current project map.</p></div>
+                <div class="settings-actions">
+                  <label id="settingsImportBtn" class="btn" for="settingsImportFile">Import config</label>
+                  <input id="settingsImportFile" class="hidden" type="file" accept="application/json,.json" />
+                  <button id="settingsExportBtn" class="btn">Export config</button>
+                </div>
+              </section>
+              <div class="settings-savebar"><span>Changes require a new scan.</span><button id="settingsSaveBtn" class="btn btn-primary">Save and rescan</button></div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </div>
 
     <script defer src="/viewer-state.js"></script>

@@ -46,7 +46,7 @@ function renderFindingsTable(findings) {
     return
   }
 
-  els.findingsTable.innerHTML = findings.map(finding => {
+  const rows = findings.map(finding => {
     const node = nodeForFinding(finding)
     const severityClass = finding.severity === 'error'
       ? 'bg-red-50 text-red-700 border border-red-100'
@@ -54,20 +54,26 @@ function renderFindingsTable(findings) {
     const path = finding.path ?? finding.nodeId ?? ''
     const shortPath = path.split(/[\\/]/).slice(-2).join('/')
     return `
-      <div class="finding-row w-full text-left p-3">
-        <div class="font-semibold text-sm leading-tight">${escapeHtml(formatRuleId(finding.ruleId))}</div>
-        <div class="text-xs text-gray-500 mt-0.5">${escapeHtml(finding.message)}</div>
-        <div class="mt-2 flex flex-wrap gap-1">
-          ${pillHtml(severityClass, capitalize(finding.severity))}
-          ${pillHtml('bg-blue-50 text-blue-700 border border-blue-100', capitalize(finding.category) || 'Architecture')}
-          ${pillHtml('bg-gray-50 text-gray-600 border border-gray-100', formatModule(node?.module ?? 'shared'))}
+      <div class="finding-row">
+        <div class="finding-description">
+          <strong>${escapeHtml(formatRuleId(finding.ruleId))}</strong>
+          <span>${escapeHtml(finding.message)}</span>
         </div>
-        <div class="text-[11px] text-gray-400 mt-1.5 truncate">
-          <button onclick="navigator.clipboard.writeText('${escapeHtml(path)}').then(()=>showToast('Path copied'))" class="bg-transparent border-0 cursor-pointer p-0 text-gray-400 hover:text-gray-700 text-[11px]" title="Copy path">${escapeHtml(shortPath)}${finding.line ? `:${finding.line}` : ''}</button>
+        <div>${pillHtml(severityClass, capitalize(finding.severity))}</div>
+        <div class="finding-module">${escapeHtml(formatModule(node?.module ?? 'shared'))}</div>
+        <div class="finding-path">
+          <button onclick="navigator.clipboard.writeText('${escapeHtml(path)}').then(()=>showToast('Path copied'))" title="Copy path">${escapeHtml(shortPath)}${finding.line ? `:${finding.line}` : ''}</button>
         </div>
       </div>
     `
   }).join('')
+
+  els.findingsTable.innerHTML = `
+    <div class="findings-table-head" aria-hidden="true">
+      <span>Finding</span><span>Severity</span><span>Module</span><span>Location</span>
+    </div>
+    ${rows}
+  `
 }
 
 function nodeForFinding(finding) {

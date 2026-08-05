@@ -71,6 +71,18 @@ function initializeFilters() {
   }, {})
   const generated = new Date(generatedAt)
   const timeAgo = formatTimeAgo(generated)
+  const moduleCount = unique(nodes.map(node => node.module || 'shared')).length
+  const covered = nodes.filter(node => isCoverable(node) && node.meta?.coverage?.hasCoverage).length
+  const coveragePercent = coverable ? Math.round((covered / coverable) * 100) : null
+
+  els.projectName.textContent = state.graph.projectMap?.project?.name ?? 'Architecture explorer'
+  els.metricModules.textContent = moduleCount.toLocaleString()
+  els.metricNodes.textContent = stats.nodes.toLocaleString()
+  els.metricEdges.textContent = stats.edges.toLocaleString()
+  els.metricFindings.textContent = findings.length.toLocaleString()
+  els.metricFindings.classList.toggle('text-red-700', findings.length > 0)
+  els.metricCoverage.textContent = coveragePercent === null ? 'N/A' : `${coveragePercent}%`
+  els.sidebarFindingsCount.textContent = findings.length.toLocaleString()
   els.statsPopover.innerHTML = `
     <p class="text-xs font-semibold uppercase text-gray-400 tracking-wide mb-3">Report · ${generated.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} ${generated.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
     <div class="space-y-2">
@@ -99,7 +111,7 @@ function initializeFilters() {
     </div>
     <p class="text-[11px] text-gray-300 mt-3">Generated ${timeAgo}</p>
   `
-  els.metaPill.textContent = 'Latest report'
+  els.metaPill.querySelector('span:last-child').textContent = `Updated ${timeAgo}`
 }
 
 function applyProjectMap(projectMap = {}) {
