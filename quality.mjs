@@ -72,21 +72,28 @@ export function applyQualityMetrics(graph) {
     const externalModules = new Set(outgoingExternal.map(related => related.module))
     const outgoingCount = scoredOutgoing.length
     const incomingCount = scoredIncoming.length
+    const insideFeatureFolder = isInsideFeatureFolder(node)
+    const internalRatioBonus = relatedNodes.length > 0
+      ? Math.round((internalRelations / relatedNodes.length) * 3)
+      : 0
+    const cohesionDependencyPenalty = outgoingCount > 12 ? 2 : outgoingCount > 8 ? 1 : 0
+    const unusedPenalty = incomingCount === 0 && !isEntryPoint(node) ? 1 : 0
 
     let cohesion = 6
-    if (relatedNodes.length > 0) {
-      cohesion += Math.round((internalRelations / relatedNodes.length) * 3)
-    }
-    if (isInsideFeatureFolder(node)) cohesion += 1
-    if (outgoingCount > 12) cohesion -= 2
-    else if (outgoingCount > 8) cohesion -= 1
-    if (incomingCount === 0 && !isEntryPoint(node)) cohesion -= 1
+    cohesion += internalRatioBonus
+    if (insideFeatureFolder) cohesion += 1
+    cohesion -= cohesionDependencyPenalty
+    cohesion -= unusedPenalty
 
+    const outgoingCouplingPenalty = Math.max(0, outgoingCount - 4)
+    const externalModulePenalty = externalModules.size * 2
+    const externalDominancePenalty = externalRelations > internalRelations && externalRelations > 2 ? 1 : 0
+    const noDependencyBonus = outgoingCount === 0 ? 1 : 0
     let coupling = 10
-    coupling -= Math.max(0, outgoingCount - 4)
-    coupling -= externalModules.size * 2
-    if (externalRelations > internalRelations && externalRelations > 2) coupling -= 1
-    if (outgoingCount === 0) coupling = Math.min(10, coupling + 1)
+    coupling -= outgoingCouplingPenalty
+    coupling -= externalModulePenalty
+    coupling -= externalDominancePenalty
+    if (noDependencyBonus) coupling = Math.min(10, coupling + noDependencyBonus)
 
     const cohesionScore = clampScore(cohesion)
     const couplingScore = clampScore(coupling)
@@ -113,7 +120,35 @@ export function applyQualityMetrics(graph) {
             score: couplingScore,
             reason: buildCouplingReason(outgoingCount, externalModules, outgoingExternal)
           },
-          related: topRelated
+          related: topRelated,
+          calculation: {
+            formula: 'round((cohesion + coupling + min(cohesion, coupling)) / 3)',
+            inputs: {
+              internalRelations,
+              externalRelations,
+              outgoingDependencies: outgoingCount,
+              incomingUsages: incomingCount,
+              externalModules: [...externalModules].filter(Boolean).sort(),
+              insideFeatureFolder,
+              entryPoint: isEntryPoint(node)
+            },
+            cohesion: {
+              base: 6,
+              internalRatioBonus,
+              featureFolderBonus: insideFeatureFolder ? 1 : 0,
+              dependencyPenalty: cohesionDependencyPenalty,
+              unusedPenalty,
+              result: cohesionScore
+            },
+            coupling: {
+              base: 10,
+              outgoingDependencyPenalty: outgoingCouplingPenalty,
+              externalModulePenalty,
+              externalDominancePenalty,
+              noDependencyBonus,
+              result: couplingScore
+            }
+          }
         }
       }
     })

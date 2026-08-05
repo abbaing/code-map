@@ -60,9 +60,9 @@ const defaultFrontendClassifiers = [
 ]
 const defaultBackendClassifiers = [
   { contains: '/Controllers/', type: 'controller', layer: 'api-controller' },
-  { contains: '/Queries/', type: 'query', layer: 'application-boundary' },
-  { contains: '/Commands/', type: 'command', layer: 'application-boundary' },
-  { contains: '/Handlers/', type: 'handler', layer: 'application-boundary' },
+  { contains: '/Queries/', type: 'query', layer: 'application-request' },
+  { contains: '/Commands/', type: 'command', layer: 'application-request' },
+  { contains: '/Handlers/', type: 'handler', layer: 'application-handler' },
   { contains: '/DTOs/', type: 'dto', layer: 'hidden-dto' },
   { contains: '/Repositories/', type: 'auxiliary', layer: 'auxiliary' },
   { contains: '/Configurations/Entities/', type: 'auxiliary', layer: 'auxiliary' },

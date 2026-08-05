@@ -6,7 +6,12 @@ function render() {
   const height = Math.max(vh, 700)
 
   const renderLimit = state.view === 'domain' ? DOMAIN_RENDER_LIMIT : NODE_RENDER_LIMIT
-  const nodesToRender = state.filteredNodes.slice(0, renderLimit)
+  state.trace = state.view === 'graph'
+    ? state.selectedId
+      ? buildTraceContext(state.selectedId, state.showAllTrace)
+      : buildModuleTraceContext(state.activeModule)
+    : null
+  const nodesToRender = nodesForRender(state.filteredNodes, renderLimit, state.trace)
   const truncated = state.filteredNodes.length > renderLimit
 
   if (truncated) {
@@ -16,7 +21,8 @@ function render() {
     els.nodeLimitBanner.style.display = 'none'
   }
 
-  const layout = layoutNodes(nodesToRender, width, height)
+  let layout = layoutNodes(nodesToRender, width, height)
+  if (state.trace) layout = applyTraceFocusLayout(layout, state.trace, width, height)
 
   svg.style.width = '100%'
   svg.style.height = '100%'
@@ -32,16 +38,29 @@ function render() {
   }
 }
 
+function nodesForRender(filteredNodes, renderLimit, trace) {
+  const nodes = filteredNodes.slice(0, renderLimit)
+  if (!trace) return nodes
+  const included = new Set(nodes.map(node => node.id))
+  const nodeById = new Map(state.graph.nodes.map(node => [node.id, node]))
+  for (const id of trace.nodeIds) {
+    if (included.has(id)) continue
+    const node = nodeById.get(id)
+    if (node) nodes.push(node)
+  }
+  return nodes
+}
+
 function renderGraphView(svg, layout) {
   const nodes = layout.nodes
   const nodeById = new Map(nodes.map(node => [node.id, node]))
   const visibleIds = new Set(nodes.map(node => node.id))
   const orphanIds = new Set(state.graph.orphans.map(orphan => orphan.id))
-  const selectedEdges = connectedEdgeIds(state.selectedId)
+  const selectedEdges = state.trace?.edgeIds ?? connectedEdgeIds(state.selectedId)
   const edges = state.graph.edges.filter(edge =>
     visibleIds.has(edge.from) && visibleIds.has(edge.to)
   )
-  const focusedIds = focusedNodeIds(state.selectedId, edges)
+  const focusedIds = state.trace?.nodeIds ?? focusedNodeIds(state.selectedId, edges)
 
   svg.innerHTML = `
     <defs>
@@ -49,9 +68,11 @@ function renderGraphView(svg, layout) {
         <path d="M0,0 L0,6 L7,3 z" fill="#9aa4b2"></path>
       </marker>
     </defs>
-    ${layout.moduleLabels.map(item => graphModuleBandSvg(item)).join('')}
+    ${layout.moduleLabels.map(item => graphModuleBandSvg(item, Boolean(state.trace))).join('')}
+    ${layout.traceBoundaryX ? `<line class="trace-boundary" x1="${layout.traceBoundaryX}" y1="34" x2="${layout.traceBoundaryX}" y2="${layout.traceHeight - 18}"></line>
+      <text class="trace-boundary-label" x="${layout.traceBoundaryX + 9}" y="51">BACKEND STARTS</text>` : ''}
     ${layout.layerLabels.map(item => `
-      <text class="lane-label" x="${item.x + (item.width ?? 0) / 2}" y="20">${escapeHtml(formatLayer(item.layer))}</text>
+      <text class="lane-label" x="${item.x + (item.width ?? 0) / 2}" y="20">${escapeHtml(item.label ?? formatLayer(item.layer))}</text>
     `).join('')}
     <g class="edges">
       ${edges.map(edge => edgeSvg(edge, nodeById, selectedEdges.has(edge.id), isDimmedEdge(edge, focusedIds), isFocusedEdge(edge, focusedIds))).join('')}
@@ -92,7 +113,7 @@ function renderDomainView(svg, layout) {
   `
 }
 
-function graphModuleBandSvg(item) {
+function graphModuleBandSvg(item, dimmed = false) {
   const bx = item.x
   const by = item.y
   const bw = item.width
@@ -104,11 +125,13 @@ function graphModuleBandSvg(item) {
   const pillY = by + (28 - pillH) / 2
   const pillW = rawLabel.length * 7 + pillPad * 2
   return `
-    <rect class="module-band" x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="6" ry="6"></rect>
-    <rect class="module-header-band" x="${bx}" y="${by}" width="${bw}" height="28" rx="6" ry="6"></rect>
-    <rect class="module-header-band-fill" x="${bx}" y="${by + 14}" width="${bw}" height="14"></rect>
-    <rect class="module-pill" x="${bx + 10}" y="${pillY}" width="${pillW}" height="${pillH}" rx="4" ry="4"></rect>
-    <text class="module-label" x="${bx + 10 + pillPad}" y="${pillY + 14}">${label}</text>
+    <g class="${dimmed ? 'trace-background' : ''}">
+      <rect class="module-band" x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="6" ry="6"></rect>
+      <rect class="module-header-band" x="${bx}" y="${by}" width="${bw}" height="28" rx="6" ry="6"></rect>
+      <rect class="module-header-band-fill" x="${bx}" y="${by + 14}" width="${bw}" height="14"></rect>
+      <rect class="module-pill" x="${bx + 10}" y="${pillY}" width="${pillW}" height="${pillH}" rx="4" ry="4"></rect>
+      <text class="module-label" x="${bx + 10 + pillPad}" y="${pillY + 14}">${label}</text>
+    </g>
   `
 }
 
@@ -868,7 +891,7 @@ function edgeSvg(edge, nodeById, highlighted, dimmed = false, focused = false) {
   const x2 = target.x
   const y2 = target.y + target.height / 2
   const mid = Math.max(x1 + 24, (x1 + x2) / 2)
-  return `<path class="edge ${highlighted ? 'highlight' : ''} ${focused ? 'focused' : ''} ${dimmed ? 'dimmed' : ''}" d="M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}" marker-end="url(#arrow)" />`
+  return `<path class="edge confidence-${escapeHtml(edge.confidence ?? 'medium')} ${highlighted ? 'highlight' : ''} ${focused ? 'focused' : ''} ${dimmed ? 'dimmed' : ''}" d="M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}" marker-end="url(#arrow)" />`
 }
 
 function domainEdgeSvg(edge, from, to, highlighted, dimmed = false, focused = false) {
@@ -917,8 +940,8 @@ function nodeGraphSvg(node, orphan, dimmed = false, focused = false) {
   const coverage = node.meta?.coverage
   const review = node.meta?.review
   const metrics = quality ? `
-    <rect class="metric-box" x="12" y="47" width="58" height="13" style="fill: ${scoreColor(quality.score)}" rx="3"></rect>
-    <text class="metric-label" x="18" y="57">Q ${quality.score}</text>
+    <rect class="metric-box" x="12" y="47" width="64" height="13" style="fill: ${scoreColor(quality.score)}" rx="3"></rect>
+    <text class="metric-label" x="18" y="57">Q ${quality.score}/10</text>
   ` : ''
   const coverageCup = coverage?.hasCoverage ? `
     <g transform="translate(${node.width - 24}, 8)" aria-label="Con cobertura">
@@ -935,12 +958,16 @@ function nodeGraphSvg(node, orphan, dimmed = false, focused = false) {
       <text class="review-label" x="5" y="12">!</text>
     </g>
   ` : ''
+  const support = state.trace && focused && (node.type === 'hook' || node.layer === 'auxiliary')
+  const secondary = node.type === 'endpoint' && node.meta?.backend?.action
+    ? node.meta.backend.action
+    : `${formatType(node.type)} - ${formatModule(node.module)}`
   return `
-    <g class="node ${selected ? 'selected' : ''} ${focused ? 'focused' : ''} ${orphan ? 'orphan' : ''} ${dimmed ? 'dimmed' : ''} ${node.layer === 'auxiliary' ? 'auxiliary' : ''}" data-id="${escapeHtml(node.id)}" transform="translate(${node.x}, ${node.y})">
+    <g class="node ${selected ? 'selected' : ''} ${focused ? 'focused' : ''} ${support ? 'trace-support' : ''} ${orphan ? 'orphan' : ''} ${dimmed ? 'dimmed' : ''} ${node.layer === 'auxiliary' ? 'auxiliary' : ''}" data-id="${escapeHtml(node.id)}" transform="translate(${node.x}, ${node.y})">
       <rect width="${node.width}" height="${node.height}"></rect>
       <rect width="5" height="${node.height}" fill="${color}" rx="5"></rect>
       <text x="12" y="20">${escapeHtml(truncate(node.label, 24))}</text>
-      <text class="type" x="12" y="38">${escapeHtml(truncate(`${formatType(node.type)} - ${formatModule(node.module)}`, 30))}</text>
+      <text class="type" x="12" y="38">${escapeHtml(truncate(secondary, 30))}</text>
       ${metrics}
       ${reviewBadge}
       ${coverageCup}

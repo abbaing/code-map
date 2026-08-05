@@ -8,7 +8,8 @@ export function normalizeEndpoint(raw) {
 }
 
 function endpointId(url, method = 'ANY') {
-  return `endpoint:${method.toUpperCase()} ${url}`
+  const canonicalUrl = url.replace(/\{[^}]+\}/g, '{}').replace(/:[^/]+/g, '{}')
+  return `endpoint:${method.toUpperCase()} ${canonicalUrl}`
 }
 
 export function addEndpoint(graph, url, method = 'ANY', module = 'shared') {
@@ -34,7 +35,7 @@ export function endpointCompatible(frontUrl, controllerUrl) {
 
   const a = clean(frontUrl)
   const b = clean(controllerUrl)
-  return a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`)
+  return a === b
 }
 
 export function restMethod(name) {
@@ -113,13 +114,14 @@ export function expandFrontendUrl(value, baseUrl) {
 
 const HTTP_CALL_PATTERN = /\b(?:apiClient|repository|Repository|\.request|\.get|\.post|\.put|\.patch|\.delete)\s*[(<]/i
 
-export function extractFrontendEndpoints(content) {
+export function extractFrontendEndpoints(content, importedBindings = new Map()) {
   const endpoints = []
 
-  const urlBindings = collectUrlBindings(content)
+  const urlBindings = new Map(importedBindings)
+  for (const [name, value] of collectUrlBindings(content)) urlBindings.set(name, value)
   const baseUrl = primaryBaseUrl(urlBindings)
 
-  const callPattern = /this\.(get|post|put|patch|delete|requestWithFullApiResponse|request)\s*(?:<[^>]+>)?\s*\(([\s\S]{0,260}?)\)/g
+  const callPattern = /this\.(get|post|put|patch|delete|requestWithFullApiResponse|request)\s*(?:<[\s\S]{0,800}?>)?\s*\(([\s\S]{0,260}?)\)/g
   for (const match of content.matchAll(callPattern)) {
     const method = restMethod(match[1])
     const argument = match[2]
@@ -127,7 +129,7 @@ export function extractFrontendEndpoints(content) {
     if (url) endpoints.push({ url, method })
   }
 
-  const freeFnPattern = /\b(get|post|put|patch|del|delete)\s*(?:<[^>]+>)?\s*\(\s*(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[A-Za-z_$][\w$]*)/g
+  const freeFnPattern = /\b(get|post|put|patch|del|delete)\s*(?:<[\s\S]{0,800}?>)?\s*\(\s*(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[A-Za-z_$][\w$]*)/g
   for (const match of content.matchAll(freeFnPattern)) {
     const fnName = match[1]
     if (['get', 'post', 'put', 'patch', 'delete', 'del'].includes(fnName) === false) continue
@@ -137,7 +139,7 @@ export function extractFrontendEndpoints(content) {
   }
 
   if (HTTP_CALL_PATTERN.test(content)) {
-    const requestObjectPattern = /\b(?:request|apiClient\.request)\s*(?:<[^>]+>)?\s*\(([\s\S]{0,420}?)\)/g
+    const requestObjectPattern = /\b(?:request|apiClient\.request)\s*(?:<[\s\S]{0,800}?>)?\s*\(([\s\S]{0,620}?)\)/g
     for (const match of content.matchAll(requestObjectPattern)) {
       const argument = match[1]
       const method = argument.match(/\bmethod:\s*['"](\w+)['"]/)?.[1]?.toUpperCase() ?? 'ANY'
@@ -145,6 +147,30 @@ export function extractFrontendEndpoints(content) {
       const url = resolveFrontendUrlExpression(urlExpression, urlBindings, baseUrl)
       if (url) endpoints.push({ url, method })
     }
+  }
+
+  const objectCallPattern = /\b[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?\s*(?:<[\s\S]{0,800}?>)?\s*\(\s*\{([\s\S]{0,900}?)\}\s*\)/g
+  for (const match of content.matchAll(objectCallPattern)) {
+    const argument = match[1]
+    const method = argument.match(/\bmethod:\s*['"](GET|POST|PUT|PATCH|DELETE)['"]/)?.[1]
+    const urlExpression = argument.match(/\burl:\s*(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|this\.[A-Za-z_$][\w$]*|[A-Za-z_$][\w$]*)/)?.[1]
+    if (!method || !urlExpression) continue
+    const url = resolveFrontendUrlExpression(urlExpression, urlBindings, baseUrl)
+    if (url) endpoints.push({ url, method })
+  }
+
+  const positionalMethodPattern = /\b[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?\s*(?:<[\s\S]{0,800}?>)?\s*\(\s*['"](GET|POST|PUT|PATCH|DELETE)['"]\s*,\s*(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|this\.[A-Za-z_$][\w$]*|[A-Za-z_$][\w$]*)/g
+  for (const match of content.matchAll(positionalMethodPattern)) {
+    const url = resolveFrontendUrlExpression(match[2], urlBindings, baseUrl)
+    if (url) endpoints.push({ url, method: match[1] })
+  }
+
+  const fetchPattern = /\bfetch\s*\(\s*(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[A-Za-z_$][\w$]*)([\s\S]{0,420}?)\)/g
+  for (const match of content.matchAll(fetchPattern)) {
+    const url = resolveFrontendUrlExpression(match[1], urlBindings, baseUrl)
+    if (!url) continue
+    const method = match[2].match(/\bmethod:\s*['"](\w+)['"]/)?.[1]?.toUpperCase() ?? 'GET'
+    endpoints.push({ url, method })
   }
 
   const specificMethods = new Map()

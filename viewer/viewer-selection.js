@@ -1,5 +1,6 @@
 function selectNode(id) {
   state.selectedId = id
+  state.showAllTrace = false
   hidePopover()
   if (state.view === 'graph' || state.view === 'domain') render()
   renderModuleDetail()
@@ -8,6 +9,8 @@ function selectNode(id) {
 function clearSelectedNode() {
   const hadSelection = Boolean(state.selectedId)
   state.selectedId = null
+  state.showAllTrace = false
+  state.trace = null
   hidePopover()
   if (hadSelection && (state.view === 'graph' || state.view === 'domain')) render()
   if (hadSelection) renderModuleDetail()
@@ -83,7 +86,7 @@ function internalComponentQualityDetail(quality) {
       ${quality.internalComponents.map(component => `
         <div class="mt-1">
           ${escapeHtml(component.label)}: ${component.score}/10<br />
-          <span class="text-gray-500">${escapeHtml(component.summary ?? 'Collapsed internal component score')}</span>
+          <span class="text-gray-500">${escapeHtml(component.summary ?? 'Supporting component score')}</span>
         </div>
       `).join('')}
     </div>
@@ -103,7 +106,7 @@ function showPopover(event, id) {
     : 'No notable relations'
   const internalComponents = quality?.internalComponents?.length
     ? quality.internalComponents
-      .map(component => `${escapeHtml(component.label)}: ${component.score}/10 - ${escapeHtml(component.summary ?? 'Collapsed internal component score')}`)
+      .map(component => `${escapeHtml(component.label)}: ${component.score}/10 - ${escapeHtml(component.summary ?? 'Supporting component score')}`)
       .join('<br />')
     : ''
 
@@ -172,11 +175,35 @@ function selectedNodeDetailHtml(node) {
         </div>
       ` : ''}
     </div>
+    ${traceSummaryHtml(state.trace)}
     <div class="mt-3 space-y-2 text-[11px]">
       ${quality ? qualitySummaryHtml(quality) : ''}
       ${review ? `<div class="bg-red-50 border border-red-100 rounded px-2 py-1.5 text-red-800"><div class="font-semibold">Needs review</div>${escapeHtml(review.reason)}</div>` : ''}
       ${findings.length ? `<div><div class="font-semibold text-gray-700 mb-1">Findings</div>${findings.map(finding => `<div class="bg-red-50 border border-red-100 rounded px-2 py-1.5 mb-1 text-red-800">${escapeHtml(formatRuleId(finding.ruleId))}${finding.line ? `:${finding.line}` : ''}<div class="text-red-700">${escapeHtml(finding.message)}</div></div>`).join('')}</div>` : ''}
       ${coverage?.hasCoverage ? coverageSummaryHtml(testCaseCount) : ''}
+    </div>
+  `
+}
+
+function traceSummaryHtml(trace) {
+  if (!trace) return ''
+  const status = trace.complete
+    ? `${trace.endpointCount} endpoint${trace.endpointCount === 1 ? '' : 's'} · ${trace.tableCount} table${trace.tableCount === 1 ? '' : 's'}${trace.continuedFromAncestor ? ' · continued through owning component' : ''}`
+    : trace.missingPersistence
+      ? 'Persistence boundary not found'
+      : 'Frontend origin not found'
+  return `
+    <div class="mt-3 rounded border ${trace.complete ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'} p-2.5 text-[11px]">
+      <div class="flex items-center justify-between gap-2">
+        <div>
+          <div class="font-semibold ${trace.complete ? 'text-emerald-900' : 'text-amber-900'}">Execution trace</div>
+          <div class="mt-0.5 ${trace.complete ? 'text-emerald-700' : 'text-amber-700'}">${escapeHtml(status)}</div>
+        </div>
+        ${trace.allNodeIds.size > trace.primaryNodeIds.length ? `<button class="trace-inline-action" data-toggle-trace>${trace.showAll ? 'Primary path' : 'Show all paths'}</button>` : ''}
+      </div>
+      <div class="mt-2 border-t ${trace.complete ? 'border-emerald-200' : 'border-amber-200'} pt-2 text-gray-600">
+        Solid lines are confirmed. Dashed lines are inferred by static analysis.
+      </div>
     </div>
   `
 }
@@ -196,6 +223,7 @@ function coverageSummaryHtml(testCaseCount) {
 function qualitySummaryHtml(quality) {
   const health = healthPill(quality.score)
   const qualityColor = scoreColor(quality.score)
+  const inputs = quality.calculation?.inputs
   return `
     <div class="rounded border border-gray-200 bg-white p-2">
       <div class="mb-2 flex items-center justify-between gap-2">
@@ -209,6 +237,18 @@ function qualitySummaryHtml(quality) {
         ${qualityMetricHtml('Cohesion', quality.cohesion.score, quality.cohesion.reason, 'bg-sky-300')}
         ${qualityMetricHtml('Coupling', quality.coupling.score, quality.coupling.reason, 'bg-violet-300')}
       </div>
+      <details class="mt-2 border-t border-gray-100 pt-2 text-[10px] text-gray-500">
+        <summary class="cursor-pointer font-semibold text-gray-600">How this score is calculated</summary>
+        <p class="mt-1 leading-4">Q is an architecture maintainability heuristic, not correctness or test coverage. It combines cohesion and coupling, with the lower score weighted twice: round((cohesion + coupling + min) / 3).</p>
+        <p class="mt-1 leading-4">Cohesion considers relations inside vs. outside the module, feature placement, dependency count, and detected usages. Coupling penalizes outgoing dependencies and external modules.</p>
+        ${inputs ? `<dl class="mt-2 grid grid-cols-2 gap-x-2 gap-y-1">
+          <dt>Inside module</dt><dd class="text-right font-semibold text-gray-700">${escapeHtml(inputs.internalRelations)}</dd>
+          <dt>Outside module</dt><dd class="text-right font-semibold text-gray-700">${escapeHtml(inputs.externalRelations)}</dd>
+          <dt>Outgoing</dt><dd class="text-right font-semibold text-gray-700">${escapeHtml(inputs.outgoingDependencies)}</dd>
+          <dt>Incoming</dt><dd class="text-right font-semibold text-gray-700">${escapeHtml(inputs.incomingUsages)}</dd>
+          <dt>External modules</dt><dd class="text-right font-semibold text-gray-700">${escapeHtml(inputs.externalModules.length)}</dd>
+        </dl>` : ''}
+      </details>
     </div>
   `
 }

@@ -59,6 +59,38 @@ function exportGraph() {
   }
 }
 
+async function createTraceSubmap() {
+  els.actionsMenu.classList.add('hidden')
+  const trace = state.trace
+  if (!trace?.nodeIds?.size) {
+    showToast('Select a component or table first', 'error')
+    return
+  }
+  els.createTraceSubmapBtn.disabled = true
+  try {
+    const selected = state.graph.nodes.find(node => node.id === trace.selectedId)
+    const base = (selected?.label ?? 'trace').replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
+    const response = await fetch('/api/submaps/from-trace', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: `trace-${base || 'selection'}`,
+        nodeIds: [...trace.nodeIds],
+        edgeIds: [...trace.edgeIds],
+        selectedNodeId: trace.selectedId,
+        complete: trace.complete
+      })
+    })
+    const result = await response.json()
+    if (!result.ok) throw new Error(result.error)
+    showToast(`Submap created: ${result.file}`)
+  } catch (error) {
+    showToast(`Submap failed: ${error.message}`, 'error')
+  } finally {
+    els.createTraceSubmapBtn.disabled = false
+  }
+}
+
 function exportProjectMap() {
   els.settingsExportBtn.disabled = true
   try {

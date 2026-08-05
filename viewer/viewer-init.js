@@ -166,16 +166,21 @@ els.graphFilterBtn.addEventListener('click', event => {
 })
 els.graphFilterPanel.addEventListener('click', event => event.stopPropagation())
 els.graphFilterPanel.addEventListener('pointerdown', event => event.stopPropagation())
+els.graphSearch.addEventListener('input', debouncedApplyFilters)
 
 // ── shared ────────────────────────────────────────────────────────────────────
 
 document.addEventListener('click', event => {
+  const traceToggle = event.target.closest('[data-toggle-trace]')
+  if (traceToggle) {
+    event.stopPropagation()
+    state.showAllTrace = !state.showAllTrace
+    render()
+    renderModuleDetail()
+    return
+  }
   const pick = event.target.closest('[data-pick]')
   if (pick) selectNode(pick.dataset.pick)
-  if (!pick
-    && !state.suppressOutsideReset
-    && !event.target.closest('.node')
-    && !event.target.closest('#moduleDetail')) clearSelectedNode()
   if (!els.filterPanel.contains(event.target) && event.target !== els.filterBtn) {
     els.filterPanel.classList.add('hidden')
     els.filterBtn.classList.remove('active')
@@ -194,6 +199,7 @@ els.metaPill.addEventListener('click', event => { event.stopPropagation(); els.s
 els.actionsBtn.addEventListener('click', event => { event.stopPropagation(); els.actionsMenu.classList.toggle('hidden') })
 els.refreshBtn.addEventListener('click', refreshGraph)
 els.exportBtn.addEventListener('click', exportGraph)
+els.createTraceSubmapBtn.addEventListener('click', createTraceSubmap)
 els.zoomInBtn.addEventListener('click', () => setZoom(state.zoom + 0.15))
 els.zoomOutBtn.addEventListener('click', () => setZoom(state.zoom - 0.15))
 els.zoomResetBtn.addEventListener('click', resetZoom)

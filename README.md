@@ -38,6 +38,16 @@ code-map scans your source tree statically. No build required, no instrumentatio
 
 The result is a `graph.json` and a local viewer served at port 1133. Everything runs on your machine. Nothing leaves your repo.
 
+### End-to-end execution traces
+
+In the graph, selecting a frontend component highlights its primary path through routes, views, supporting hooks, API clients, the backend action, CQRS request and handler, services or repositories, the EF entity, and the database table. Unrelated nodes remain visible at low opacity. Use **Show all paths** when the selected component reaches multiple endpoints or tables.
+
+Selecting a table performs the same analysis in reverse to show the frontend routes that can reach it. Solid lines are confirmed relationships; dashed lines are inferred by static analysis. Controller classes remain available in the full graph, while focused traces describe the controller action on the endpoint card instead of adding an extra implementation-detail step.
+
+The viewer's **Management → Create submap from trace** action writes the current trace to `project.submapsDirectory` as a portable submap.
+
+Quality badges use `Q n/10`. Q is a maintainability heuristic derived from cohesion and coupling, not correctness or coverage. Expand **How this score is calculated** in the selected-component inspector to see the formula and exact relation counts used for that node.
+
 ---
 
 ## Requirements

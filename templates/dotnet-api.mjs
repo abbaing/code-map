@@ -1,4 +1,4 @@
-import { scanBackFiles, scanControllers, scanRequestDispatches, scanRequestHandlers, initBackFileIndex } from '../scan-back.mjs'
+import { scanBackDependencies, scanBackFiles, scanControllers, scanRequestDispatches, scanRequestHandlers, initBackFileIndex } from '../scan-back.mjs'
 import { isBackTestFile } from '../scan-utils.mjs'
 
 export const dotnetApiTemplate = {
@@ -7,20 +7,27 @@ export const dotnetApiTemplate = {
   description: '.NET API controllers, request boundaries, and request handler relationships.',
   layers: [
     { id: 'api-controller', label: 'Controllers' },
-    { id: 'application-boundary', label: 'Handlers / Boundaries' }
+    { id: 'application-request', label: 'Commands & Queries' },
+    { id: 'application-handler', label: 'Handlers' },
+    { id: 'backend-service', label: 'Backend Services' },
+    { id: 'backend-repository', label: 'Persistence Repositories' }
   ],
   types: {
     labels: {
       command: 'Command',
       controller: 'Controller',
       handler: 'Handler',
-      query: 'Query'
+      query: 'Query',
+      service: 'Service',
+      repository: 'Repository',
+      'data-context': 'EF DbContext'
     },
     colors: {
       controller: '#c2410c',
       query: '#15803d',
       command: '#15803d',
-      handler: '#15803d'
+      handler: '#15803d',
+      'data-context': '#7c3aed'
     }
   },
   capabilities: {
@@ -38,7 +45,8 @@ export const dotnetApiTemplate = {
       { id: 'dotnet.files', run: context => scanBackFiles(context.graph, context.files.backFiles) },
       { id: 'dotnet.controllers', assign: 'controllerEndpoints', run: context => scanControllers(context.graph, context.controllerFiles()) },
       { id: 'dotnet.dispatches', run: context => scanRequestDispatches(context.graph, context.files.backFiles) },
-      { id: 'dotnet.handlers', run: context => scanRequestHandlers(context.graph, context.files.backFiles) }
+      { id: 'dotnet.handlers', run: context => scanRequestHandlers(context.graph, context.files.backFiles) },
+      { id: 'dotnet.dependencies', run: context => scanBackDependencies(context.graph, context.files.backFiles) }
     ]
   }
 }

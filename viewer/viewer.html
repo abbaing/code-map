@@ -87,6 +87,9 @@
                 <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4" cy="10" r="1"/><circle cx="10" cy="10" r="1"/><circle cx="16" cy="10" r="1"/></svg>
               </button>
               <div id="actionsMenu" class="action-menu hidden" role="menu">
+                <div class="action-menu-label">Management</div>
+                <button id="createTraceSubmapBtn" role="menuitem">Create submap from trace</button>
+                <div class="action-menu-separator"></div>
                 <label id="importLabel" for="importFile" role="menuitem">Import graph</label>
                 <button id="exportBtn" role="menuitem">Export graph</button>
                 <input id="importFile" class="hidden" type="file" accept="application/json,.json" />
@@ -179,6 +182,12 @@
 
             <aside id="graphFilterPanel" class="filter-panel graph-filter hidden">
               <div class="panel-header"><strong>Graph filters</strong><span>Refine visible nodes</span></div>
+              <div class="filter-section">
+                <label class="search-field">
+                  <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4"/></svg>
+                  <input id="graphSearch" type="search" placeholder="Find component or table" />
+                </label>
+              </div>
               <div class="filter-section filter-options">
                 <label><input id="orphansOnly" type="checkbox" /><span>Orphans only</span><small id="orphanCount">0</small></label>
                 <label><input id="uncoveredOnly" type="checkbox" /><span>No coverage</span><small id="uncoveredCount">0</small></label>
@@ -195,6 +204,14 @@
             <aside id="moduleDetail" class="inspector hidden"></aside>
             <div id="status" class="canvas-status">Ready</div>
             <div id="nodeLimitBanner" class="node-limit hidden"></div>
+            <details class="graph-legend">
+              <summary>How to read this graph</summary>
+              <div>
+                <p><strong>Click a component</strong> to trace it from the frontend to persistence. Select a table to trace back to its screens.</p>
+                <p><span class="legend-line solid"></span> Confirmed relation <span class="legend-line dashed"></span> Inferred relation</p>
+                <p><strong>Q 1–10</strong> is an auditable maintainability estimate based on cohesion and coupling. Higher is healthier; it is not correctness or coverage.</p>
+              </div>
+            </details>
             <div id="popover" class="popover"></div>
           </main>
 
@@ -236,6 +253,7 @@
     <script defer src="/viewer-state.js"></script>
     <script defer src="/viewer-utils.js"></script>
     <script defer src="/viewer-data.js"></script>
+    <script defer src="/viewer-trace.js"></script>
     <script defer src="/viewer-overview.js"></script>
     <script defer src="/viewer-findings.js"></script>
     <script defer src="/viewer-graph.js"></script>

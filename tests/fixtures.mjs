@@ -31,7 +31,18 @@ public class AccountsCommandController : ControllerBase
         var result = await _mediator.Send(command);
         return Ok(result);
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Archive(string id)
+    {
+        var result = await _mediator.Send(new ArchiveAccountCommand(id));
+        return Ok(result);
+    }
 }
+`,
+  'architecture/back/Demo.Application/Accounts/Commands/ArchiveAccountCommand.cs': `namespace Demo.Application.Accounts.Commands;
+
+public record ArchiveAccountCommand(string Id) : ICommand;
 `,
   'architecture/back/Demo.Application/Accounts/Commands/GhostCommand.cs': `namespace Demo.Application.Accounts.Commands;
 
@@ -82,11 +93,30 @@ namespace Demo.Application.Accounts.Handlers;
 public class CreateAccountCommandHandler
 {
     private readonly IMediator _mediator;
+    private readonly IAccountRepository _repository;
+
+    public CreateAccountCommandHandler(IMediator mediator, IAccountRepository repository)
+    {
+        _mediator = mediator;
+        _repository = repository;
+    }
 
     public async Task Handle(CreateAccountCommand request, CancellationToken cancellationToken)
     {
         await _mediator.Send(new NotifyAccountCommand(request.Name), cancellationToken);
     }
+}
+`,
+  'architecture/back/Demo.Infrastructure/Repositories/Interfaces/IAccountRepository.cs': `namespace Demo.Infrastructure.Repositories.Interfaces;
+
+public interface IAccountRepository
+{
+}
+`,
+  'architecture/back/Demo.Infrastructure/Repositories/AccountRepository.cs': `namespace Demo.Infrastructure.Repositories;
+
+public class AccountRepository : IAccountRepository
+{
 }
 `,
   'architecture/back/Demo.Application/Accounts/Queries/GetStatusQuery.cs': `namespace Demo.Application.Accounts.Queries;
@@ -138,9 +168,39 @@ export function ReportsMain() {
   return <div>{count}</div>
 }
 `,
+  'architecture/front/src/features/users/config/constants.ts': `export const USERS_API_BASE = '/api/v1/admin/users'
+`,
+  'architecture/front/src/features/users/repositories/UsersRepository.ts': `import { USERS_API_BASE as usersBase } from '../config/constants'
+
+async function get<T>(url: string): Promise<T> {
+  throw new Error(url)
+}
+
+async function mutate<T>(method: 'POST' | 'PUT', url: string): Promise<T> {
+  throw new Error(method + url)
+}
+
+export async function getUsers() {
+  return get(usersBase)
+}
+
+export async function createUser() {
+  return mutate('POST', usersBase)
+}
+
+export async function updateUser(id: string) {
+  return mutate('PUT', \`\${usersBase}/\${id}\`)
+}
+`,
   'architecture/front/src/features/reports/components/Widget.tsx': `export function Widget() {
   return <div>Widget</div>
 }
+`,
+  'architecture/front/src/features/reports/pages/ReportsPage/index.tsx': `export default function ReportsPage() { return null }
+`,
+  'architecture/front/src/features/reports/pages/ReportsPage/_DateRangeSelector/index.tsx': `export default function DateRangeSelector() { return null }
+`,
+  'architecture/front/src/features/reports/pages/index.ts': `export { default } from './ReportsPage'
 `,
   'architecture/front/src/features/reports/hooks/useReports.ts': `import { useProspecting } from '@/features/prospecting/hooks/useProspecting'
 // import { Widget } from '@/features/reports/components/Widget'

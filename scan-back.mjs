@@ -5,14 +5,32 @@ import { classifyBack, featureFromRepoPath } from './classify.mjs'
 import { addEndpoint, normalizeEndpoint } from './endpoints.mjs'
 
 let backFilesByName = new Map()
+let backTypesByName = new Map()
+let implementationsByInterface = new Map()
 
 export function initBackFileIndex(allBackFiles) {
   backFilesByName = new Map()
+  backTypesByName = new Map()
+  implementationsByInterface = new Map()
   for (const file of allBackFiles) {
     const key = path.basename(file).toLowerCase()
     const bucket = backFilesByName.get(key)
     if (bucket) bucket.push(file)
     else backFilesByName.set(key, [file])
+
+    const content = stripCSharpComments(stripCSharpStringLiterals(readText(file)))
+    for (const declaration of csharpTypeDeclarations(content)) {
+      const entry = { ...declaration, file }
+      const typeBucket = backTypesByName.get(declaration.name) ?? []
+      typeBucket.push(entry)
+      backTypesByName.set(declaration.name, typeBucket)
+      if (declaration.kind !== 'class') continue
+      for (const implemented of declaration.baseTypes.filter(name => name.startsWith('I'))) {
+        const implementations = implementationsByInterface.get(implemented) ?? []
+        implementations.push(entry)
+        implementationsByInterface.set(implemented, implementations)
+      }
+    }
   }
 }
 
@@ -30,6 +48,12 @@ export function scanBackFiles(graph, files) {
   for (const file of files) {
     const repoPath = toRepoPath(file)
     let [type, layer] = classifyBack(repoPath)
+    ;[type, layer] = semanticBackendRole(repoPath, type, layer)
+    if (type === 'handler' && !isRequestHandlerFile(file)) {
+      ;[type, layer] = semanticSupportRole(repoPath)
+    }
+    if (isDbContextFile(file)) [type, layer] = ['data-context', 'backend-repository']
+    if (type === 'repository' && isImplementedRepositoryInterface(file)) [type, layer] = ['auxiliary', 'auxiliary']
     if ((type === 'command' || type === 'query') && isMarkerInterfaceFile(file)) {
       [type, layer] = ['auxiliary', 'auxiliary']
     }
@@ -41,6 +65,47 @@ export function scanBackFiles(graph, files) {
       path: repoPath
     })
   }
+}
+
+function isDbContextFile(file) {
+  const content = stripCSharpComments(stripCSharpStringLiterals(readText(file)))
+  return /\bclass\s+\w+\s*(?:\([^)]*\))?\s*:\s*DbContext\b/.test(content)
+    || /\bDbSet<\w+>\s+\w+\s*(?:\{|=>)/.test(content)
+}
+
+function isImplementedRepositoryInterface(file) {
+  const stem = path.basename(file, '.cs')
+  return /^I[A-Z]/.test(stem) && (implementationsByInterface.get(stem)?.length ?? 0) > 0
+}
+
+function isRequestHandlerFile(file) {
+  const stem = path.basename(file, '.cs')
+  const content = stripCSharpComments(stripCSharpStringLiterals(readText(file)))
+  return /\bIRequestHandler\s*</.test(content) || /(?:Command|Query)Handler$/.test(stem)
+}
+
+function semanticBackendRole(repoPath, type, layer) {
+  if (type === 'command' || type === 'query') return [type, 'application-request']
+  if (type === 'handler') return [type, 'application-handler']
+  if (type !== 'auxiliary') return [type, layer]
+  const stem = path.basename(repoPath, '.cs')
+  if (repoPath.includes('/Repositories/') || /Repository$/.test(stem)) return ['repository', 'backend-repository']
+  if (/Service$/.test(stem)
+    || (!repoPath.includes('/Models/') && !repoPath.includes('/Configuration/') && (
+      repoPath.includes('/Services/')
+      || /(?:Client|Provider|Resolver|Sender|Processor|Orchestrator|Selector|Adapter|Worker|Queue|Runtime|Guard|Factory)$/.test(stem)
+    ))) {
+    return ['service', 'backend-service']
+  }
+  return [type, layer]
+}
+
+function semanticSupportRole(repoPath) {
+  const stem = path.basename(repoPath, '.cs')
+  if (/(?:Service|Client|Provider|Resolver|Sender|Processor|Orchestrator|Selector|Adapter|Worker|Queue|Runtime|Guard|Factory)$/.test(stem)) {
+    return ['service', 'backend-service']
+  }
+  return ['auxiliary', 'auxiliary']
 }
 
 function isMarkerInterfaceFile(file) {
@@ -60,6 +125,7 @@ export function scanControllers(graph, files) {
     const module = featureFromRepoPath(repoPath)
     const id = `file:${repoPath}`
     const routeMatch = content.match(controllerRoutePattern)
+    const controllerName = routeMatch?.[2] ?? path.basename(file, '.cs')
 
     graph.addNode(id, {
       label: displayLabel(repoPath),
@@ -71,23 +137,144 @@ export function scanControllers(graph, files) {
 
     const baseRoute = normalizeEndpoint(`/${routeMatch?.[1] ?? ''}`)
     if (baseRoute) {
-      for (const match of content.matchAll(/\[Http(Get|Post|Put|Patch|Delete)(?:\("([^"]*)"\))?\][\s\S]{0,900}?public\s+async\s+Task<IActionResult>\s+(\w+)/g)) {
-        const method = match[1].toUpperCase()
-        const actionRoute = match[2] ?? ''
+      for (const action of parseControllerActions(content)) {
+        const method = action.method
+        const actionRoute = action.route
         const fullUrl = normalizeEndpoint(`${baseRoute}/${actionRoute}`)
         if (!fullUrl) continue
         const endpoint = addEndpoint(graph, fullUrl, method, module)
-        endpoints.push({ id: endpoint, url: fullUrl, method, controllerId: id })
+        graph.addNode(endpoint, {
+          meta: {
+            url: fullUrl,
+            method,
+            backend: {
+              action: action.name,
+              controller: controllerName,
+              path: repoPath
+            }
+          }
+        })
+        endpoints.push({ id: endpoint, url: fullUrl, method, controllerId: id, action: action.name })
         graph.addEdge(endpoint, id, 'handled-by', { confidence: 'high' })
+        for (const requestName of collectDispatchedRequests(action.source)) {
+          linkRequest(graph, endpoint, requestName, module, 'high', `${controllerName}.${action.name}`)
+        }
       }
-    }
-
-    for (const requestName of collectDispatchedRequests(content)) {
-      linkRequest(graph, id, requestName, module, 'high')
     }
   }
 
   return endpoints
+}
+
+function parseControllerActions(content) {
+  const actions = []
+  const pattern = /\[Http(Get|Post|Put|Patch|Delete)(?:\("([^"]*)"\))?\]/g
+  for (const match of content.matchAll(pattern)) {
+    const publicIndex = content.indexOf('public ', match.index + match[0].length)
+    const nextHttpIndex = content.indexOf('[Http', match.index + match[0].length)
+    if (publicIndex < 0 || (nextHttpIndex >= 0 && nextHttpIndex < publicIndex)) continue
+    const openParen = content.indexOf('(', publicIndex)
+    if (openParen < 0) continue
+    const signaturePrefix = content.slice(publicIndex, openParen)
+    const name = signaturePrefix.match(/(\w+)\s*$/)?.[1]
+    if (!name) continue
+    const closeParen = findMatchingDelimiter(content, openParen, '(', ')')
+    if (closeParen < 0) continue
+    const bodyStart = content.slice(closeParen + 1).search(/\S/) + closeParen + 1
+    let bodyEnd = -1
+    if (content[bodyStart] === '{') bodyEnd = findMatchingBrace(content, bodyStart)
+    else if (content.slice(bodyStart, bodyStart + 2) === '=>') bodyEnd = content.indexOf(';', bodyStart)
+    if (bodyEnd < 0) continue
+    let source = content.slice(publicIndex, bodyEnd + 1)
+    const directRequests = collectDispatchedRequests(source)
+    if (directRequests.size === 0) {
+      for (const helperName of collectInvokedMethodNames(source)) {
+        const helperSource = findMethodSource(content, helperName)
+        if (helperSource) source += `\n${helperSource}`
+      }
+    }
+    actions.push({
+      method: match[1].toUpperCase(),
+      route: match[2] ?? '',
+      name,
+      source
+    })
+  }
+  return actions
+}
+
+function collectInvokedMethodNames(source) {
+  const names = new Set()
+  const ignored = new Set(['Send', 'Ok', 'BadRequest', 'NoContent', 'StatusCode', 'Unauthorized', 'NotFound'])
+  for (const match of source.matchAll(/(?<![.\w])([A-Z]\w*)\s*\(/g)) {
+    if (!ignored.has(match[1])) names.add(match[1])
+  }
+  return names
+}
+
+function findMethodSource(content, methodName) {
+  const signature = new RegExp(`\\b(?:private|protected|internal)\\s+(?:async\\s+)?[^;{}=]+?\\b${escapeRegExp(methodName)}\\s*\\(`, 'g')
+  const match = signature.exec(content)
+  if (!match) return null
+  const openParen = content.indexOf('(', match.index)
+  const closeParen = findMatchingDelimiter(content, openParen, '(', ')')
+  if (closeParen < 0) return null
+  const bodyStart = content.slice(closeParen + 1).search(/\S/) + closeParen + 1
+  if (content[bodyStart] === '{') {
+    const bodyEnd = findMatchingBrace(content, bodyStart)
+    return bodyEnd < 0 ? null : content.slice(match.index, bodyEnd + 1)
+  }
+  if (content.slice(bodyStart, bodyStart + 2) === '=>') {
+    const bodyEnd = content.indexOf(';', bodyStart)
+    return bodyEnd < 0 ? null : content.slice(match.index, bodyEnd + 1)
+  }
+  return null
+}
+
+function findMatchingDelimiter(content, openIndex, openCharacter, closeCharacter) {
+  let depth = 0
+  let quote = null
+  let escaped = false
+  for (let index = openIndex; index < content.length; index += 1) {
+    const character = content[index]
+    if (quote) {
+      if (escaped) escaped = false
+      else if (character === '\\') escaped = true
+      else if (character === quote) quote = null
+      continue
+    }
+    if (character === '"' || character === "'") {
+      quote = character
+      continue
+    }
+    if (character === openCharacter) depth += 1
+    if (character === closeCharacter) depth -= 1
+    if (depth === 0) return index
+  }
+  return -1
+}
+
+function findMatchingBrace(content, openBrace) {
+  let depth = 0
+  let quote = null
+  let escaped = false
+  for (let index = openBrace; index < content.length; index += 1) {
+    const character = content[index]
+    if (quote) {
+      if (escaped) escaped = false
+      else if (character === '\\') escaped = true
+      else if (character === quote) quote = null
+      continue
+    }
+    if (character === '"' || character === "'") {
+      quote = character
+      continue
+    }
+    if (character === '{') depth += 1
+    if (character === '}') depth -= 1
+    if (depth === 0) return index
+  }
+  return -1
 }
 
 function collectDispatchedRequests(content) {
@@ -102,17 +289,122 @@ function collectDispatchedRequests(content) {
   return requests
 }
 
-function linkRequest(graph, sourceId, requestName, module, confidence) {
+function linkRequest(graph, sourceId, requestName, module, confidence, source) {
   const requestPath = findBackFileByName(`${requestName}.cs`, module)
   const target = requestPath ? `file:${toRepoPath(requestPath)}` : `request:${requestName}`
   graph.addNode(target, {
     label: requestName,
     type: requestName.endsWith('Query') ? 'query' : 'command',
-    layer: 'application-boundary',
+    layer: 'application-request',
     module,
     path: requestPath ? toRepoPath(requestPath) : undefined
   })
-  graph.addEdge(sourceId, target, 'sends', { confidence })
+  graph.addEdge(sourceId, target, 'sends', { confidence, label: source ? `dispatches in ${source}` : 'sends' })
+}
+
+export function scanBackDependencies(graph, files) {
+  for (const file of files) {
+    const repoPath = toRepoPath(file)
+    const sourceId = `file:${repoPath}`
+    if (!graph.hasNode(sourceId)) continue
+    const content = stripCSharpComments(stripCSharpStringLiterals(readText(file)))
+    const declaration = csharpTypeDeclarations(content).find(item => item.kind === 'class')
+    if (!declaration) continue
+
+    for (const dependency of collectConstructorDependencies(content, declaration.name)) {
+      const target = resolveDependencyTarget(dependency.name, repoPath)
+      if (!target || target.file === file) continue
+      const genericEntity = dependency.display.match(/<\s*([A-Z]\w*)\s*>/)?.[1]
+      const isRepositoryAbstraction = genericEntity && /(?:Repository|Searchable|Pageable|Includable|Aggregatable|BulkOperations|Stateful)/.test(dependency.name)
+      const useLogicalDependency = isRepositoryAbstraction || target.ambiguous
+      const logicalType = dependencyRole(dependency.name)
+      const targetId = isRepositoryAbstraction
+        ? `backend-repository:${featureFromRepoPath(repoPath)}:${dependency.display.replace(/\s+/g, '')}`
+        : target.ambiguous
+          ? `backend-${logicalType}:${featureFromRepoPath(repoPath)}:${dependency.display.replace(/\s+/g, '')}`
+        : `file:${toRepoPath(target.file)}`
+      if (useLogicalDependency) {
+        graph.addNode(targetId, {
+          label: dependency.display,
+          type: logicalType,
+          layer: logicalType === 'repository' ? 'backend-repository' : 'backend-service',
+          module: featureFromRepoPath(repoPath),
+          meta: {
+            backendDependency: {
+              abstraction: dependency.display,
+              implementation: toRepoPath(target.file),
+              ...(genericEntity ? { entity: genericEntity } : {}),
+              ...(target.ambiguous ? { implementationCandidates: target.alternatives } : {})
+            }
+          }
+        })
+      } else if (!graph.hasNode(targetId)) continue
+      graph.addEdge(sourceId, targetId, 'depends-on', {
+        confidence: target.implementation && !target.ambiguous ? 'high' : 'medium',
+        label: dependency.display
+      })
+    }
+  }
+}
+
+function dependencyRole(typeName) {
+  return /(?:Repository|Searchable|Pageable|Includable|Aggregatable|BulkOperations|Stateful)/.test(typeName)
+    ? 'repository'
+    : 'service'
+}
+
+function collectConstructorDependencies(content, className) {
+  const blocks = []
+  const primary = content.match(new RegExp(`\\bclass\\s+${escapeRegExp(className)}(?:\\s*<[^>{]+>)?\\s*\\(([\\s\\S]{0,3000}?)\\)\\s*(?::|\\{)`))
+  if (primary) blocks.push(primary[1])
+  const constructors = new RegExp(`\\b${escapeRegExp(className)}\\s*\\(([\\s\\S]{0,3000}?)\\)\\s*(?::[^\\{]+)?\\{`, 'g')
+  for (const match of content.matchAll(constructors)) blocks.push(match[1])
+
+  const dependencies = new Map()
+  for (const block of blocks) {
+    for (const match of block.matchAll(/(?:^|,)\s*([A-ZI][\w.]*(?:\s*<[^>]+>)?)\s+\w+/gm)) {
+      const display = match[1].replace(/\s+/g, ' ').trim()
+      const name = display.match(/(?:^|\.)([A-ZI]\w*)\s*(?:<|$)/)?.[1]
+      if (name) dependencies.set(`${name}:${display}`, { name, display })
+    }
+  }
+  return [...dependencies.values()]
+}
+
+function resolveDependencyTarget(typeName, sourcePath) {
+  const implementations = implementationsByInterface.get(typeName) ?? []
+  const preferredImplementation = preferDependencyCandidate(implementations, sourcePath)
+  if (preferredImplementation) {
+    return {
+      ...preferredImplementation,
+      implementation: true,
+      ambiguous: implementations.length > 1,
+      alternatives: implementations.map(item => toRepoPath(item.file)).sort()
+    }
+  }
+  const declarations = backTypesByName.get(typeName) ?? []
+  return preferDependencyCandidate(declarations, sourcePath)
+}
+
+function preferDependencyCandidate(candidates, sourcePath) {
+  if (!candidates.length) return null
+  const sourceModule = featureFromRepoPath(sourcePath)
+  return candidates.find(candidate => featureFromRepoPath(toRepoPath(candidate.file)) === sourceModule)
+    ?? candidates.find(candidate => !toRepoPath(candidate.file).includes('.Tests/'))
+    ?? candidates[0]
+}
+
+function csharpTypeDeclarations(content) {
+  const declarations = []
+  const pattern = /\b(class|interface)\s+(\w+)(?:\s*<[^>{]+>)?(?:\s*\([^)]*\))?\s*(?::\s*([^\{]+))?\s*\{/g
+  for (const match of content.matchAll(pattern)) {
+    const baseTypes = (match[3] ?? '')
+      .split(',')
+      .map(value => value.trim().match(/(?:^|\.)([A-ZI]\w*)\s*(?:<|$)/)?.[1])
+      .filter(Boolean)
+    declarations.push({ kind: match[1], name: match[2], baseTypes })
+  }
+  return declarations
 }
 
 export function scanRequestDispatches(graph, files) {
@@ -139,7 +431,7 @@ export function scanRequestHandlers(graph, files) {
     const repoPath = toRepoPath(file)
     const handlerName = path.basename(file, '.cs')
     const requestName = handlerName.replace(/Handler$/, '')
-    const requestPath = findBackFileByName(`${requestName}.cs`)
+    const requestPath = findBackFileByName(`${requestName}.cs`, featureFromRepoPath(repoPath))
     if (requestPath) {
       graph.addEdge(`file:${toRepoPath(requestPath)}`, `file:${repoPath}`, 'handled-by', { confidence: 'high' })
     }
@@ -242,8 +534,7 @@ function extractEntityRelationships(graph, entityNodeByName, entityPropertiesByN
 function extractEntityUsage(graph, files, entityNodeByName, dbSetByEntity, tableNodeByEntity) {
   const projectMap = getProjectMap()
   const usageFiles = files.filter(file =>
-    toRepoPath(file).includes(projectMap.backend.handlerPathFragment)
-    || toRepoPath(file).includes(projectMap.backend.repositoryPathFragment)
+    ['handler', 'repository', 'service', 'data-context'].includes(graph.getNode(`file:${toRepoPath(file)}`)?.type)
   )
   for (const file of usageFiles) {
     const repoPath = toRepoPath(file)
@@ -255,10 +546,19 @@ function extractEntityUsage(graph, files, entityNodeByName, dbSetByEntity, table
       const sourceId = `file:${repoPath}`
       graph.addEdge(sourceId, entityId, 'uses-entity', { confidence: usage.confidence, label: usage.reason })
       const tableId = tableNodeByEntity.get(entity)
-      if (tableId) {
+      if (tableId && usage.persistence) {
         graph.addEdge(sourceId, tableId, 'queries-table', { confidence: usage.confidence, label: `ORM ${usage.reason}` })
       }
     }
+  }
+
+  for (const node of graph.allNodes()) {
+    const entity = node.meta?.backendDependency?.entity
+    const entityId = entityNodeByName.get(entity)
+    if (!entityId || node.type !== 'repository') continue
+    graph.addEdge(node.id, entityId, 'uses-entity', { confidence: 'high', label: `generic repository ${entity}` })
+    const tableId = tableNodeByEntity.get(entity)
+    if (tableId) graph.addEdge(node.id, tableId, 'queries-table', { confidence: 'high', label: `ORM repository ${entity}` })
   }
 }
 
@@ -274,11 +574,11 @@ function detectEntityUsage(content, entity, dbSet) {
   const escapedEntity = escapeRegExp(entity)
   const escapedDbSet = dbSet ? escapeRegExp(dbSet) : null
   const checks = [
-    { pattern: new RegExp(`\\bSet\\s*<\\s*${escapedEntity}\\s*>\\s*\\(`), reason: `ORM Set<${entity}>`, confidence: 'high' },
-    { pattern: new RegExp(`\\b(?:IRepository|IReadRepository|Repository)\\s*<\\s*${escapedEntity}\\s*>`), reason: `repository ${entity}`, confidence: 'high' },
-    { pattern: escapedDbSet ? new RegExp(`\\.[\\s\\r\\n]*${escapedDbSet}\\b|\\b${escapedDbSet}\\s*\\.`) : null, reason: `DbSet ${dbSet}`, confidence: 'high' },
-    { pattern: new RegExp(`\\bDomain\\.Entities\\.[A-Za-z0-9_.]+\\.${escapedEntity}\\b`), reason: `qualified entity ${entity}`, confidence: 'medium' },
-    { pattern: new RegExp(`\\b${escapedEntity}\\b`), reason: `entity ${entity}`, confidence: 'medium' }
+    { pattern: new RegExp(`\\bSet\\s*<\\s*${escapedEntity}\\s*>\\s*\\(`), reason: `ORM Set<${entity}>`, confidence: 'high', persistence: true },
+    { pattern: new RegExp(`\\b(?:IRepository|IReadRepository|Repository)\\s*<\\s*${escapedEntity}\\s*>`), reason: `repository ${entity}`, confidence: 'high', persistence: true },
+    { pattern: escapedDbSet ? new RegExp(`\\.[\\s\\r\\n]*${escapedDbSet}\\b|\\b${escapedDbSet}\\s*\\.`) : null, reason: `DbSet ${dbSet}`, confidence: 'high', persistence: true },
+    { pattern: new RegExp(`\\bDomain\\.Entities\\.[A-Za-z0-9_.]+\\.${escapedEntity}\\b`), reason: `qualified entity ${entity}`, confidence: 'medium', persistence: false },
+    { pattern: new RegExp(`\\b${escapedEntity}\\b`), reason: `entity ${entity}`, confidence: 'medium', persistence: false }
   ]
   return checks.find(check => check.pattern?.test(content)) ?? null
 }

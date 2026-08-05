@@ -250,7 +250,10 @@ const LAYER_PRESETS = {
     { id: 'front-repository',     label: 'Frontend Repositories' },
     { id: 'api-endpoint',         label: 'API Endpoints' },
     { id: 'api-controller',       label: 'Controllers' },
-    { id: 'application-boundary', label: 'Handlers / Boundaries' },
+    { id: 'application-request',  label: 'Commands & Queries' },
+    { id: 'application-handler',  label: 'Handlers' },
+    { id: 'backend-service',      label: 'Backend Services' },
+    { id: 'backend-repository',   label: 'Persistence Repositories' },
     { id: 'domain',               label: 'Entities' },
     { id: 'database-table',       label: 'DB Tables' }
   ],
@@ -353,9 +356,9 @@ const DOTNET_DEFAULTS = {
   entityPathFragment: '/Entities/',
   classifiers: [
     { contains: '/Controllers/',            type: 'controller', layer: 'api-controller' },
-    { contains: '/Queries/',                type: 'query',      layer: 'application-boundary' },
-    { contains: '/Commands/',               type: 'command',    layer: 'application-boundary' },
-    { contains: '/Handlers/',               type: 'handler',    layer: 'application-boundary' },
+    { contains: '/Queries/',                type: 'query',      layer: 'application-request' },
+    { contains: '/Commands/',               type: 'command',    layer: 'application-request' },
+    { contains: '/Handlers/',               type: 'handler',    layer: 'application-handler' },
     { contains: '/DTOs/',                   type: 'dto',        layer: 'hidden-dto' },
     { contains: '/Repositories/',           type: 'auxiliary',  layer: 'auxiliary' },
     { contains: '/Configurations/Entities/',type: 'auxiliary',  layer: 'auxiliary' },
@@ -373,7 +376,7 @@ const NODE_BACKEND_DEFAULTS = {
   entityPathFragment: '/entities/',
   classifiers: [
     { contains: '/controllers/', type: 'controller', layer: 'api-controller' },
-    { contains: '/handlers/',    type: 'handler',    layer: 'application-boundary' },
+    { contains: '/handlers/',    type: 'handler',    layer: 'application-handler' },
     { contains: '/repositories/',type: 'auxiliary',  layer: 'auxiliary' },
     { contains: '/entities/',    type: 'entity',     layer: 'domain' }
   ]

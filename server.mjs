@@ -6,6 +6,7 @@ import { writeGraph } from './scan.mjs'
 import { getConfigPathFromArgs, getProjectMap, getProjectMapPath, loadProjectMap } from './config.mjs'
 import { detect } from './detect.mjs'
 import { loadTemplatePlugins } from './templates/registry.mjs'
+import { createSubmap, defaultSubmapFilename, writeSubmap } from './submap/index.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = process.cwd()
@@ -111,6 +112,37 @@ function isViewerAsset(pathname) {
     || (pathname.startsWith('/viewer-') && pathname.endsWith('.js'))
 }
 
+function handleTraceSubmap(request, response) {
+  readRequestBody(request)
+    .then(body => {
+      const input = JSON.parse(body)
+      if (!Array.isArray(input.nodeIds) || input.nodeIds.length === 0) throw new Error('A non-empty trace selection is required.')
+      const graph = JSON.parse(fs.readFileSync(graphPath(), 'utf8'))
+      const requestDocument = {
+        id: input.id,
+        selectors: { nodeIds: [...new Set(input.nodeIds)] },
+        traversal: { direction: 'both', maxDepth: 0 },
+        metadata: {
+          kind: 'execution-trace',
+          selectedNodeId: input.selectedNodeId,
+          complete: Boolean(input.complete),
+          traceEdgeIds: Array.isArray(input.edgeIds) ? [...new Set(input.edgeIds)] : []
+        }
+      }
+      const submap = createSubmap(graph, requestDocument)
+      const directory = path.resolve(repoRoot, getProjectMap().project.submapsDirectory ?? '.code-map/submaps')
+      const output = path.join(directory, defaultSubmapFilename(submap))
+      writeSubmap(output, submap)
+      send(response, 200, JSON.stringify({
+        ok: true,
+        file: path.relative(repoRoot, output),
+        uid: submap.uid,
+        statistics: submap.statistics
+      }), 'application/json; charset=utf-8')
+    })
+    .catch(error => send(response, 400, JSON.stringify({ ok: false, error: error.message }), 'application/json; charset=utf-8'))
+}
+
 const routes = [
   { method: 'GET',  test: p => p === '/',               handler: serveViewer },
   { method: 'GET',  test: p => p === '/graph.json',     handler: serveGraph },
@@ -118,6 +150,7 @@ const routes = [
   { method: 'GET',  test: isViewerAsset,                handler: serveViewerAsset },
   { method: 'POST', test: p => p === '/api/scan',       handler: handleScan },
   { method: 'POST', test: p => p === '/api/project-map', handler: handleProjectMap },
+  { method: 'POST', test: p => p === '/api/submaps/from-trace', handler: handleTraceSubmap },
 ]
 
 export function startServer() {

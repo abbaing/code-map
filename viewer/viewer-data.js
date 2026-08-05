@@ -35,7 +35,7 @@ function initializeFilters() {
     els.healthChecks.appendChild(lbl)
   }
 
-  const hiddenByDefaultTypes = new Set(['config'])
+  const hiddenByDefaultTypes = new Set(['config', 'controller'])
   state.selectedTypes = new Set(types.filter(t => !hiddenByDefaultTypes.has(t)))
   els.typeChecks.innerHTML = ''
   for (const type of types) {
@@ -137,13 +137,14 @@ function buildFilterPredicate() {
   const healthFilterActive = state.selectedHealth.size < 6
   const domainViewIds = state.view === 'domain' ? domainModelNodeIds() : null
   const effectiveModule = state.activeModule ?? 'all'
+  const moduleNodeIds = effectiveModule === 'all' ? null : moduleTraceNodeIds(effectiveModule)
   const isOverview = state.view === 'overview'
-  const query = isOverview ? '' : els.search.value.trim().toLowerCase()
+  const query = isOverview ? '' : els.graphSearch.value.trim().toLowerCase()
 
   const predicates = [
     node => !domainViewIds || domainViewIds.has(node.id),
     node => state.selectedTypes.has(node.type),
-    node => effectiveModule === 'all' || node.module === effectiveModule,
+    node => !moduleNodeIds || moduleNodeIds.has(node.id),
     node => !els.orphansOnly.checked || orphanIds.has(node.id),
     node => !els.uncoveredOnly.checked || (isCoverable(node) && !node.meta?.coverage?.hasCoverage),
     node => !els.reviewOnly.checked || Boolean(node.meta?.review),

@@ -38,15 +38,23 @@ export function classifyFront(repoPath) {
   if (isHookPath(repoPath, basename, parent)) return ['hook', 'ui-component-logic']
 
   const classifier = projectMap.frontend.classifiers.find(rule => repoPath.includes(rule.contains))
-  if (classifier && classifier.type !== 'component') return [classifier.type, classifier.layer]
 
   const dirIndex = findComponentDirIndex(segments)
 
   if (dirIndex >= 0) {
     const relativeSegments = segments.slice(dirIndex + 1)
     const isInComponents = segments[dirIndex] === 'components'
+    const isInPages = segments[dirIndex] === 'pages'
     const isSubComponent = relativeSegments.some(segment => segment.startsWith('_'))
-      || (isInComponents && relativeSegments.length > 2)
+      || ((isInComponents || isInPages) && relativeSegments.length > 2)
+
+    if (isInPages) {
+      if (isSubComponent) return ['subcomponent', 'ui-component-logic']
+      const isPageFile = relativeSegments.length === 1 && basename !== 'index'
+      const isPageDirectoryIndex = relativeSegments.length === 2 && basename === 'index'
+      if (isPageFile || isPageDirectoryIndex) return ['page', classifier?.layer ?? 'ui-page']
+      return ['auxiliary', 'auxiliary']
+    }
 
     if (isInComponents) {
       const componentName = relativeSegments[0] ?? path.basename(repoPath, path.extname(repoPath))
@@ -61,6 +69,7 @@ export function classifyFront(repoPath) {
     if (isInComponents) return ['component', 'ui-component-logic']
   }
 
+  if (classifier && classifier.type !== 'component') return [classifier.type, classifier.layer]
   if (classifier) return [classifier.type, classifier.layer]
   return ['auxiliary', 'auxiliary']
 }

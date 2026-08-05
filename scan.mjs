@@ -117,8 +117,8 @@ function countTestCases(content) {
   return [...content.matchAll(/(?:^|[^\w$])(?:it|test)(?:\.(?:only|skip|todo|concurrent|each))?\s*\(/g)].length
 }
 
-function phaseCollapseInternals(graph) {
-  collapseInternalComponents(graph)
+function phaseTrackInternals(graph) {
+  trackInternalComponents(graph)
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -239,7 +239,7 @@ function findModuleParent(graph, node) {
     .sort((a, b) => parentPriority(a) - parentPriority(b) || (a.path ?? '').localeCompare(b.path ?? ''))[0]?.id
 }
 
-function collapseInternalComponents(graph) {
+function trackInternalComponents(graph) {
   const internalToParent = new Map()
 
   for (const node of graph.allNodes()) {
@@ -248,40 +248,19 @@ function collapseInternalComponents(graph) {
     if (parentId) internalToParent.set(node.id, parentId)
   }
 
-  if (internalToParent.size === 0) return
-
   for (const [internalId, parentId] of internalToParent) {
     const internal = graph.getNode(internalId)
     const parent = graph.getNode(parentId)
     if (!internal || !parent) continue
     addInternalComponentQuality(graph, parent, internal)
-  }
-
-  const rewiredEdges = new Map()
-  for (const edge of graph.allEdges()) {
-    const from = internalToParent.get(edge.from) ?? edge.from
-    const to = internalToParent.get(edge.to) ?? edge.to
-    if (from === to) continue
-    const id = `${from}::${edge.type}::${to}`
-    if (rewiredEdges.has(id)) continue
-    rewiredEdges.set(id, {
-      ...edge,
-      id,
-      from,
-      to,
-      source: internalToParent.has(edge.from) || internalToParent.has(edge.to)
-        ? `${edge.source ?? 'scanner'}; internal-component-collapsed`
-        : edge.source
+    graph.addNode(internalId, {
+      meta: {
+        internalComponent: {
+          parentId,
+          role: 'supporting-component'
+        }
+      }
     })
-  }
-
-  graph.edgeMap.clear()
-  for (const [id, edge] of rewiredEdges) {
-    graph.edgeMap.set(id, edge)
-  }
-
-  for (const internalId of internalToParent.keys()) {
-    graph.nodeMap.delete(internalId)
   }
 }
 
@@ -318,7 +297,7 @@ function addInternalComponentQuality(graph, parent, internal) {
     ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
     : baseQuality.score
   const worst = internalComponents[0]
-  const internalSummary = `${internalComponents.length} internal component${internalComponents.length === 1 ? '' : 's'} collapsed; worst ${worst.label} ${worst.score}/10`
+  const internalSummary = `${internalComponents.length} internal component${internalComponents.length === 1 ? '' : 's'} tracked; worst ${worst.label} ${worst.score}/10`
 
   graph.addNode(parent.id, {
     meta: {
@@ -415,7 +394,7 @@ function createScanContext(graph, projectMap, registry, files) {
     controllerEndpoints: [],
     controllerFiles: () => files.backFiles.filter(file => toRepoPath(file).includes(projectMap.backend?.controllerPathFragment ?? '/Controllers/')),
     applyCoverage: () => phaseApplyCoverage(graph, files.frontTestFiles),
-    collapseInternalComponents: () => phaseCollapseInternals(graph)
+    trackInternalComponents: () => phaseTrackInternals(graph)
   }
 }
 

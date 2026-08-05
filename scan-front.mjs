@@ -22,6 +22,8 @@ export function detectFrontBehavior(content) {
 
 export function scanFront(graph, files) {
   const frontEndpointNodes = []
+  const apiVersionPrefix = detectApiVersionPrefix(files)
+  const exportedEndpointBindings = collectExportedEndpointBindings(files)
 
   for (const file of files) {
     const repoPath = toRepoPath(file)
@@ -66,8 +68,10 @@ export function scanFront(graph, files) {
       }
     }
 
-    for (const { url, method } of extractFrontendEndpoints(content)) {
-      const endpoint = addEndpoint(graph, url, method, module)
+    const importedEndpointBindings = resolveImportedEndpointBindings(file, content, exportedEndpointBindings)
+    for (const { url, method } of extractFrontendEndpoints(content, importedEndpointBindings)) {
+      const runtimeUrl = applyApiVersionPrefix(url, apiVersionPrefix)
+      const endpoint = addEndpoint(graph, runtimeUrl, method, module)
       if (endpoint) {
         frontEndpointNodes.push(endpoint)
         graph.addEdge(id, endpoint, 'calls-api', { confidence: 'medium' })
@@ -76,4 +80,55 @@ export function scanFront(graph, files) {
   }
 
   return frontEndpointNodes
+}
+
+function collectExportedEndpointBindings(files) {
+  const byFile = new Map()
+  const candidates = new Map()
+  const pattern = /\bexport\s+const\s+([A-Za-z_$][\w$]*)\s*(?::[^=;\n]+)?=\s*['"`]((?:\/api)(?:[^'"`\\]|\\.)*)['"`]/g
+  for (const file of files) {
+    const bindings = new Map()
+    for (const match of readText(file).matchAll(pattern)) bindings.set(match[1], match[2])
+    if (bindings.size > 0) byFile.set(toRepoPath(file), bindings)
+    for (const [name, value] of bindings) {
+      const values = candidates.get(name) ?? new Set()
+      values.add(value)
+      candidates.set(name, values)
+    }
+  }
+  const unique = new Map()
+  for (const [name, values] of candidates) if (values.size === 1) unique.set(name, [...values][0])
+  return { byFile, unique }
+}
+
+function resolveImportedEndpointBindings(file, content, exportedBindings) {
+  const result = new Map()
+  const importPattern = /\bimport\s*\{([\s\S]*?)\}\s*from\s*['"]([^'"]+)['"]/g
+  for (const match of content.matchAll(importPattern)) {
+    const resolved = resolveTsImport(file, match[2])
+    if (!resolved) continue
+    const exports = exportedBindings.byFile.get(toRepoPath(resolved))
+    for (const imported of match[1].split(',')) {
+      const parts = imported.trim().replace(/^type\s+/, '').split(/\s+as\s+/)
+      const exportedName = parts[0]?.trim()
+      const localName = parts[1]?.trim() || exportedName
+      const value = exports?.get(exportedName) ?? exportedBindings.unique.get(exportedName)
+      if (exportedName && localName && value) result.set(localName, value)
+    }
+  }
+  return result
+}
+
+function detectApiVersionPrefix(files) {
+  for (const file of files) {
+    const content = readText(file)
+    const match = content.match(/\.replace\([\s\S]{0,180}?['"](\/api\/v\d+\/)['"]\)/)
+    if (match && /\^\\?\/api\\?\//.test(match[0])) return match[1]
+  }
+  return null
+}
+
+function applyApiVersionPrefix(url, prefix) {
+  if (!prefix || !url.startsWith('/api/') || /^\/api\/(?:v\d+|health)(?:\/|$)/.test(url)) return url
+  return `${prefix}${url.slice('/api/'.length)}`
 }
