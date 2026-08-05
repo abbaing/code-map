@@ -144,6 +144,7 @@ export function normalizeProjectMap(projectMap, configPath = null) {
     project: {
       name: project.name ?? 'Code Map',
       graphOutput: project.graphOutput ?? 'graph.json',
+      submapsDirectory: project.submapsDirectory ?? '.code-map/submaps',
       ...(project.runtimeLinks ? { runtimeLinks: project.runtimeLinks } : {})
     },
     sourceRoots: {

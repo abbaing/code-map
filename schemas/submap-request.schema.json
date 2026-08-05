@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/abbaing/code-map/schemas/submap-request.schema.json",
+  "title": "Code Map Submap Request",
+  "type": "object",
+  "required": ["id", "selectors"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "parentUid": { "type": ["string", "null"], "pattern": "^sha256:[a-f0-9]{64}$" },
+    "selectors": { "$ref": "#/$defs/selector" },
+    "traversal": {
+      "type": "object",
+      "properties": {
+        "direction": { "enum": ["incoming", "outgoing", "both"] },
+        "maxDepth": { "type": "integer", "minimum": 0 },
+        "edgeTypes": { "$ref": "#/$defs/stringArray" },
+        "excludedEdgeTypes": { "$ref": "#/$defs/stringArray" }
+      },
+      "additionalProperties": false
+    },
+    "exclusions": { "$ref": "#/$defs/selector" },
+    "access": {
+      "type": "object",
+      "properties": {
+        "default": { "enum": ["editable", "readable", "external", "forbidden", "generated"] },
+        "editable": { "$ref": "#/$defs/selector" },
+        "readable": { "$ref": "#/$defs/selector" },
+        "external": { "$ref": "#/$defs/selector" },
+        "forbidden": { "$ref": "#/$defs/selector" },
+        "generated": { "$ref": "#/$defs/selector" }
+      },
+      "additionalProperties": false
+    },
+    "metadata": { "type": "object" }
+  },
+  "$defs": {
+    "stringArray": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "selector": {
+      "type": "object",
+      "properties": {
+        "nodeIds": { "$ref": "#/$defs/stringArray" },
+        "nodes": { "$ref": "#/$defs/stringArray" },
+        "paths": { "$ref": "#/$defs/stringArray" },
+        "modules": { "$ref": "#/$defs/stringArray" },
+        "layers": { "$ref": "#/$defs/stringArray" },
+        "types": { "$ref": "#/$defs/stringArray" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

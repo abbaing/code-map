@@ -14,12 +14,29 @@
   "bin": {
     "code-map": "./cli.mjs"
   },
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.mjs"
+    },
+    "./submap": {
+      "types": "./submap/index.d.ts",
+      "import": "./submap/index.mjs"
+    },
+    "./schemas/graph": "./schemas/graph.schema.json",
+    "./schemas/submap": "./schemas/submap.schema.json",
+    "./schemas/submap-request": "./schemas/submap-request.schema.json",
+    "./*": "./*"
+  },
   "scripts": {
-    "test": "node tests/generic-templates.test.mjs && node tests/cli-smoke.test.mjs",
+    "test": "node tests/generic-templates.test.mjs && node tests/cli-smoke.test.mjs && node tests/submap.test.mjs && node tests/submap-cli.test.mjs",
     "pack:dry": "npm pack --dry-run"
   },
   "files": [
     "cli.mjs",
+    "index.mjs",
+    "index.d.ts",
     "config.mjs",
     "classify.mjs",
     "detect.mjs",
@@ -32,6 +49,7 @@
     "scan-front.mjs",
     "scan-utils.mjs",
     "server.mjs",
+    "submap/",
     "LICENSE",
     "COMMERCIAL.md",
     "CONTRIBUTING.md",

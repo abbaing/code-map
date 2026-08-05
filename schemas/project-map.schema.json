@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/code-map/project-map.schema.json",
+  "$id": "https://github.com/abbaing/code-map/schemas/project-map.schema.json",
   "title": "Code Map Project Map",
   "type": "object",
   "required": ["schemaVersion", "project", "sourceRoots"],
@@ -13,7 +13,8 @@
       "properties": {
         "name": { "type": "string", "minLength": 1 },
         "graphOutput": { "type": "string" },
-        "runtimeLinks": { "type": "string" }
+        "runtimeLinks": { "type": "string" },
+        "submapsDirectory": { "type": "string" }
       },
       "additionalProperties": true
     },

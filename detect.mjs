@@ -420,7 +420,8 @@ export function detectProject(repoRoot) {
 
   return {
     name,
-    graphOutput: 'graph.json'
+    graphOutput: 'graph.json',
+    submapsDirectory: '.code-map/submaps'
   }
 }
 

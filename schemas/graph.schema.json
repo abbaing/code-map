@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/code-map/graph.schema.json",
+  "$id": "https://github.com/abbaing/code-map/schemas/graph.schema.json",
   "title": "Code Map Graph",
   "type": "object",
   "required": ["version", "generatedAt", "stats", "nodes", "edges"],

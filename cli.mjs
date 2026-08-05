@@ -13,6 +13,11 @@ const repoRoot = process.cwd()
 const args = process.argv.slice(2)
 const hasFlag = flag => args.includes(flag)
 
+if (args[0] === 'submap') {
+  const { runSubmapCli } = await import('./submap/cli.mjs')
+  process.exit(await runSubmapCli(args.slice(1), { cwd: repoRoot }))
+}
+
 if (hasFlag('--help') || hasFlag('-h')) {
   console.log(`
 code-map - architectural graph generator
@@ -25,6 +30,7 @@ Usage:
   node tools/code-map/cli.mjs --scan           Scan only, no viewer
   node tools/code-map/cli.mjs --scan --config <path>  Scan with explicit config, no viewer
   node tools/code-map/cli.mjs --templates      List composable templates
+  node tools/code-map/cli.mjs submap --help    Create and manage portable partial graphs
   node tools/code-map/cli.mjs --help           Show this help
 
 Environment variables:
