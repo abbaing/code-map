@@ -100,6 +100,12 @@ function renderModuleDetail() {
     return
   }
 
+  if (state.view === 'graph') {
+    els.moduleDetail.classList.add('hidden')
+    els.moduleDetail.innerHTML = ''
+    return
+  }
+
   const moduleNodes = state.graph.nodes.filter(node => node.module === moduleName)
   const moduleNodeIds = new Set(moduleNodes.map(node => node.id))
   const moduleEdges = state.graph.edges.filter(edge => moduleNodeIds.has(edge.from) || moduleNodeIds.has(edge.to))

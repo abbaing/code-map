@@ -143,11 +143,12 @@ function renderGraphView(svg, layout) {
   const nodeById = new Map(nodes.map(node => [node.id, node]))
   const visibleIds = new Set(nodes.map(node => node.id))
   const orphanIds = new Set(state.graph.orphans.map(orphan => orphan.id))
-  const selectedEdges = state.trace?.edgeIds ?? connectedEdgeIds(state.selectedId)
+  const moduleOverview = Boolean(state.trace?.moduleOverview)
+  const selectedEdges = moduleOverview ? new Set() : state.trace?.edgeIds ?? connectedEdgeIds(state.selectedId)
   const edges = state.graph.edges.filter(edge =>
     visibleIds.has(edge.from) && visibleIds.has(edge.to)
   )
-  const focusedIds = state.trace?.nodeIds ?? focusedNodeIds(state.selectedId, edges)
+  const focusedIds = moduleOverview ? null : state.trace?.nodeIds ?? focusedNodeIds(state.selectedId, edges)
 
   svg.innerHTML = `
     <defs>
@@ -978,7 +979,7 @@ function edgeSvg(edge, nodeById, highlighted, dimmed = false, focused = false) {
   const x2 = target.x
   const y2 = target.y + target.height / 2
   const mid = Math.max(x1 + 24, (x1 + x2) / 2)
-  return `<path class="edge confidence-${escapeHtml(edge.confidence ?? 'medium')} ${highlighted ? 'highlight' : ''} ${focused ? 'focused' : ''} ${dimmed ? 'dimmed' : ''}" d="M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}" marker-end="url(#arrow)" />`
+  return `<path class="edge edge-type-${escapeHtml(edge.type)} confidence-${escapeHtml(edge.confidence ?? 'medium')} ${highlighted ? 'highlight' : ''} ${focused ? 'focused' : ''} ${dimmed ? 'dimmed' : ''}" d="M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}" marker-end="url(#arrow)" />`
 }
 
 function domainEdgeSvg(edge, from, to, highlighted, dimmed = false, focused = false) {
@@ -1030,13 +1031,11 @@ function nodeGraphSvg(node, orphan, dimmed = false, focused = false) {
     <rect class="metric-box" x="12" y="47" width="64" height="13" style="fill: ${scoreColor(quality.score)}" rx="3"></rect>
     <text class="metric-label" x="18" y="57">Q ${quality.score}/10</text>
   ` : ''
-  const coverageCup = coverage?.hasCoverage ? `
-    <g transform="translate(${node.width - 24}, 8)" aria-label="Con cobertura">
-      <path class="coverage-cup" d="M4 2h12v5c0 4-2.6 7-6 7S4 11 4 7V2z"></path>
-      <path class="coverage-cup" d="M2 4h3v2H3c0 2 1 3 3 3v2c-3 0-4-2-4-5V4z"></path>
-      <path class="coverage-cup" d="M15 4h3v2h-1c0 3-1 5-4 5V9c2 0 3-1 3-3h-1V4z"></path>
-      <rect class="coverage-stem" x="8" y="14" width="4" height="3" rx="1"></rect>
-      <rect class="coverage-stem" x="5" y="17" width="10" height="2" rx="1"></rect>
+  const testIndicator = coverage?.hasCoverage ? `
+    <g class="test-indicator" transform="translate(${node.width - 43}, 8)" aria-label="Related test detected">
+      <title>Related test detected</title>
+      <rect width="35" height="16" rx="4"></rect>
+      <text x="17.5" y="11.5" text-anchor="middle">TEST</text>
     </g>
   ` : ''
   const reviewBadge = review ? `
@@ -1057,7 +1056,7 @@ function nodeGraphSvg(node, orphan, dimmed = false, focused = false) {
       <text class="type" x="12" y="38">${escapeHtml(truncate(secondary, 30))}</text>
       ${metrics}
       ${reviewBadge}
-      ${coverageCup}
+      ${testIndicator}
     </g>
   `
 }
