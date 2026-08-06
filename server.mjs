@@ -2,18 +2,17 @@ import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { writeGraph } from './scan.mjs'
-import { getConfigPathFromArgs, getProjectMap, getProjectMapPath, loadProjectMap, resolveGraphOutputPath, validateProjectMap } from './config.mjs'
+import { getConfigPathFromArgs, getProjectMap, loadProjectMap } from './config.mjs'
 import { detect } from './detect.mjs'
 import { loadTemplatePlugins } from './templates/registry.mjs'
-import { createSubmap, defaultSubmapFilename, writeSubmap } from './submap/index.mjs'
+import { ApplicationInputError, createServerApplication } from './server-app.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = process.cwd()
 const viewerRoot = path.join(__dirname, 'viewer')
 const indexPath = path.join(viewerRoot, 'viewer.html')
-
 const port = Number(process.env.CODE_MAP_PORT) || 1133
+const application = createServerApplication({ repoRoot })
 
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -32,22 +31,18 @@ function send(response, status, body, type = 'text/plain; charset=utf-8') {
   response.end(body)
 }
 
-function sendFile(response, filePath) {
-  if (!fs.existsSync(filePath)) {
-    send(response, 404, 'Not found')
-    return
-  }
+function sendJson(response, status, body) {
+  send(response, status, JSON.stringify(body), 'application/json; charset=utf-8')
+}
 
+function sendFile(response, filePath) {
+  if (!fs.existsSync(filePath)) return send(response, 404, 'Not found')
   response.writeHead(200, {
     'Content-Type': contentTypes[path.extname(filePath)] ?? 'application/octet-stream',
     'Cache-Control': 'no-store, max-age=0',
     'Pragma': 'no-cache'
   })
   response.end(fs.readFileSync(filePath))
-}
-
-function graphPath() {
-  return resolveGraphOutputPath()
 }
 
 function readRequestBody(request) {
@@ -59,129 +54,66 @@ function readRequestBody(request) {
   })
 }
 
-function serveViewer(request, response) {
-  sendFile(response, indexPath)
-}
-
-function serveGraph(request, response) {
-  sendFile(response, graphPath())
-}
-
-function serveProjectMap(request, response) {
-  send(response, 200, JSON.stringify(getProjectMap(), null, 2), 'application/json; charset=utf-8')
-}
-
-function serveViewerAsset(request, response, url) {
-  sendFile(response, path.join(viewerRoot, url.pathname.slice(1)))
-}
-
-function handleScan(request, response) {
+async function handleScan(request, response) {
   try {
-    const graph = writeGraph(graphPath())
-    send(response, 200, JSON.stringify({ ok: true, stats: graph.stats, generatedAt: graph.generatedAt }), 'application/json; charset=utf-8')
+    const graph = application.scan()
+    sendJson(response, 200, { ok: true, stats: graph.stats, generatedAt: graph.generatedAt })
   } catch (error) {
-    send(response, 500, JSON.stringify({ ok: false, error: error.message }), 'application/json; charset=utf-8')
+    sendJson(response, 500, { ok: false, error: error.message })
   }
 }
 
-function handleProjectMap(request, response) {
-  readRequestBody(request)
-    .then(body => {
-      const projectMapPath = getProjectMapPath()
-      if (!projectMapPath) {
-        send(response, 400, JSON.stringify({
-          ok: false,
-          error: 'Cannot save an auto-detected project map. Export the config or restart code-map with --config <path>.'
-        }), 'application/json; charset=utf-8')
-        return
-      }
-      let parsed
-      try {
-        parsed = JSON.parse(body)
-        delete parsed.configPath
-        validateProjectMap(parsed, projectMapPath)
-      } catch (error) {
-        send(response, 400, JSON.stringify({ ok: false, error: error.message }), 'application/json; charset=utf-8')
-        return
-      }
-      fs.writeFileSync(projectMapPath, `${JSON.stringify(parsed, null, 2)}\n`, 'utf8')
-      loadProjectMap(projectMapPath)
-      const graph = writeGraph(graphPath())
-      send(response, 200, JSON.stringify({ ok: true, projectMap: getProjectMap(), stats: graph.stats }), 'application/json; charset=utf-8')
-    })
-    .catch(error => {
-      send(response, 500, JSON.stringify({ ok: false, error: error.message }), 'application/json; charset=utf-8')
-    })
+async function handleProjectMap(request, response) {
+  try {
+    const input = JSON.parse(await readRequestBody(request))
+    const result = application.saveProjectMap(input)
+    sendJson(response, 200, { ok: true, ...result })
+  } catch (error) {
+    const status = error instanceof SyntaxError || error instanceof ApplicationInputError ? 400 : 500
+    sendJson(response, status, { ok: false, error: error.message })
+  }
+}
+
+async function handleTraceSubmap(request, response) {
+  try {
+    const input = JSON.parse(await readRequestBody(request))
+    const result = application.createTraceSubmap(input)
+    sendJson(response, 200, { ok: true, ...result })
+  } catch (error) {
+    sendJson(response, 400, { ok: false, error: error.message })
+  }
 }
 
 function isViewerAsset(pathname) {
-  return pathname === '/viewer.css'
-    || (pathname.startsWith('/viewer-') && pathname.endsWith('.js'))
-}
-
-function handleTraceSubmap(request, response) {
-  readRequestBody(request)
-    .then(body => {
-      const input = JSON.parse(body)
-      if (!Array.isArray(input.nodeIds) || input.nodeIds.length === 0) throw new Error('A non-empty trace selection is required.')
-      const graph = JSON.parse(fs.readFileSync(graphPath(), 'utf8'))
-      const requestDocument = {
-        id: input.id,
-        selectors: { nodeIds: [...new Set(input.nodeIds)] },
-        traversal: { direction: 'both', maxDepth: 0 },
-        metadata: {
-          kind: 'execution-trace',
-          selectedNodeId: input.selectedNodeId,
-          complete: Boolean(input.complete),
-          traceEdgeIds: Array.isArray(input.edgeIds) ? [...new Set(input.edgeIds)] : []
-        }
-      }
-      const submap = createSubmap(graph, requestDocument)
-      const directory = path.resolve(repoRoot, getProjectMap().project.submapsDirectory ?? '.code-map/submaps')
-      const output = path.join(directory, defaultSubmapFilename(submap))
-      writeSubmap(output, submap)
-      send(response, 200, JSON.stringify({
-        ok: true,
-        file: path.relative(repoRoot, output),
-        uid: submap.uid,
-        statistics: submap.statistics
-      }), 'application/json; charset=utf-8')
-    })
-    .catch(error => send(response, 400, JSON.stringify({ ok: false, error: error.message }), 'application/json; charset=utf-8'))
+  return pathname === '/viewer.css' || (pathname.startsWith('/viewer-') && pathname.endsWith('.js'))
 }
 
 const routes = [
-  { method: 'GET',  test: p => p === '/',               handler: serveViewer },
-  { method: 'GET',  test: p => p === '/graph.json',     handler: serveGraph },
-  { method: 'GET',  test: p => p === '/project-map.json', handler: serveProjectMap },
-  { method: 'GET',  test: isViewerAsset,                handler: serveViewerAsset },
-  { method: 'POST', test: p => p === '/api/scan',       handler: handleScan },
-  { method: 'POST', test: p => p === '/api/project-map', handler: handleProjectMap },
-  { method: 'POST', test: p => p === '/api/submaps/from-trace', handler: handleTraceSubmap },
+  { method: 'GET', test: pathname => pathname === '/', handler: (request, response) => sendFile(response, indexPath) },
+  { method: 'GET', test: pathname => pathname === '/graph.json', handler: (request, response) => sendFile(response, application.graphPath()) },
+  { method: 'GET', test: pathname => pathname === '/project-map.json', handler: (request, response) => sendJson(response, 200, application.projectMap()) },
+  { method: 'GET', test: isViewerAsset, handler: (request, response, url) => sendFile(response, path.join(viewerRoot, url.pathname.slice(1))) },
+  { method: 'POST', test: pathname => pathname === '/api/scan', handler: handleScan },
+  { method: 'POST', test: pathname => pathname === '/api/project-map', handler: handleProjectMap },
+  { method: 'POST', test: pathname => pathname === '/api/submaps/from-trace', handler: handleTraceSubmap }
 ]
 
 export function startServer() {
   const server = http.createServer((request, response) => {
     const url = new URL(request.url ?? '/', `http://${request.headers.host}`)
-    const route = routes.find(r => r.method === request.method && r.test(url.pathname))
-    if (route) {
-      route.handler(request, response, url)
-    } else {
-      send(response, 404, 'Not found')
-    }
+    const route = routes.find(candidate => candidate.method === request.method && candidate.test(url.pathname))
+    if (route) route.handler(request, response, url)
+    else send(response, 404, 'Not found')
   })
-  server.listen(port, () => {
-    console.log(`Code map available at http://localhost:${port}`)
-  })
+  server.listen(port, () => console.log(`Code map available at http://localhost:${port}`))
   return server
 }
 
-// Run directly: node server.mjs [--config path]
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const configPath = getConfigPathFromArgs()
   if (configPath) loadProjectMap(configPath)
   else loadProjectMap(detect(repoRoot))
   await loadTemplatePlugins(getProjectMap(), configPath ?? path.join(repoRoot, 'project-map.json'))
-  writeGraph(graphPath())
+  application.scan()
   startServer()
 }

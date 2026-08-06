@@ -30,7 +30,7 @@
     "./*": "./*"
   },
   "scripts": {
-    "test": "node tests/core-critical.test.mjs && node tests/generic-templates.test.mjs && node tests/cli-smoke.test.mjs && node tests/submap.test.mjs && node tests/submap-cli.test.mjs && node tests/viewer-trace.test.mjs && node tests/viewer-render.test.mjs",
+    "test": "node tests/architecture.test.mjs && node tests/core-critical.test.mjs && node tests/generic-templates.test.mjs && node tests/cli-smoke.test.mjs && node tests/submap.test.mjs && node tests/submap-cli.test.mjs && node tests/viewer-trace.test.mjs && node tests/viewer-render.test.mjs",
     "pack:dry": "npm pack --dry-run"
   },
   "files": [
@@ -49,6 +49,7 @@
     "scan-front.mjs",
     "scan-utils.mjs",
     "server.mjs",
+    "server-app.mjs",
     "submap/",
     "LICENSE",
     "COMMERCIAL.md",

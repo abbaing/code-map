@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { getConfigPathFromArgs, getProjectMap, loadProjectMap, resolveRepoPath } from '../config.mjs'
+import { assertOnlyOptions, createOptionNames, integerOption, last, parseArgs, requiredPositional, scalar, values } from './cli-args.mjs'
 import {
   SubmapError,
   compareSubmaps,
@@ -15,8 +16,6 @@ import {
   validateSubmapAgainstGraph,
   writeJsonAtomic
 } from './index.mjs'
-
-const BOOLEAN_OPTIONS = new Set(['stdout', 'quiet', 'force', 'json', 'json-errors', 'non-interactive', 'help'])
 
 export async function runSubmapCli(args, context = {}) {
   const optionsForErrors = args.includes('--json-errors')
@@ -203,57 +202,6 @@ function readGitMetadata(cwd) {
   } catch {
     return undefined
   }
-}
-
-function parseArgs(args) {
-  const result = { positionals: [] }
-  for (let index = 0; index < args.length; index += 1) {
-    const token = args[index]
-    if (!token.startsWith('--')) {
-      result.positionals.push(token)
-      continue
-    }
-    const name = token.slice(2)
-    if (BOOLEAN_OPTIONS.has(name)) {
-      result[name] = true
-      continue
-    }
-    const value = args[index + 1]
-    if (value === undefined || value.startsWith('--')) throw new SubmapError('SUBMAP_OPTION_VALUE_REQUIRED', `--${name} requires a value.`, { option: name })
-    ;(result[name] ??= []).push(value)
-    index += 1
-  }
-  return result
-}
-
-function assertOnlyOptions(options, allowed) {
-  for (const name of Object.keys(options)) {
-    if (name === 'positionals') continue
-    if (!allowed.has(name)) throw new SubmapError('SUBMAP_UNKNOWN_OPTION', `Unknown option: --${name}`, { option: name })
-  }
-}
-
-function createOptionNames() {
-  const names = new Set(['spec', 'graph', 'config', 'output', 'dir', 'direction', 'depth', 'edge', 'exclude-edge', 'revision', 'parent', 'access-default', 'stdout', 'quiet', 'force', 'json-errors', 'non-interactive'])
-  for (const prefix of ['', 'exclude-']) for (const kind of ['node', 'path', 'module', 'layer', 'type']) names.add(`${prefix}${kind}`)
-  for (const level of ['editable', 'readable', 'external', 'forbidden', 'generated']) for (const kind of ['node', 'path', 'module', 'layer', 'type']) names.add(`${level}-${kind}`)
-  return names
-}
-
-function requiredPositional(options, index, code, message) {
-  const value = options.positionals[index]
-  if (!value) throw new SubmapError(code, message)
-  return value
-}
-
-function values(options, name) { return options[name] ?? [] }
-function last(values) { return values?.[values.length - 1] }
-function scalar(options, name) { return last(options[name]) }
-function integerOption(options, name) {
-  const raw = scalar(options, name)
-  if (raw === undefined) return undefined
-  if (!/^\d+$/.test(raw)) throw new SubmapError('SUBMAP_INVALID_NUMBER', `--${name} must be an integer.`, { option: name, value: raw })
-  return Number(raw)
 }
 
 function writeJsonStdout(value) {
