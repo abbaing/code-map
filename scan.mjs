@@ -415,7 +415,24 @@ export function writeGraph(outputPath = resolveGraphOutputPath()) {
   const result = buildGraph()
   fs.mkdirSync(path.dirname(outputPath), { recursive: true })
   fs.writeFileSync(outputPath, `${JSON.stringify(result, null, 2)}\n`, 'utf8')
+  removeLegacyDefaultGraph(outputPath)
   return result
+}
+
+function removeLegacyDefaultGraph(outputPath) {
+  const managedOutput = path.resolve(repoRoot, '.code-map', 'graph.json')
+  if (path.resolve(outputPath) !== managedOutput) return
+  const legacyOutput = path.resolve(repoRoot, 'graph.json')
+  if (!fs.existsSync(legacyOutput)) return
+  try {
+    const document = JSON.parse(fs.readFileSync(legacyOutput, 'utf8'))
+    const generatedByCodeMap = Number.isInteger(document?.version)
+      && Array.isArray(document?.nodes)
+      && Array.isArray(document?.edges)
+      && document?.projectMap
+      && document?.stats
+    if (generatedByCodeMap) fs.rmSync(legacyOutput)
+  } catch { /* preserve files that are not recognizable code-map output */ }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

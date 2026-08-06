@@ -109,7 +109,8 @@ if (hasFlag('--scan')) {
     : resolveGraphOutputPath()
 
   const result = writeGraph(outputPath)
-  console.log(`Scan complete: ${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.findings} findings`)
+  const displayOutput = path.relative(repoRoot, outputPath).replaceAll(path.sep, '/')
+  console.log(`Scan complete: ${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.findings} findings -> ${displayOutput}`)
   process.exit(0)
 }
 

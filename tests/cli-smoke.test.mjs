@@ -51,13 +51,25 @@ const graph = JSON.parse(fs.readFileSync(graphPath, 'utf8'))
 assert.equal(graph.projectMap.sourceRoots.frontend, 'src')
 assert.equal(graph.stats.backFiles, 0)
 
+fs.writeFileSync(path.join(appRoot, 'graph.json'), `${JSON.stringify({
+  version: 1,
+  projectMap: { project: { name: 'Legacy CLI Smoke App' } },
+  nodes: [],
+  edges: [],
+  stats: { nodes: 0, edges: 0 }
+}, null, 2)}\n`, 'utf8')
 const zeroConfigScan = run(['--scan'], appRoot)
-assert.match(zeroConfigScan, /Scan complete:/u)
+assert.match(zeroConfigScan, /Scan complete:.*-> \.code-map\/graph\.json/u)
 assert.equal(
   fs.existsSync(path.join(appRoot, '.code-map', 'graph.json')),
   true,
   'zero-config scans must write generated graphs below .code-map'
 )
+assert.equal(fs.existsSync(path.join(appRoot, 'graph.json')), false, 'recognized legacy graph output must be removed after migration')
+
+fs.writeFileSync(path.join(appRoot, 'graph.json'), '{"ownedBy":"another-tool"}\n', 'utf8')
+run(['--scan'], appRoot)
+assert.equal(fs.existsSync(path.join(appRoot, 'graph.json')), true, 'unrecognized root graph files must never be removed')
 
 const arbitraryRoot = path.join(tempRoot, 'arbitrary')
 const arbitraryConfigDir = path.join(arbitraryRoot, 'code-map')

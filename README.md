@@ -80,7 +80,7 @@ pnpm exec code-map --config <project>.project-map.json
 
 `http://localhost:1133` is now live.
 
-You can also run `pnpm exec code-map` without a config. It first discovers `project-map.json` or `*.project-map.json` in the repository root and `.code-map`; when none exists, code-map auto-detects the repository and writes `.code-map/graph.json`. Use `--init` when you want a committed, reviewable config. The packaged preset in `presets/starter.project-map.json` is only a starter template.
+You can also run `pnpm exec code-map` without a config. It first discovers `project-map.json` or `*.project-map.json` in the repository root and `.code-map`; when none exists, code-map auto-detects the repository and writes `.code-map/graph.json`. After a successful scan, a legacy root `graph.json` is removed only when its structure identifies it as generated code-map output. Use `--init` when you want a committed, reviewable config. The packaged preset in `presets/starter.project-map.json` is only a starter template.
 
 The config can live anywhere in your repository:
 
