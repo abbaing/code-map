@@ -68,7 +68,7 @@ const arbitraryConfig = {
   schemaVersion: 1,
   project: {
     name: 'Arbitrary Config App',
-    graphOutput: 'code-map/graph.json',
+    graphOutput: 'graph.json',
     runtimeLinks: 'code-map/runtime-links.json'
   },
   sourceRoots: { frontend: 'src' },
@@ -86,7 +86,7 @@ fs.writeFileSync(arbitraryConfigPath, `${JSON.stringify(arbitraryConfig, null, 2
 
 const arbitraryScan = run(['--scan', '--config', arbitraryConfigPath], arbitraryRoot)
 assert.match(arbitraryScan, /Scan complete:/u)
-assert.equal(fs.existsSync(arbitraryGraphPath), true, 'graphOutput should be resolved from the execution cwd')
+assert.equal(fs.existsSync(arbitraryGraphPath), true, 'a bare graphOutput filename should be resolved beside the project-map file')
 const arbitraryGraph = JSON.parse(fs.readFileSync(arbitraryGraphPath, 'utf8'))
 assert.equal(arbitraryGraph.templates.includes('custom-plugin'), true, 'plugins should resolve relative to the project-map file')
 

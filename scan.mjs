@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { repoRoot, toRepoPath, readText, normalizePath, walk, isTestFile, isBackTestFile, tsExtensions, findComponentDirIndex } from './scan-utils.mjs'
-import { getConfigPathFromArgs, getProjectMap, loadProjectMap, resolveRepoPath } from './config.mjs'
+import { getConfigPathFromArgs, getProjectMap, loadProjectMap, resolveGraphOutputPath, resolveRepoPath } from './config.mjs'
 import { Graph } from './graph.mjs'
 import { resolveTsImport } from './resolve.mjs'
 import { isEntryPoint } from './quality.mjs'
@@ -411,7 +411,7 @@ function phaseRunRegisteredEnrichers(context) {
   }
 }
 
-export function writeGraph(outputPath = resolveRepoPath(getProjectMap().project.graphOutput)) {
+export function writeGraph(outputPath = resolveGraphOutputPath()) {
   const result = buildGraph()
   fs.mkdirSync(path.dirname(outputPath), { recursive: true })
   fs.writeFileSync(outputPath, `${JSON.stringify(result, null, 2)}\n`, 'utf8')
@@ -424,7 +424,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   else loadProjectMap(detect(repoRoot))
   await loadTemplatePlugins(getProjectMap(), configPath ?? path.join(repoRoot, 'project-map.json'))
   const outArgIndex = process.argv.indexOf('--out')
-  const outputPath = outArgIndex >= 0 ? path.resolve(process.argv[outArgIndex + 1]) : resolveRepoPath(getProjectMap().project.graphOutput)
+  const outputPath = outArgIndex >= 0 ? path.resolve(process.argv[outArgIndex + 1]) : resolveGraphOutputPath()
   const result = writeGraph(outputPath)
   console.log(`Code map written to ${toRepoPath(outputPath)} (${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.orphans} orphans).`)
 }

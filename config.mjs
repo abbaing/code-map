@@ -88,6 +88,15 @@ export function resolveRepoPath(repoPath) {
   return path.resolve(repoRoot, repoPath)
 }
 
+export function resolveGraphOutputPath(outputPath = getProjectMap().project.graphOutput) {
+  if (path.isAbsolute(outputPath)) return outputPath
+  const configPath = getProjectMapPath()
+  if (configPath && path.dirname(outputPath) === '.') {
+    return path.resolve(path.dirname(configPath), outputPath)
+  }
+  return resolveRepoPath(outputPath)
+}
+
 export function toRepoPath(filePath) {
   return path.relative(repoRoot, filePath).replaceAll(path.sep, '/')
 }

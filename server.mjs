@@ -3,7 +3,7 @@ import http from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { writeGraph } from './scan.mjs'
-import { getConfigPathFromArgs, getProjectMap, getProjectMapPath, loadProjectMap } from './config.mjs'
+import { getConfigPathFromArgs, getProjectMap, getProjectMapPath, loadProjectMap, resolveGraphOutputPath } from './config.mjs'
 import { detect } from './detect.mjs'
 import { loadTemplatePlugins } from './templates/registry.mjs'
 import { createSubmap, defaultSubmapFilename, writeSubmap } from './submap/index.mjs'
@@ -47,7 +47,7 @@ function sendFile(response, filePath) {
 }
 
 function graphPath() {
-  return path.join(repoRoot, getProjectMap().project.graphOutput)
+  return resolveGraphOutputPath()
 }
 
 function readRequestBody(request) {

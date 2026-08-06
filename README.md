@@ -89,7 +89,7 @@ pnpm exec code-map --config code-map/project-map.json
 CODE_MAP_CONFIG=code-map/project-map.json pnpm exec code-map --scan
 ```
 
-Plugin paths in `templates.plugins` are resolved relative to the `project-map.json` file. Repository paths such as `sourceRoots.frontend` and `project.graphOutput` are resolved from the directory where you run `code-map`.
+Plugin paths in `templates.plugins` are resolved relative to the `project-map.json` file. Source roots remain repository-relative. A bare `project.graphOutput` filename is written beside the config, so a config stored in `.code-map` with `"graphOutput": "graph.json"` produces `.code-map/graph.json`; output paths containing directories remain repository-relative.
 
 ---
 
@@ -219,7 +219,7 @@ Load the plugin from `project-map.json`:
 }
 ```
 
-Plugins are resolved relative to `project-map.json`. Repository paths such as `sourceRoots.frontend`, `project.graphOutput`, and `project.runtimeLinks` are resolved from the directory where you run `code-map`.
+Plugins are resolved relative to `project-map.json`. Source roots and runtime links are repository-relative. A bare `project.graphOutput` filename is resolved beside the config; paths containing directories are repository-relative.
 
 ---
 

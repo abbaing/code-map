@@ -2,7 +2,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getConfigPathFromArgs, loadProjectMap, getProjectMap, resolveRepoPath } from './config.mjs'
+import { getConfigPathFromArgs, loadProjectMap, getProjectMap, resolveGraphOutputPath } from './config.mjs'
 import { detect, detectSummary } from './detect.mjs'
 import { writeGraph } from './scan.mjs'
 import { listTemplates, loadTemplatePlugins } from './templates/registry.mjs'
@@ -39,7 +39,7 @@ Environment variables:
 
 Config:
   --config may point anywhere in the repo. Plugin paths are resolved relative
-  to that project-map.json; graphOutput is resolved from the current directory.
+  to that project-map.json; a bare graphOutput filename is written beside the config.
 `.trim())
   process.exit(0)
 }
@@ -106,7 +106,7 @@ if (hasFlag('--scan')) {
   const outArgIndex = args.indexOf('--out')
   const outputPath = outArgIndex >= 0
     ? path.resolve(args[outArgIndex + 1])
-    : resolveRepoPath(getProjectMap().project.graphOutput)
+    : resolveGraphOutputPath()
 
   const result = writeGraph(outputPath)
   console.log(`Scan complete: ${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.findings} findings`)
@@ -115,7 +115,7 @@ if (hasFlag('--scan')) {
 
 // ── Default: scan + open viewer ───────────────────────────────────────────────
 
-const outputPath = resolveRepoPath(getProjectMap().project.graphOutput)
+const outputPath = resolveGraphOutputPath()
 writeGraph(outputPath)
 
 const { startServer } = await import('./server.mjs')
