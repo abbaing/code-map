@@ -19,6 +19,7 @@ export class Graph {
 
   addEdge(from, to, type, data = {}) {
     if (!from || !to || from === to) return
+    if (!this.nodeMap.has(from) || !this.nodeMap.has(to)) return
     const id = `${from}::${type}::${to}`
     if (this.edgeMap.has(id)) return
     this.edgeMap.set(id, {

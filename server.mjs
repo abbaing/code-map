@@ -3,7 +3,7 @@ import http from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { writeGraph } from './scan.mjs'
-import { getConfigPathFromArgs, getProjectMap, getProjectMapPath, loadProjectMap, resolveGraphOutputPath } from './config.mjs'
+import { getConfigPathFromArgs, getProjectMap, getProjectMapPath, loadProjectMap, resolveGraphOutputPath, validateProjectMap } from './config.mjs'
 import { detect } from './detect.mjs'
 import { loadTemplatePlugins } from './templates/registry.mjs'
 import { createSubmap, defaultSubmapFilename, writeSubmap } from './submap/index.mjs'
@@ -87,14 +87,21 @@ function handleScan(request, response) {
 function handleProjectMap(request, response) {
   readRequestBody(request)
     .then(body => {
-      const parsed = JSON.parse(body)
-      delete parsed.configPath
       const projectMapPath = getProjectMapPath()
       if (!projectMapPath) {
         send(response, 400, JSON.stringify({
           ok: false,
           error: 'Cannot save an auto-detected project map. Export the config or restart code-map with --config <path>.'
         }), 'application/json; charset=utf-8')
+        return
+      }
+      let parsed
+      try {
+        parsed = JSON.parse(body)
+        delete parsed.configPath
+        validateProjectMap(parsed, projectMapPath)
+      } catch (error) {
+        send(response, 400, JSON.stringify({ ok: false, error: error.message }), 'application/json; charset=utf-8')
         return
       }
       fs.writeFileSync(projectMapPath, `${JSON.stringify(parsed, null, 2)}\n`, 'utf8')
