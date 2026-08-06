@@ -40,6 +40,7 @@ assert.match(initOutput, /Detected: react frontend, none backend/u)
 
 const configPath = path.join(tempRoot, 'cli-smoke-app.project-map.json')
 assert.equal(fs.existsSync(configPath), true, '--init should write a project-map file')
+assert.equal(JSON.parse(fs.readFileSync(configPath, 'utf8')).project.graphOutput, '.code-map/graph.json')
 
 const graphPath = path.join(tempRoot, 'graph.json')
 const scanOutput = run(['--scan', '--config', configPath, '--out', graphPath], appRoot)
@@ -49,6 +50,14 @@ assert.equal(fs.existsSync(graphPath), true, '--scan should write graph output')
 const graph = JSON.parse(fs.readFileSync(graphPath, 'utf8'))
 assert.equal(graph.projectMap.sourceRoots.frontend, 'src')
 assert.equal(graph.stats.backFiles, 0)
+
+const zeroConfigScan = run(['--scan'], appRoot)
+assert.match(zeroConfigScan, /Scan complete:/u)
+assert.equal(
+  fs.existsSync(path.join(appRoot, '.code-map', 'graph.json')),
+  true,
+  'zero-config scans must write generated graphs below .code-map'
+)
 
 const arbitraryRoot = path.join(tempRoot, 'arbitrary')
 const arbitraryConfigDir = path.join(arbitraryRoot, 'code-map')

@@ -241,6 +241,13 @@ try {
   delete process.env.CODE_MAP_CONFIG
   assert.equal(getConfigPathFromArgs(['code-map']), null, 'missing config must not fall back to packaged preset')
 
+  const hiddenConfigDir = path.join(emptyDir, '.code-map')
+  const hiddenConfig = path.join(hiddenConfigDir, 'demo.project-map.json')
+  fs.mkdirSync(hiddenConfigDir)
+  fs.writeFileSync(hiddenConfig, '{}\n', 'utf8')
+  assert.equal(getConfigPathFromArgs(['code-map']), hiddenConfig, 'configs stored in .code-map should be discovered')
+  fs.rmSync(hiddenConfigDir, { recursive: true })
+
   const localConfig = path.join(emptyDir, 'demo.project-map.json')
   fs.writeFileSync(localConfig, '{}\n', 'utf8')
   assert.equal(getConfigPathFromArgs(['code-map']), localConfig, 'local *.project-map.json should be discovered')
@@ -273,6 +280,7 @@ assert.deepEqual(
 const detectedConfig = detect(detectedRepo)
 assert.equal(detectedConfig.sourceRoots.frontend, 'front/src')
 assert.equal(detectedConfig.sourceRoots.backend, 'back')
+assert.equal(detectedConfig.project.graphOutput, '.code-map/graph.json', 'auto-detected projects must keep generated graphs under .code-map')
 
 const frontendOnlyRoot = path.join(tempRoot, 'frontend-only')
 fs.mkdirSync(path.join(frontendOnlyRoot, 'src'), { recursive: true })

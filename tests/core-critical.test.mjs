@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { Graph } from '../graph.mjs'
-import { loadProjectMap, validateProjectMap } from '../config.mjs'
+import { loadProjectMap, normalizeProjectMap, validateProjectMap } from '../config.mjs'
 import { buildTemplateRegistry, loadTemplatePlugins, registerTemplate } from '../templates/registry.mjs'
 import { SubmapError, readJson, writeJsonAtomic } from '../submap/index.mjs'
 
@@ -27,6 +27,12 @@ assert.equal(graph.getEdge('a::imports::b').confidence, 'high', 'a duplicate edg
 
 graph.clear()
 assert.deepEqual([graph.allNodes().length, graph.allEdges().length], [0, 0], 'clear must reset both graph indexes')
+
+assert.equal(
+  normalizeProjectMap({ project: { name: 'Default Output' }, sourceRoots: { frontend: 'src' } }).project.graphOutput,
+  '.code-map/graph.json',
+  'normalized configs without an explicit output must default below .code-map'
+)
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-map-core-'))
 try {

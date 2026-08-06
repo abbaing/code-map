@@ -36,7 +36,7 @@ Open `http://localhost:1133` and see the full picture: a live dependency graph w
 
 code-map scans your source tree statically. No build required, no instrumentation. It reads imports, classifies files by architectural role, matches frontend calls to backend endpoints, and scores each module by cohesion and coupling.
 
-The result is a `graph.json` and a local viewer served at port 1133. Everything runs on your machine. Nothing leaves your repo.
+The result is a `.code-map/graph.json` and a local viewer served at port 1133. Everything runs on your machine. Nothing leaves your repo.
 
 ### End-to-end execution traces
 
@@ -80,7 +80,7 @@ pnpm exec code-map --config <project>.project-map.json
 
 `http://localhost:1133` is now live.
 
-You can also run `pnpm exec code-map` without a config. In that mode code-map auto-detects the current repository, writes `graph.json`, and serves the viewer. Use `--init` when you want a committed, reviewable config. The packaged preset in `presets/starter.project-map.json` is only a starter template.
+You can also run `pnpm exec code-map` without a config. It first discovers `project-map.json` or `*.project-map.json` in the repository root and `.code-map`; when none exists, code-map auto-detects the repository and writes `.code-map/graph.json`. Use `--init` when you want a committed, reviewable config. The packaged preset in `presets/starter.project-map.json` is only a starter template.
 
 The config can live anywhere in your repository:
 
@@ -253,7 +253,7 @@ The config file controls what gets scanned, how files are classified, and which 
   "schemaVersion": 1,
   "project": {
     "name": "My App",
-    "graphOutput": "graph.json",
+    "graphOutput": ".code-map/graph.json",
     "submapsDirectory": ".code-map/submaps"
   },
   "sourceRoots": {
@@ -361,7 +361,7 @@ Suppress known findings without removing them from the report:
 
 ## Submaps
 
-Submaps are portable, self-contained partial views derived from `graph.json`. They are intended for automation, CI, code review tools, and external agent orchestrators that need a bounded repository context without loading the complete graph.
+Submaps are portable, self-contained partial views derived from `.code-map/graph.json`. They are intended for automation, CI, code review tools, and external agent orchestrators that need a bounded repository context without loading the complete graph.
 
 Submaps are stored separately from the source graph. By default, generated files use a content-addressed name under `.code-map/submaps`:
 
@@ -506,11 +506,11 @@ Yes. `sourceRoots.backend` is optional. Frontend-only projects work out of the b
 **Which stacks are supported?**
 Auto-detection covers React, Vue, Angular frontends and .NET, Node.js, Go backends. Any project can be configured manually.
 
-**Is graph.json safe to commit?**
+**Is `.code-map/graph.json` safe to commit?**
 No. It contains your full repository topology. Add it to `.gitignore`.
 
 **Can I use it in CI?**
-Yes. `code-map --scan --config <path>` writes `graph.json` and exits with code 0.
+Yes. `code-map --scan --config <path>` writes the configured graph output and exits with code 0. In zero-config mode the default is `.code-map/graph.json`.
 
 ---
 

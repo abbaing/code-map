@@ -1,4 +1,6 @@
 graph.json
+.code-map/graph.json
+.code-map/submaps/
 *.tgz
 node_modules/
 coverage/

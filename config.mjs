@@ -71,13 +71,15 @@ const defaultBackendClassifiers = [
 ]
 
 function findLocalProjectMapPath(cwd = process.cwd()) {
-  try {
-    const files = fs.readdirSync(cwd)
-    const exact = files.find(f => f === 'project-map.json')
-    if (exact) return path.join(cwd, exact)
-    const named = files.find(f => f.endsWith('.project-map.json'))
-    if (named) return path.join(cwd, named)
-  } catch { /* no local config */ }
+  for (const directory of [cwd, path.join(cwd, '.code-map')]) {
+    try {
+      const files = fs.readdirSync(directory)
+      const exact = files.find(file => file === 'project-map.json')
+      if (exact) return path.join(directory, exact)
+      const named = files.find(file => file.endsWith('.project-map.json'))
+      if (named) return path.join(directory, named)
+    } catch { /* directory does not exist or is not readable */ }
+  }
   return null
 }
 
@@ -152,7 +154,7 @@ export function normalizeProjectMap(projectMap, configPath = null) {
     ...(configPath ? { configPath: toRepoPath(configPath) } : {}),
     project: {
       name: project.name ?? 'Code Map',
-      graphOutput: project.graphOutput ?? 'graph.json',
+      graphOutput: project.graphOutput ?? '.code-map/graph.json',
       submapsDirectory: project.submapsDirectory ?? '.code-map/submaps',
       ...(project.runtimeLinks ? { runtimeLinks: project.runtimeLinks } : {})
     },
