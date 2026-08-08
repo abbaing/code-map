@@ -317,7 +317,20 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async (port, 
 
   const malformedResponse = await requestRaw(port, 'POST', '/api/project-map', '{ not json', session)
   assert.equal(malformedResponse.status, 400, 'malformed project-map JSON must return a controlled client error')
-  assert.equal(JSON.parse(malformedResponse.body).ok, false)
+  assert.deepEqual(JSON.parse(malformedResponse.body), { ok: false, error: 'Request body must contain valid JSON.' })
+  const malformedTraceResponse = await requestRaw(port, 'POST', '/api/submaps/from-trace', '{ not json', session)
+  assert.equal(malformedTraceResponse.status, 400, 'malformed trace JSON must return a controlled client error')
+  assert.deepEqual(JSON.parse(malformedTraceResponse.body), { ok: false, error: 'Request body must contain valid JSON.' })
+
+  const malformedRuntimeLinksPath = path.join(arbitraryConfigDir, 'malformed-runtime-links.json')
+  fs.writeFileSync(malformedRuntimeLinksPath, '{ internal parser detail', 'utf8')
+  const malformedRuntimeConfig = structuredClone(current)
+  malformedRuntimeConfig.project.runtimeLinks = 'code-map/malformed-runtime-links.json'
+  const configBeforeInternalSyntaxError = fs.readFileSync(arbitraryConfigPath, 'utf8')
+  const internalSyntaxResponse = await request(port, 'POST', '/api/project-map', malformedRuntimeConfig, session)
+  assert.equal(internalSyntaxResponse.status, 500, 'internal JSON parsing failures must not be classified as client input errors')
+  assert.deepEqual(JSON.parse(internalSyntaxResponse.body), { ok: false, error: 'Internal server error.' })
+  assert.equal(fs.readFileSync(arbitraryConfigPath, 'utf8'), configBeforeInternalSyntaxError, 'internal parsing failures must roll back config updates')
 
   const configBeforeInvalidSave = fs.readFileSync(arbitraryConfigPath, 'utf8')
   const invalidConfigResponse = await request(port, 'POST', '/api/project-map', {

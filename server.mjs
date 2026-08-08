@@ -144,6 +144,16 @@ function readRequestBody(request) {
   })
 }
 
+async function readJsonRequest(request) {
+  const body = await readRequestBody(request)
+  try {
+    return JSON.parse(body)
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error
+    throw new HttpRequestError(400, 'Request body must contain valid JSON.')
+  }
+}
+
 async function handleScan(request, response) {
   try {
     const graph = application.scan()
@@ -155,7 +165,7 @@ async function handleScan(request, response) {
 
 async function handleProjectMap(request, response) {
   try {
-    const input = JSON.parse(await readRequestBody(request))
+    const input = await readJsonRequest(request)
     const result = application.saveProjectMap(input)
     sendJson(response, 200, { ok: true, ...result })
   } catch (error) {
@@ -165,7 +175,7 @@ async function handleProjectMap(request, response) {
 
 async function handleTraceSubmap(request, response) {
   try {
-    const input = JSON.parse(await readRequestBody(request))
+    const input = await readJsonRequest(request)
     const result = application.createTraceSubmap(input)
     sendJson(response, 200, { ok: true, ...result })
   } catch (error) {
@@ -182,7 +192,7 @@ function sendApiError(response, error) {
 
 function publicError(error) {
   if (error instanceof HttpRequestError) return { status: error.status, message: error.message }
-  if (error instanceof SyntaxError || error instanceof ApplicationInputError) return { status: 400, message: error.message }
+  if (error instanceof ApplicationInputError) return { status: 400, message: error.message }
   if (error instanceof SubmapError) {
     if (error.code === 'SUBMAP_OUTPUT_EXISTS') return { status: 409, message: error.message }
     if (error.exitCode !== 1) return { status: 400, message: error.message }
