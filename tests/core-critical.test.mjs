@@ -107,13 +107,18 @@ try {
   assert.throws(() => registerTemplate({}), /Template id is required/u)
   await assert.rejects(
     loadTemplatePlugins({ templates: { plugins: ['./missing-plugin.mjs'] } }, path.join(tempRoot, 'project-map.json')),
+    /Custom template plugins are disabled by default/u,
+    'custom plugins must require explicit trust before module resolution'
+  )
+  await assert.rejects(
+    loadTemplatePlugins({ templates: { plugins: ['./missing-plugin.mjs'] } }, path.join(tempRoot, 'project-map.json'), { allow: true }),
     error => error.code === 'ERR_MODULE_NOT_FOUND',
     'missing template plugins must fail with their import error'
   )
 
   const ignoredPluginPath = path.join(tempRoot, 'ignored-plugin.mjs')
   fs.writeFileSync(ignoredPluginPath, 'export const notATemplate = { description: "no id" }\n', 'utf8')
-  await loadTemplatePlugins({ templates: { plugins: ['./ignored-plugin.mjs'] } }, path.join(tempRoot, 'project-map.json'))
+  await loadTemplatePlugins({ templates: { plugins: ['./ignored-plugin.mjs'] } }, path.join(tempRoot, 'project-map.json'), { allow: true })
 
   const missingJson = path.join(tempRoot, 'missing.json')
   assert.throws(

@@ -311,7 +311,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const configPath = getConfigPathFromArgs()
   if (configPath) loadProjectMap(configPath)
   else loadProjectMap(detect(repoRoot))
-  await loadTemplatePlugins(getProjectMap(), configPath ?? path.join(repoRoot, 'project-map.json'))
+  await loadTemplatePlugins(
+    getProjectMap(),
+    configPath ?? path.join(repoRoot, 'project-map.json'),
+    { allow: process.argv.includes('--allow-plugins') }
+  )
   application.scan()
   startServer()
 }

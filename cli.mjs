@@ -30,6 +30,7 @@ Usage:
   node tools/code-map/cli.mjs --init --out <dir>  Write project-map.json to directory
   node tools/code-map/cli.mjs --scan           Scan only, no viewer
   node tools/code-map/cli.mjs --scan --config <path>  Scan with explicit config, no viewer
+  node tools/code-map/cli.mjs --allow-plugins  Trust and execute configured plugin modules
   node tools/code-map/cli.mjs --templates      List composable templates
   node tools/code-map/cli.mjs submap --help    Create and manage portable partial graphs
   node tools/code-map/cli.mjs --help           Show this help
@@ -99,7 +100,16 @@ if (configPath) {
   pluginBasePath = path.join(repoRoot, 'project-map.json')
 }
 
-await loadTemplatePlugins(getProjectMap(), pluginBasePath ?? path.join(repoRoot, 'project-map.json'))
+try {
+  await loadTemplatePlugins(
+    getProjectMap(),
+    pluginBasePath ?? path.join(repoRoot, 'project-map.json'),
+    { allow: hasFlag('--allow-plugins') }
+  )
+} catch (error) {
+  console.error(error.message)
+  process.exit(1)
+}
 
 // ── --scan: scan only, no server ──────────────────────────────────────────────
 

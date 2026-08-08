@@ -439,7 +439,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const configPath = getConfigPathFromArgs()
   if (configPath) loadProjectMap(configPath)
   else loadProjectMap(detect(repoRoot))
-  await loadTemplatePlugins(getProjectMap(), configPath ?? path.join(repoRoot, 'project-map.json'))
+  await loadTemplatePlugins(
+    getProjectMap(),
+    configPath ?? path.join(repoRoot, 'project-map.json'),
+    { allow: process.argv.includes('--allow-plugins') }
+  )
   const outArgIndex = process.argv.indexOf('--out')
   const outputPath = outArgIndex >= 0 ? path.resolve(process.argv[outArgIndex + 1]) : resolveGraphOutputPath()
   const result = writeGraph(outputPath)

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { execFileSync, spawn } from 'node:child_process'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import http from 'node:http'
 import os from 'node:os'
@@ -20,9 +20,18 @@ function run(args, cwd = tempRoot) {
   })
 }
 
+function runResult(args, cwd = tempRoot) {
+  return spawnSync(process.execPath, [cliPath, ...args], {
+    cwd,
+    encoding: 'utf8',
+    env: { ...process.env, CODE_MAP_CONFIG: '' }
+  })
+}
+
 const help = run(['--help'])
 assert.match(help, /code-map - architectural graph generator/u)
 assert.match(help, /CODE_MAP_HOST\s+Viewer server host \(default: 127\.0\.0\.1\)/u)
+assert.match(help, /--allow-plugins\s+Trust and execute configured plugin modules/u)
 
 const templates = run(['--templates'])
 assert.match(templates, /^base\s+core/mu)
@@ -111,7 +120,11 @@ const arbitraryConfig = {
 }
 fs.writeFileSync(arbitraryConfigPath, `${JSON.stringify(arbitraryConfig, null, 2)}\n`, 'utf8')
 
-const arbitraryScan = run(['--scan', '--config', arbitraryConfigPath], arbitraryRoot)
+const refusedPluginScan = runResult(['--scan', '--config', arbitraryConfigPath], arbitraryRoot)
+assert.notEqual(refusedPluginScan.status, 0, 'configured plugins must not execute without explicit trust')
+assert.match(refusedPluginScan.stderr, /Custom template plugins are disabled by default/u)
+assert.equal(fs.existsSync(arbitraryGraphPath), false, 'a refused plugin scan must not generate a graph')
+const arbitraryScan = run(['--scan', '--config', arbitraryConfigPath, '--allow-plugins'], arbitraryRoot)
 assert.match(arbitraryScan, /Scan complete:/u)
 assert.equal(fs.existsSync(arbitraryGraphPath), true, 'a bare graphOutput filename should be resolved beside the project-map file')
 const arbitraryGraph = JSON.parse(fs.readFileSync(arbitraryGraphPath, 'utf8'))
@@ -226,7 +239,7 @@ async function waitForServer(port) {
   throw new Error(`server did not start on port ${port}`)
 }
 
-await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async (port, session) => {
+await withServer(['--config', arbitraryConfigPath, '--allow-plugins'], arbitraryRoot, async (port, session) => {
   const current = JSON.parse((await request(port, 'GET', '/project-map.json')).body)
   const securedViewer = await request(port, 'GET', '/', null)
   const contentSecurityPolicy = securedViewer.headers['content-security-policy']
@@ -369,6 +382,13 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async (port, 
     assert.equal(fs.readFileSync(arbitraryConfigPath, 'utf8'), configBeforeEscape, `a rejected ${field} must not modify the config`)
   }
   assert.equal(fs.existsSync(path.join(tempRoot, 'escaped-graph.json')), false, 'rejected graph paths must not create files outside the project')
+  const changedPluginConfig = structuredClone(current)
+  changedPluginConfig.templates.plugins = ['./templates/another-plugin.mjs']
+  const configBeforePluginChange = fs.readFileSync(arbitraryConfigPath, 'utf8')
+  const changedPluginResponse = await request(port, 'POST', '/api/project-map', changedPluginConfig, session)
+  assert.equal(changedPluginResponse.status, 400, 'the viewer must not change the trusted plugin list')
+  assert.match(JSON.parse(changedPluginResponse.body).error, /Template plugins cannot be changed from the viewer/u)
+  assert.equal(fs.readFileSync(arbitraryConfigPath, 'utf8'), configBeforePluginChange, 'a rejected plugin change must preserve the config')
 
   const notFound = await request(port, 'GET', '/missing', null)
   assert.equal(notFound.status, 404)

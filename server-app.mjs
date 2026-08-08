@@ -39,6 +39,7 @@ export function createServerApplication({ repoRoot = process.cwd() } = {}) {
       throw new ApplicationInputError(error.message, { cause: error })
     }
     assertProjectMapPaths(document, projectMapPath)
+    assertPluginConfigurationUnchanged(document, getProjectMap())
 
     const previousDocument = fs.readFileSync(projectMapPath, 'utf8')
     writeJsonFileAtomic(projectMapPath, document)
@@ -127,6 +128,13 @@ export function createServerApplication({ repoRoot = process.cwd() } = {}) {
     if (escapesRoot) throw new ApplicationInputError(`${label} must resolve within the project root.`)
     return path.resolve(candidate)
   }
+}
+
+function assertPluginConfigurationUnchanged(candidate, current) {
+  const candidatePlugins = candidate.templates?.plugins ?? []
+  const currentPlugins = current.templates?.plugins ?? []
+  if (candidatePlugins.length === currentPlugins.length && candidatePlugins.every((plugin, index) => plugin === currentPlugins[index])) return
+  throw new ApplicationInputError('Template plugins cannot be changed from the viewer. Edit the project-map file and restart with --allow-plugins after reviewing the modules.')
 }
 
 function validateTraceInput(input) {

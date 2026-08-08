@@ -89,7 +89,7 @@ pnpm exec code-map --config code-map/project-map.json
 CODE_MAP_CONFIG=code-map/project-map.json pnpm exec code-map --scan
 ```
 
-Plugin paths in `templates.plugins` are resolved relative to the `project-map.json` file. Source roots remain repository-relative. A bare `project.graphOutput` filename is written beside the config, so a config stored in `.code-map` with `"graphOutput": "graph.json"` produces `.code-map/graph.json`; output paths containing directories remain repository-relative.
+Plugin paths in `templates.plugins` are resolved relative to the `project-map.json` file and execute only with `--allow-plugins`. Source roots remain repository-relative. A bare `project.graphOutput` filename is written beside the config, so a config stored in `.code-map` with `"graphOutput": "graph.json"` produces `.code-map/graph.json`; output paths containing directories remain repository-relative.
 
 ---
 
@@ -219,7 +219,13 @@ Load the plugin from `project-map.json`:
 }
 ```
 
-Plugins are resolved relative to `project-map.json`. Source roots and runtime links are repository-relative. A bare `project.graphOutput` filename is resolved beside the config; paths containing directories are repository-relative.
+Then start with explicit trust:
+
+```bash
+pnpm codemap --allow-plugins
+```
+
+Plugins are resolved relative to `project-map.json`. Review them before starting code-map with `--allow-plugins`; plugin modules execute with the same filesystem and process permissions as code-map. Source roots and runtime links are repository-relative. A bare `project.graphOutput` filename is resolved beside the config; paths containing directories are repository-relative.
 
 ---
 
@@ -232,6 +238,7 @@ code-map --init                   Auto-detect and write project-map.json
 code-map --init --out <dir>       Write to a specific directory
 code-map --scan                   Scan only, no viewer
 code-map --scan --config <path>   Scan with a specific config, no viewer
+code-map --allow-plugins          Trust and execute configured plugin modules
 code-map --templates              List available templates
 code-map submap --help            Show partial graph commands
 code-map --help                   Show help
@@ -315,7 +322,7 @@ Define your own architectural rules and load them as plugins:
 }
 ```
 
-Plugin paths are relative to the `project-map.json` file.
+Plugin paths are relative to the `project-map.json` file. They are disabled by default because JavaScript plugins execute with the same permissions as code-map. Review the modules and pass `--allow-plugins` when you intend to trust them. The viewer cannot add, remove, or replace trusted plugin paths; edit the file directly and restart after review.
 
 ---
 
