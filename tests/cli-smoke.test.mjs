@@ -126,6 +126,12 @@ assert.equal(
   `Code map available at http://127.0.0.1:${localAddress.port}`,
   'the startup message must report the actual listening address'
 )
+assert.equal(localServer.requestTimeout, 30_000, 'requests must have a bounded completion time')
+assert.equal(localServer.headersTimeout, 10_000, 'headers must have a bounded completion time')
+assert.equal(localServer.keepAliveTimeout, 5_000, 'idle keep-alive connections must be short-lived')
+assert.equal(localServer.timeout, 30_000, 'inactive sockets must time out')
+assert.equal(localServer.maxHeadersCount, 100, 'requests must have a bounded header count')
+assert.equal(localServer.maxRequestsPerSocket, 100, 'keep-alive sockets must have a bounded request count')
 await new Promise((resolve, reject) => localServer.close(error => error ? reject(error) : resolve()))
 
 async function withServer(args, cwd, callback) {
@@ -174,12 +180,13 @@ function request(port, method, pathname, body, headers = {}) {
 
 function requestRaw(port, method, pathname, payload, headers = {}) {
   return new Promise((resolve, reject) => {
+    const contentLength = headers['Transfer-Encoding'] ? {} : { 'Content-Length': Buffer.byteLength(payload) }
     const req = http.request({
       hostname: 'localhost',
       port,
       path: pathname,
       method,
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), ...headers }
+      headers: { 'Content-Type': 'application/json', ...contentLength, ...headers }
     }, response => {
       const chunks = []
       response.on('data', chunk => chunks.push(chunk))
@@ -226,6 +233,14 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async (port, 
   assert.equal(invalidSession.status, 403, 'mutating endpoints must reject invalid session tokens')
   const invalidHost = await request(port, 'GET', '/graph.json', null, { Host: `attacker.invalid:${port}` })
   assert.equal(invalidHost.status, 400, 'requests with an untrusted Host header must be rejected')
+
+  const oversizedPayload = JSON.stringify('x'.repeat(1024 * 1024))
+  const oversizedDeclared = await requestRaw(port, 'POST', '/api/project-map', oversizedPayload, session)
+  assert.equal(oversizedDeclared.status, 413, 'declared request bodies over 1 MiB must be rejected')
+  assert.match(oversizedDeclared.body, /Request body exceeds the 1 MiB limit/u)
+  const oversizedChunked = await requestRaw(port, 'POST', '/api/project-map', oversizedPayload, { ...session, 'Transfer-Encoding': 'chunked' })
+  assert.equal(oversizedChunked.status, 413, 'chunked request bodies over 1 MiB must be rejected while streaming')
+  assert.equal((await request(port, 'GET', '/graph.json', null)).status, 200, 'an oversized request must not destabilize the server')
 
   const scanResponse = await request(port, 'POST', '/api/scan', {}, session)
   assert.equal(scanResponse.status, 200, 'the running viewer must be able to regenerate its graph')
@@ -287,6 +302,7 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async (port, 
     const failedScan = await request(port, 'POST', '/api/scan', {}, session)
     assert.equal(failedScan.status, 500, 'graph write failures must be returned as controlled scan errors')
     assert.equal(JSON.parse(failedScan.body).ok, false)
+    assert.equal(JSON.parse(failedScan.body).error, 'Internal server error.', 'internal scan details must not leak over HTTP')
   } finally {
     fs.rmSync(arbitraryGraphPath, { recursive: true })
     fs.writeFileSync(arbitraryGraphPath, graphBackup, 'utf8')
@@ -299,6 +315,7 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async (port, 
     const failedSave = await request(port, 'POST', '/api/project-map', current, session)
     assert.equal(failedSave.status, 500, 'config write failures must be returned as controlled save errors')
     assert.equal(JSON.parse(failedSave.body).ok, false)
+    assert.equal(JSON.parse(failedSave.body).error, 'Internal server error.', 'internal save details must not leak over HTTP')
   } finally {
     fs.rmSync(arbitraryConfigPath, { recursive: true })
     fs.writeFileSync(arbitraryConfigPath, configBackup, 'utf8')

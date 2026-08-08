@@ -7,6 +7,7 @@ import { getConfigPathFromArgs, getProjectMap, loadProjectMap } from './config.m
 import { detect } from './detect.mjs'
 import { loadTemplatePlugins } from './templates/registry.mjs'
 import { ApplicationInputError, createServerApplication } from './server-app.mjs'
+import { SubmapError } from './submap/errors.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = process.cwd()
@@ -16,6 +17,18 @@ const port = Number(process.env.CODE_MAP_PORT) || 1133
 const host = process.env.CODE_MAP_HOST?.trim() || '127.0.0.1'
 const application = createServerApplication({ repoRoot })
 const sessionCookieName = 'code-map-session'
+const maxRequestBodyBytes = 1024 * 1024
+const requestTimeoutMs = 30_000
+const headersTimeoutMs = 10_000
+const keepAliveTimeoutMs = 5_000
+const socketTimeoutMs = 30_000
+
+class HttpRequestError extends Error {
+  constructor(status, message) {
+    super(message)
+    this.status = status
+  }
+}
 
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -51,11 +64,45 @@ function sendFile(response, filePath, headers = {}) {
 }
 
 function readRequestBody(request) {
+  const declaredLength = request.headers['content-length']
+  if (declaredLength !== undefined) {
+    if (!/^\d+$/u.test(declaredLength)) throw new HttpRequestError(400, 'Invalid Content-Length header.')
+    if (Number(declaredLength) > maxRequestBodyBytes) {
+      request.resume()
+      throw new HttpRequestError(413, 'Request body exceeds the 1 MiB limit.')
+    }
+  }
+
   return new Promise((resolve, reject) => {
     const chunks = []
-    request.on('data', chunk => chunks.push(chunk))
-    request.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
-    request.on('error', reject)
+    let receivedBytes = 0
+    let settled = false
+    request.on('data', chunk => {
+      if (settled) return
+      receivedBytes += chunk.length
+      if (receivedBytes > maxRequestBodyBytes) {
+        settled = true
+        chunks.length = 0
+        reject(new HttpRequestError(413, 'Request body exceeds the 1 MiB limit.'))
+        return
+      }
+      chunks.push(chunk)
+    })
+    request.on('end', () => {
+      if (settled) return
+      settled = true
+      resolve(Buffer.concat(chunks, receivedBytes).toString('utf8'))
+    })
+    request.on('aborted', () => {
+      if (settled) return
+      settled = true
+      reject(new HttpRequestError(400, 'Request body was interrupted.'))
+    })
+    request.on('error', () => {
+      if (settled) return
+      settled = true
+      reject(new HttpRequestError(400, 'Request body could not be read.'))
+    })
   })
 }
 
@@ -64,7 +111,7 @@ async function handleScan(request, response) {
     const graph = application.scan()
     sendJson(response, 200, { ok: true, stats: graph.stats, generatedAt: graph.generatedAt })
   } catch (error) {
-    sendJson(response, 500, { ok: false, error: error.message })
+    sendApiError(response, error)
   }
 }
 
@@ -74,8 +121,7 @@ async function handleProjectMap(request, response) {
     const result = application.saveProjectMap(input)
     sendJson(response, 200, { ok: true, ...result })
   } catch (error) {
-    const status = error instanceof SyntaxError || error instanceof ApplicationInputError ? 400 : 500
-    sendJson(response, status, { ok: false, error: error.message })
+    sendApiError(response, error)
   }
 }
 
@@ -85,8 +131,25 @@ async function handleTraceSubmap(request, response) {
     const result = application.createTraceSubmap(input)
     sendJson(response, 200, { ok: true, ...result })
   } catch (error) {
-    sendJson(response, 400, { ok: false, error: error.message })
+    sendApiError(response, error)
   }
+}
+
+function sendApiError(response, error) {
+  const { status, message } = publicError(error)
+  if (status >= 500) console.error(error)
+  if (status === 413) response.setHeader('Connection', 'close')
+  sendJson(response, status, { ok: false, error: message })
+}
+
+function publicError(error) {
+  if (error instanceof HttpRequestError) return { status: error.status, message: error.message }
+  if (error instanceof SyntaxError || error instanceof ApplicationInputError) return { status: 400, message: error.message }
+  if (error instanceof SubmapError) {
+    if (error.code === 'SUBMAP_OUTPUT_EXISTS') return { status: 409, message: error.message }
+    if (error.exitCode !== 1) return { status: 400, message: error.message }
+  }
+  return { status: 500, message: 'Internal server error.' }
 }
 
 function isViewerAsset(pathname) {
@@ -111,7 +174,11 @@ export function startServer(options = {}) {
   const log = options.log ?? console.log
   const sessionToken = options.sessionToken ?? crypto.randomBytes(32).toString('base64url')
   const routes = createRoutes(sessionToken)
-  const server = http.createServer((request, response) => {
+  const server = http.createServer({
+    requestTimeout: options.requestTimeout ?? requestTimeoutMs,
+    headersTimeout: options.headersTimeout ?? headersTimeoutMs,
+    keepAliveTimeout: options.keepAliveTimeout ?? keepAliveTimeoutMs
+  }, (request, response) => {
     const authority = trustedAuthority(request, serverHost, server.address())
     if (!authority) return sendJson(response, 400, { ok: false, error: 'Invalid Host header.' })
     const url = new URL(request.url ?? '/', authority.origin)
@@ -122,6 +189,9 @@ export function startServer(options = {}) {
     if (route) route.handler(request, response, url)
     else send(response, 404, 'Not found')
   })
+  server.maxHeadersCount = options.maxHeadersCount ?? 100
+  server.maxRequestsPerSocket = options.maxRequestsPerSocket ?? 100
+  server.setTimeout(options.socketTimeout ?? socketTimeoutMs, socket => socket.destroy())
   server.listen(serverPort, serverHost, () => log(`Code map available at ${serverUrl(server.address())}`))
   return server
 }
