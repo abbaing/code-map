@@ -43,6 +43,12 @@ Validate package contents:
 npm run pack:dry
 ```
 
+Maintainers preparing a version must follow [RELEASING.md](RELEASING.md). The release gate combines static checks, coverage thresholds, generated CSS verification, and package inspection:
+
+```bash
+npm run release:check
+```
+
 ## Pull Requests
 
 - Keep changes focused and explain the user-facing impact.
