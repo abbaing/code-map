@@ -6,6 +6,7 @@ import { getConfigPathFromArgs, loadProjectMap, getProjectMap, resolveGraphOutpu
 import { detect, detectSummary } from './detect.mjs'
 import { writeGraph } from './scan.mjs'
 import { listTemplates, loadTemplatePlugins } from './templates/registry.mjs'
+import { writeJsonFileAtomic } from './json-io.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = process.cwd()
@@ -65,8 +66,7 @@ if (hasFlag('--init')) {
   const projectSlug = (config.project?.name ?? 'project').toLowerCase().replace(/[^a-z0-9]+/g, '-')
   const outFile = path.join(outDir, `${projectSlug}.project-map.json`)
 
-  fs.mkdirSync(outDir, { recursive: true })
-  fs.writeFileSync(outFile, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
+  writeJsonFileAtomic(outFile, config)
   console.log(`Written to ${path.relative(repoRoot, outFile)}`)
   console.log('Review and adjust the file, then run: npx code-map --config ' + path.relative(repoRoot, outFile))
   process.exit(0)

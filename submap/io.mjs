@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { writeJsonFileAtomic } from '../json-io.mjs'
 import { SubmapError } from './errors.mjs'
 
 export function readJson(filePath, kind = 'JSON document') {
@@ -37,16 +38,7 @@ export function writeJsonAtomic(filePath, value, options = {}) {
   if (fs.existsSync(resolved) && !options.force) {
     throw new SubmapError('SUBMAP_OUTPUT_EXISTS', 'Output file already exists.', { path: resolved }, 6)
   }
-  fs.mkdirSync(path.dirname(resolved), { recursive: true })
-  const tempPath = path.join(path.dirname(resolved), `.${path.basename(resolved)}.${process.pid}.${Date.now()}.tmp`)
-  try {
-    fs.writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' })
-    if (options.force && fs.existsSync(resolved)) fs.rmSync(resolved)
-    fs.renameSync(tempPath, resolved)
-  } finally {
-    if (fs.existsSync(tempPath)) fs.rmSync(tempPath, { force: true })
-  }
-  return resolved
+  return writeJsonFileAtomic(resolved, value)
 }
 
 export function defaultSubmapFilename(submap) {

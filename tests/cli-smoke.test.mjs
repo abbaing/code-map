@@ -344,6 +344,7 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async (port, 
     assert.equal(failedScan.status, 500, 'graph write failures must be returned as controlled scan errors')
     assert.equal(JSON.parse(failedScan.body).ok, false)
     assert.equal(JSON.parse(failedScan.body).error, 'Internal server error.', 'internal scan details must not leak over HTTP')
+    assert.equal(fs.readdirSync(arbitraryConfigDir).some(name => name.endsWith('.tmp')), false, 'failed graph writes must clean up temporary files')
   } finally {
     fs.rmSync(arbitraryGraphPath, { recursive: true })
     fs.writeFileSync(arbitraryGraphPath, graphBackup, 'utf8')
@@ -357,6 +358,7 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async (port, 
     assert.equal(failedSave.status, 500, 'config write failures must be returned as controlled save errors')
     assert.equal(JSON.parse(failedSave.body).ok, false)
     assert.equal(JSON.parse(failedSave.body).error, 'Internal server error.', 'internal save details must not leak over HTTP')
+    assert.equal(fs.readdirSync(arbitraryConfigDir).some(name => name.endsWith('.tmp')), false, 'failed config writes must clean up temporary files')
   } finally {
     fs.rmSync(arbitraryConfigPath, { recursive: true })
     fs.writeFileSync(arbitraryConfigPath, configBackup, 'utf8')

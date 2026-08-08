@@ -94,6 +94,10 @@ try {
   )
   writeJsonAtomic(atomicPath, { revision: 2 }, { force: true })
   assert.deepEqual(JSON.parse(fs.readFileSync(atomicPath, 'utf8')), { revision: 2 }, 'force writes must replace existing JSON')
+  const cyclicDocument = {}
+  cyclicDocument.self = cyclicDocument
+  assert.throws(() => writeJsonAtomic(atomicPath, cyclicDocument, { force: true }), /circular structure/iu)
+  assert.deepEqual(JSON.parse(fs.readFileSync(atomicPath, 'utf8')), { revision: 2 }, 'serialization failures must preserve the previous document')
   assert.deepEqual(fs.readdirSync(path.dirname(atomicPath)), ['document.json'], 'atomic writes must not leave temporary files behind')
 } finally {
   fs.rmSync(tempRoot, { recursive: true, force: true })

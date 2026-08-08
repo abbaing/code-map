@@ -9,6 +9,7 @@ import { isEntryPoint } from './quality.mjs'
 import { clearFindings, getActiveFindings, getFindings, getSuppressedFindings } from './rules/findings.mjs'
 import { buildTemplateRegistry, loadTemplatePlugins } from './templates/registry.mjs'
 import { detect } from './detect.mjs'
+import { writeJsonFileAtomic } from './json-io.mjs'
 
 // ── Phase functions ───────────────────────────────────────────────────────────
 
@@ -413,8 +414,7 @@ function phaseRunRegisteredEnrichers(context) {
 
 export function writeGraph(outputPath = resolveGraphOutputPath()) {
   const result = buildGraph()
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true })
-  fs.writeFileSync(outputPath, `${JSON.stringify(result, null, 2)}\n`, 'utf8')
+  writeJsonFileAtomic(outputPath, result)
   removeLegacyDefaultGraph(outputPath)
   return result
 }

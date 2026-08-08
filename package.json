@@ -47,6 +47,7 @@
     "detect.mjs",
     "endpoints.mjs",
     "graph.mjs",
+    "json-io.mjs",
     "quality.mjs",
     "resolve.mjs",
     "scan.mjs",
