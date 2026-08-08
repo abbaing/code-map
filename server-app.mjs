@@ -1,36 +1,34 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { writeGraph } from './scan.mjs'
-import {
-  getProjectMap,
-  getProjectMapPath,
-  loadProjectMap,
-  resolveGraphOutputPath,
-  validateProjectMap
-} from './config.mjs'
+import { loadProjectContext, validateProjectMap } from './config.mjs'
 import { writeFileAtomic, writeJsonFileAtomic } from './json-io.mjs'
 import { createSubmap, defaultSubmapFilename, writeSubmap } from './submap/index.mjs'
 
 export class ApplicationInputError extends Error {}
 
-export function createServerApplication({ repoRoot = process.cwd() } = {}) {
+export function createServerApplication({
+  projectContext = loadProjectContext(),
+  repoRoot = projectContext.repoRoot
+} = {}) {
   const projectRoot = canonicalPath(repoRoot)
+  let context = projectContext
 
   return {
-    graphPath: () => projectPath(resolveGraphOutputPath(), 'project.graphOutput'),
-    projectMap: () => getProjectMap(),
+    graphPath: () => projectPath(context.resolveGraphOutputPath(), 'project.graphOutput'),
+    projectMap: () => context.projectMap,
     scan,
     saveProjectMap,
     createTraceSubmap
   }
 
   function scan() {
-    assertProjectMapPaths(getProjectMap(), getProjectMapPath())
-    return writeGraph(projectPath(resolveGraphOutputPath(), 'project.graphOutput'))
+    assertProjectMapPaths(context.projectMap, context.configPath)
+    return writeGraph(projectPath(context.resolveGraphOutputPath(), 'project.graphOutput'), context)
   }
 
   function saveProjectMap(input) {
-    const projectMapPath = getProjectMapPath()
+    const projectMapPath = context.configPath
     if (!projectMapPath) {
       throw new ApplicationInputError(
         'Cannot save an auto-detected project map. Export the config or restart code-map with --config <path>.'
@@ -40,25 +38,25 @@ export function createServerApplication({ repoRoot = process.cwd() } = {}) {
 
     let document
     try {
-      validateProjectMap(input, projectMapPath)
+      validateProjectMap(input, projectMapPath, { repoRoot })
       document = structuredClone(input)
       delete document.configPath
     } catch (error) {
       throw new ApplicationInputError(error.message, { cause: error })
     }
     assertProjectMapPaths(document, projectMapPath)
-    assertPluginConfigurationUnchanged(document, getProjectMap())
+    assertPluginConfigurationUnchanged(document, context.projectMap)
 
     const previousDocument = fs.readFileSync(projectMapPath, 'utf8')
     writeJsonFileAtomic(projectMapPath, document)
     try {
-      loadProjectMap(projectMapPath)
+      context = loadProjectContext(projectMapPath, { repoRoot })
       const graph = scan()
-      return { projectMap: getProjectMap(), stats: graph.stats }
+      return { projectMap: context.projectMap, stats: graph.stats }
     } catch (error) {
       try {
         writeFileAtomic(projectMapPath, previousDocument)
-        loadProjectMap(projectMapPath)
+        context = loadProjectContext(projectMapPath, { repoRoot })
       } catch (rollbackError) {
         throw new AggregateError([error, rollbackError], 'Project map update and rollback both failed.')
       }
@@ -68,8 +66,10 @@ export function createServerApplication({ repoRoot = process.cwd() } = {}) {
 
   function createTraceSubmap(input) {
     validateTraceInput(input)
-    assertProjectMapPaths(getProjectMap(), getProjectMapPath())
-    const graph = JSON.parse(fs.readFileSync(projectPath(resolveGraphOutputPath(), 'project.graphOutput'), 'utf8'))
+    assertProjectMapPaths(context.projectMap, context.configPath)
+    const graph = JSON.parse(
+      fs.readFileSync(projectPath(context.resolveGraphOutputPath(), 'project.graphOutput'), 'utf8')
+    )
     const request = {
       id: input.id,
       selectors: { nodeIds: [...new Set(input.nodeIds)] },
@@ -83,7 +83,7 @@ export function createServerApplication({ repoRoot = process.cwd() } = {}) {
     }
     const submap = createSubmap(graph, request)
     const directory = projectPath(
-      path.resolve(repoRoot, getProjectMap().project.submapsDirectory ?? '.code-map/submaps'),
+      path.resolve(repoRoot, context.projectMap.project.submapsDirectory ?? '.code-map/submaps'),
       'project.submapsDirectory'
     )
     const output = path.join(directory, defaultSubmapFilename(submap))

@@ -49,15 +49,27 @@ export const dotnetApiTemplate = {
     ],
     scanners: [
       { id: 'dotnet.index', run: (context) => initBackFileIndex(context.files.allBackFiles) },
-      { id: 'dotnet.files', run: (context) => scanBackFiles(context.graph, context.files.backFiles) },
+      {
+        id: 'dotnet.files',
+        run: (context) => scanBackFiles(context.graph, context.files.backFiles, context.projectContext)
+      },
       {
         id: 'dotnet.controllers',
         assign: 'controllerEndpoints',
-        run: (context) => scanControllers(context.graph, context.controllerFiles())
+        run: (context) => scanControllers(context.graph, context.controllerFiles(), context.projectContext)
       },
-      { id: 'dotnet.dispatches', run: (context) => scanRequestDispatches(context.graph, context.files.backFiles) },
-      { id: 'dotnet.handlers', run: (context) => scanRequestHandlers(context.graph, context.files.backFiles) },
-      { id: 'dotnet.dependencies', run: (context) => scanBackDependencies(context.graph, context.files.backFiles) }
+      {
+        id: 'dotnet.dispatches',
+        run: (context) => scanRequestDispatches(context.graph, context.files.backFiles, context.projectContext)
+      },
+      {
+        id: 'dotnet.handlers',
+        run: (context) => scanRequestHandlers(context.graph, context.files.backFiles, context.projectContext)
+      },
+      {
+        id: 'dotnet.dependencies',
+        run: (context) => scanBackDependencies(context.graph, context.files.backFiles, context.projectContext)
+      }
     ]
   }
 }

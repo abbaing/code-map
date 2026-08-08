@@ -40,6 +40,8 @@ Core and application modules depend on domain contracts. Platform APIs and concr
 
 Contracts are structural JavaScript objects or functions. Their exact signatures will be introduced with the component that first implements them.
 
+`ProjectContext` is created once at a composition root, deeply freezes its normalized project map, owns repository-relative path resolution, and is passed explicitly to every scan or application execution. Loading another project creates an independent context and cannot alter an existing execution.
+
 | Contract                        | Minimum responsibility                                                          |
 | ------------------------------- | ------------------------------------------------------------------------------- |
 | `ProjectContext`                | Immutable normalized configuration and repository-relative path policy          |
@@ -95,4 +97,4 @@ A new or materially changed component is complete only when:
 7. architecture, contract, behavior, and coverage tests pass;
 8. documentation names any public contract or compatibility impact.
 
-Existing `gap` entries are the controlled remediation baseline for S02–S16. S17 will turn the target dependency rules into automated fitness functions, and S18 will require every remaining applicable status to be `pass`.
+Existing `gap` entries are the controlled remediation baseline for S03–S16. S17 will turn the target dependency rules into automated fitness functions, and S18 will require every remaining applicable status to be `pass`.

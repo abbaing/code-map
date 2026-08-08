@@ -3,7 +3,6 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-export const repoRoot = process.cwd()
 export const defaultProjectMapPath = path.join(__dirname, 'presets/starter.project-map.json')
 
 const defaultIgnoredDirs = ['node_modules', 'dist', 'build', 'coverage', 'bin', 'obj', '.git']
@@ -89,77 +88,70 @@ function findLocalProjectMapPath(cwd = process.cwd()) {
   return null
 }
 
-let activeProjectMap = null
-let activeProjectMapPath = null
-
-export function resolveRepoPath(repoPath) {
-  return path.resolve(repoRoot, repoPath)
-}
-
-export function resolveGraphOutputPath(outputPath = getProjectMap().project.graphOutput) {
-  if (path.isAbsolute(outputPath)) {
-    return outputPath
-  }
-  const configPath = getProjectMapPath()
-  if (configPath && path.dirname(outputPath) === '.') {
-    return path.resolve(path.dirname(configPath), outputPath)
-  }
-  return resolveRepoPath(outputPath)
-}
-
-export function toRepoPath(filePath) {
-  return path.relative(repoRoot, filePath).replaceAll(path.sep, '/')
-}
-
-export function getConfigPathFromArgs(argv = process.argv) {
+export function getConfigPathFromArgs(argv = process.argv, { cwd = process.cwd(), env = process.env } = {}) {
   const configArgIndex = argv.indexOf('--config')
   if (configArgIndex >= 0 && argv[configArgIndex + 1]) {
-    return path.resolve(argv[configArgIndex + 1])
+    return path.resolve(cwd, argv[configArgIndex + 1])
   }
-  if (process.env.CODE_MAP_CONFIG) {
-    return path.resolve(process.env.CODE_MAP_CONFIG)
+  if (env.CODE_MAP_CONFIG) {
+    return path.resolve(cwd, env.CODE_MAP_CONFIG)
   }
-  return findLocalProjectMapPath()
+  return findLocalProjectMapPath(cwd)
 }
 
-export function loadProjectMap(configPath = getConfigPathFromArgs()) {
-  if (configPath && typeof configPath === 'object') {
-    // Accept a pre-built config object (e.g. from detect.mjs)
-    validateProjectMap(configPath)
-    activeProjectMap = normalizeProjectMap(configPath)
-    activeProjectMapPath = null
-    return activeProjectMap
+export function loadProjectContext(
+  source,
+  { repoRoot: projectRoot = process.cwd(), argv = process.argv, env = process.env } = {}
+) {
+  const configSource = source ?? getConfigPathFromArgs(argv, { cwd: projectRoot, env })
+  if (configSource && typeof configSource === 'object') {
+    return createProjectContext(configSource, { repoRoot: projectRoot })
   }
-  if (!configPath) {
+  if (!configSource) {
     throw new Error('No project-map.json found. Run code-map --init or pass --config <path>.')
   }
-  const resolvedPath = path.resolve(configPath)
+  const resolvedPath = path.resolve(projectRoot, configSource)
   let parsed
   try {
     parsed = JSON.parse(fs.readFileSync(resolvedPath, 'utf8'))
   } catch (err) {
-    throw new Error(`Failed to read project map at ${toRepoPath(resolvedPath)}: ${err.message}`)
+    throw new Error(`Failed to read project map at ${relativeProjectPath(projectRoot, resolvedPath)}: ${err.message}`)
   }
-  validateProjectMap(parsed, resolvedPath)
-  activeProjectMap = normalizeProjectMap(parsed, resolvedPath)
-  activeProjectMapPath = resolvedPath
-  return activeProjectMap
+  return createProjectContext(parsed, { repoRoot: projectRoot, configPath: resolvedPath })
 }
 
-export function getProjectMap() {
-  return activeProjectMap ?? loadProjectMap()
+export function createProjectContext(projectMap, { repoRoot: projectRoot = process.cwd(), configPath = null } = {}) {
+  const root = path.resolve(projectRoot)
+  const resolvedConfigPath = configPath ? path.resolve(root, configPath) : null
+  validateProjectMap(projectMap, resolvedConfigPath ?? defaultProjectMapPath, { repoRoot: root })
+  const normalizedProjectMap = deepFreeze(
+    structuredClone(normalizeProjectMap(projectMap, resolvedConfigPath, { repoRoot: root }))
+  )
+
+  return Object.freeze({
+    repoRoot: root,
+    configPath: resolvedConfigPath,
+    projectMap: normalizedProjectMap,
+    resolveRepoPath: (repoPath) => path.resolve(root, repoPath),
+    toRepoPath: (filePath) => relativeProjectPath(root, filePath),
+    resolveGraphOutputPath(outputPath = normalizedProjectMap.project.graphOutput) {
+      if (path.isAbsolute(outputPath)) {
+        return outputPath
+      }
+      if (resolvedConfigPath && path.dirname(outputPath) === '.') {
+        return path.resolve(path.dirname(resolvedConfigPath), outputPath)
+      }
+      return path.resolve(root, outputPath)
+    }
+  })
 }
 
-export function getProjectMapPath() {
-  return activeProjectMapPath
-}
-
-export function normalizeProjectMap(projectMap, configPath = null) {
+export function normalizeProjectMap(projectMap, configPath = null, { repoRoot: projectRoot = process.cwd() } = {}) {
   const sourceRoots = projectMap.sourceRoots ?? {}
   const project = projectMap.project ?? {}
   return {
     ...projectMap,
-    ...(configPath ? { configPath: toRepoPath(configPath) } : {}),
+    ...(configPath ? { configPath: relativeProjectPath(projectRoot, configPath) } : {}),
     project: {
       name: project.name ?? 'Code Map',
       graphOutput: project.graphOutput ?? '.code-map/graph.json',
@@ -235,7 +227,11 @@ export function normalizeProjectMap(projectMap, configPath = null) {
   }
 }
 
-export function validateProjectMap(projectMap, configPath = defaultProjectMapPath) {
+export function validateProjectMap(
+  projectMap,
+  configPath = defaultProjectMapPath,
+  { repoRoot: projectRoot = process.cwd() } = {}
+) {
   const errors = []
   if (!isRecord(projectMap)) {
     errors.push('Project map must be a JSON object.')
@@ -288,8 +284,24 @@ export function validateProjectMap(projectMap, configPath = defaultProjectMapPat
     }
   }
   if (errors.length > 0) {
-    throw new Error(`Invalid project map ${toRepoPath(configPath)}:\n${errors.map((error) => `- ${error}`).join('\n')}`)
+    throw new Error(
+      `Invalid project map ${relativeProjectPath(projectRoot, configPath)}:\n${errors.map((error) => `- ${error}`).join('\n')}`
+    )
   }
+}
+
+function relativeProjectPath(projectRoot, filePath) {
+  return path.relative(projectRoot, filePath).replaceAll(path.sep, '/')
+}
+
+function deepFreeze(value) {
+  if (!value || typeof value !== 'object' || Object.isFrozen(value)) {
+    return value
+  }
+  for (const child of Object.values(value)) {
+    deepFreeze(child)
+  }
+  return Object.freeze(value)
 }
 
 function validateTemplates(errors, templates) {

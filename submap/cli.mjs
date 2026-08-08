@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
-import { getConfigPathFromArgs, getProjectMap, loadProjectMap, resolveRepoPath } from '../config.mjs'
+import { getConfigPathFromArgs, loadProjectContext } from '../config.mjs'
 import {
   assertOnlyOptions,
   createOptionNames,
@@ -247,27 +247,30 @@ function resolveGraphPath(options, cwd) {
   if (options.graph) {
     return path.resolve(cwd, last(options.graph))
   }
-  const projectMap = loadOptionalProjectMap(options, cwd)
-  return projectMap ? resolveRepoPath(projectMap.project.graphOutput) : path.join(cwd, 'graph.json')
+  const projectContext = loadOptionalProjectContext(options, cwd)
+  return projectContext
+    ? projectContext.resolveRepoPath(projectContext.projectMap.project.graphOutput)
+    : path.join(cwd, 'graph.json')
 }
 
 function resolveSubmapsDirectory(options, cwd) {
   if (options.dir) {
     return path.resolve(cwd, last(options.dir))
   }
-  const projectMap = loadOptionalProjectMap(options, cwd)
-  return projectMap ? resolveRepoPath(projectMap.project.submapsDirectory) : path.join(cwd, '.code-map', 'submaps')
+  const projectContext = loadOptionalProjectContext(options, cwd)
+  return projectContext
+    ? projectContext.resolveRepoPath(projectContext.projectMap.project.submapsDirectory)
+    : path.join(cwd, '.code-map', 'submaps')
 }
 
-function loadOptionalProjectMap(options, cwd) {
+function loadOptionalProjectContext(options, cwd) {
   const explicit = options.config ? path.resolve(cwd, last(options.config)) : null
   const configPath =
     explicit ??
-    getConfigPathFromArgs([
-      'node',
-      'code-map',
-      ...(process.env.CODE_MAP_CONFIG ? ['--config', process.env.CODE_MAP_CONFIG] : [])
-    ])
+    getConfigPathFromArgs(
+      ['node', 'code-map', ...(process.env.CODE_MAP_CONFIG ? ['--config', process.env.CODE_MAP_CONFIG] : [])],
+      { cwd }
+    )
   if (!configPath) {
     return null
   }
@@ -275,8 +278,7 @@ function loadOptionalProjectMap(options, cwd) {
     throw new SubmapError('SUBMAP_CONFIG_NOT_FOUND', 'Project map file not found.', { path: configPath }, 3)
   }
   try {
-    loadProjectMap(configPath)
-    return getProjectMap()
+    return loadProjectContext(configPath, { repoRoot: cwd })
   } catch (error) {
     throw new SubmapError('SUBMAP_CONFIG_INVALID', error.message, { path: configPath })
   }

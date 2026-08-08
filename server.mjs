@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getConfigPathFromArgs, getProjectMap, loadProjectMap } from './config.mjs'
+import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
 import { detect } from './detect.mjs'
 import { loadTemplatePlugins } from './templates/registry.mjs'
 import { ApplicationInputError, createServerApplication } from './server-app.mjs'
@@ -31,7 +31,6 @@ const viewerAssets = new Map(
 )
 const port = Number(process.env.CODE_MAP_PORT) || 1133
 const host = process.env.CODE_MAP_HOST?.trim() || '127.0.0.1'
-const application = createServerApplication({ repoRoot })
 const sessionCookieName = 'code-map-session'
 const maxRequestBodyBytes = 1024 * 1024
 const requestTimeoutMs = 30_000
@@ -170,7 +169,7 @@ async function readJsonRequest(request) {
   }
 }
 
-async function handleScan(request, response) {
+async function handleScan(request, response, application) {
   try {
     const graph = application.scan()
     sendJson(response, 200, { ok: true, stats: graph.stats, generatedAt: graph.generatedAt })
@@ -179,7 +178,7 @@ async function handleScan(request, response) {
   }
 }
 
-async function handleProjectMap(request, response) {
+async function handleProjectMap(request, response, application) {
   try {
     const input = await readJsonRequest(request)
     const result = application.saveProjectMap(input)
@@ -189,7 +188,7 @@ async function handleProjectMap(request, response) {
   }
 }
 
-async function handleTraceSubmap(request, response) {
+async function handleTraceSubmap(request, response, application) {
   try {
     const input = await readJsonRequest(request)
     const result = application.createTraceSubmap(input)
@@ -228,7 +227,7 @@ function publicError(error) {
   return { status: 500, message: 'Internal server error.' }
 }
 
-function createRoutes(sessionToken) {
+function createRoutes(sessionToken, application) {
   return [
     {
       method: 'GET',
@@ -250,9 +249,21 @@ function createRoutes(sessionToken) {
       test: (pathname) => viewerAssets.has(pathname),
       handler: (request, response, url) => sendFile(response, viewerAssets.get(url.pathname))
     },
-    { method: 'POST', test: (pathname) => pathname === '/api/scan', handler: handleScan },
-    { method: 'POST', test: (pathname) => pathname === '/api/project-map', handler: handleProjectMap },
-    { method: 'POST', test: (pathname) => pathname === '/api/submaps/from-trace', handler: handleTraceSubmap }
+    {
+      method: 'POST',
+      test: (pathname) => pathname === '/api/scan',
+      handler: (request, response) => handleScan(request, response, application)
+    },
+    {
+      method: 'POST',
+      test: (pathname) => pathname === '/api/project-map',
+      handler: (request, response) => handleProjectMap(request, response, application)
+    },
+    {
+      method: 'POST',
+      test: (pathname) => pathname === '/api/submaps/from-trace',
+      handler: (request, response) => handleTraceSubmap(request, response, application)
+    }
   ]
 }
 
@@ -261,7 +272,13 @@ export function startServer(options = {}) {
   const serverHost = options.host ?? host
   const log = options.log ?? console.log
   const sessionToken = options.sessionToken ?? crypto.randomBytes(32).toString('base64url')
-  const routes = createRoutes(sessionToken)
+  const application =
+    options.application ??
+    createServerApplication({
+      projectContext: options.projectContext ?? loadProjectContext(undefined, { repoRoot }),
+      repoRoot
+    })
+  const routes = createRoutes(sessionToken, application)
   const server = http.createServer(
     {
       requestTimeout: options.requestTimeout ?? requestTimeoutMs,
@@ -376,15 +393,12 @@ function sessionCookie(sessionToken) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const configPath = getConfigPathFromArgs()
-  if (configPath) {
-    loadProjectMap(configPath)
-  } else {
-    loadProjectMap(detect(repoRoot))
-  }
-  await loadTemplatePlugins(getProjectMap(), configPath ?? path.join(repoRoot, 'project-map.json'), {
+  const configPath = getConfigPathFromArgs(process.argv, { cwd: repoRoot })
+  const projectContext = loadProjectContext(configPath ?? detect(repoRoot), { repoRoot })
+  await loadTemplatePlugins(projectContext.projectMap, configPath ?? path.join(repoRoot, 'project-map.json'), {
     allow: process.argv.includes('--allow-plugins')
   })
+  const application = createServerApplication({ projectContext, repoRoot })
   application.scan()
-  startServer()
+  startServer({ application, projectContext })
 }

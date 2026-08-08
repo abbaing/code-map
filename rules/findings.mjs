@@ -1,5 +1,3 @@
-import { getProjectMap } from '../config.mjs'
-
 const findings = []
 
 export function clearFindings() {
@@ -24,14 +22,13 @@ export function addFinding(data) {
     evidence: data.evidence,
     source: data.source ?? 'code-map'
   }
-  applySuppression(finding)
   findings.push(finding)
   return finding
 }
 
-export function attachFindingsToNodes(graph) {
+export function attachFindingsToNodes(graph, projectMap) {
   const byNode = new Map()
-  for (const finding of activeFindings()) {
+  for (const finding of activeFindings(projectMap)) {
     if (!finding.nodeId || !graph.hasNode(finding.nodeId)) {
       continue
     }
@@ -45,18 +42,20 @@ export function attachFindingsToNodes(graph) {
   }
 }
 
-export function getFindings() {
-  return sortFindings(findings)
+export function getFindings(projectMap) {
+  return sortFindings(findings.map((finding) => withSuppression(finding, projectMap)))
 }
-export function getActiveFindings() {
-  return sortFindings(activeFindings())
+export function getActiveFindings(projectMap) {
+  return sortFindings(activeFindings(projectMap))
 }
-export function getSuppressedFindings() {
-  return sortFindings(findings.filter((f) => f.suppressed))
+export function getSuppressedFindings(projectMap) {
+  return sortFindings(
+    findings.map((finding) => withSuppression(finding, projectMap)).filter((finding) => finding.suppressed)
+  )
 }
 
-function activeFindings() {
-  return findings.filter((f) => !f.suppressed)
+function activeFindings(projectMap) {
+  return findings.map((finding) => withSuppression(finding, projectMap)).filter((finding) => !finding.suppressed)
 }
 
 function sortFindings(items) {
@@ -69,20 +68,20 @@ function sortFindings(items) {
   )
 }
 
-function applySuppression(finding) {
-  const suppression = (getProjectMap().rules?.suppressions ?? []).find((candidate) =>
-    suppressionMatches(candidate, finding)
-  )
+function withSuppression(finding, projectMap) {
+  const result = { ...finding }
+  const suppression = (projectMap.rules?.suppressions ?? []).find((candidate) => suppressionMatches(candidate, finding))
   if (!suppression) {
-    return
+    return result
   }
-  finding.suppressed = true
-  finding.suppression = {
+  result.suppressed = true
+  result.suppression = {
     reason: suppression.reason,
     ruleId: suppression.ruleId,
     pathPattern: suppression.pathPattern,
     expiresOn: suppression.expiresOn
   }
+  return result
 }
 
 function suppressionMatches(suppression, finding) {

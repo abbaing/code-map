@@ -1,6 +1,5 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { getProjectMap, repoRoot, toRepoPath } from './config.mjs'
 
 export const tsExtensions = ['.ts', '.tsx', '.js', '.jsx']
 export const maxSourceFileBytes = 2 * 1024 * 1024
@@ -31,17 +30,17 @@ export function normalizePath(input) {
   return input.replaceAll('\\', '/')
 }
 
-export function readText(filePath, maxBytes = maxSourceFileBytes) {
+export function readText(filePath, maxBytes = maxSourceFileBytes, displayPath = toRepoPath) {
   const size = fs.statSync(filePath).size
   if (size > maxBytes) {
-    throw new SourceFileTooLargeError(filePath, size, maxBytes)
+    throw new SourceFileTooLargeError(filePath, size, maxBytes, displayPath)
   }
   return fs.readFileSync(filePath, 'utf8')
 }
 
 export class SourceFileTooLargeError extends Error {
-  constructor(filePath, size, limit) {
-    super(`Source file exceeds the ${formatBytes(limit)} scan limit: ${toRepoPath(filePath)}`)
+  constructor(filePath, size, limit, displayPath = toRepoPath) {
+    super(`Source file exceeds the ${formatBytes(limit)} scan limit: ${displayPath(filePath)}`)
     this.code = 'SOURCE_FILE_TOO_LARGE'
     this.filePath = filePath
     this.size = size
@@ -86,7 +85,8 @@ export function walk(dir, predicate = () => true, options = {}) {
   if (!fs.existsSync(dir)) {
     return []
   }
-  const ignoredDirs = new Set(getProjectMap().ignoredDirs)
+  const ignoredDirs = new Set(options.ignoredDirs ?? [])
+  const displayPath = options.toRepoPath ?? toRepoPath
   const maxFileBytes = options.maxFileBytes ?? maxSourceFileBytes
   const result = []
   const stack = [dir]
@@ -117,7 +117,7 @@ export function walk(dir, predicate = () => true, options = {}) {
     }
   }
 
-  return result.sort((a, b) => toRepoPath(a).localeCompare(toRepoPath(b)))
+  return result.sort((a, b) => displayPath(a).localeCompare(displayPath(b)))
 }
 
 function formatBytes(bytes) {
@@ -127,4 +127,6 @@ function formatBytes(bytes) {
   return `${bytes} bytes`
 }
 
-export { repoRoot, toRepoPath }
+export function toRepoPath(filePath) {
+  return path.relative(process.cwd(), filePath).replaceAll(path.sep, '/')
+}

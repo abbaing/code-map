@@ -26,9 +26,9 @@ export const components = [
     files: ['config.mjs'],
     contracts: ['ProjectContext'],
     compositionRoot: false,
-    design: designStatus('gap', 'gap', 'not-applicable', 'pass', 'gap'),
+    design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'gap'),
     decision:
-      'Replace process-wide mutable configuration and direct filesystem access with an immutable ProjectContext.'
+      'ProjectContext is immutable and injected; move its direct filesystem and environment access behind platform ports.'
   },
   {
     id: 'detection',

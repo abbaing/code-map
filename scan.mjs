@@ -2,8 +2,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  repoRoot,
-  toRepoPath,
   readText,
   normalizePath,
   walk,
@@ -13,13 +11,7 @@ import {
   findComponentDirIndex,
   maxSourceFileBytes
 } from './scan-utils.mjs'
-import {
-  getConfigPathFromArgs,
-  getProjectMap,
-  loadProjectMap,
-  resolveGraphOutputPath,
-  resolveRepoPath
-} from './config.mjs'
+import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
 import { Graph } from './graph.mjs'
 import { resolveTsImport } from './resolve.mjs'
 import { isEntryPoint } from './quality.mjs'
@@ -30,15 +22,18 @@ import { writeJsonFileAtomic } from './json-io.mjs'
 
 // ── Phase functions ───────────────────────────────────────────────────────────
 
-function phaseWalkFiles(projectMap, registry) {
+function phaseWalkFiles(projectContext, registry) {
+  const { projectMap, resolveRepoPath, toRepoPath } = projectContext
   const skippedByPath = new Map()
   const walkOptions = {
     maxFileBytes: maxSourceFileBytes,
+    ignoredDirs: projectMap.ignoredDirs,
+    toRepoPath,
     onSkippedFile: (skipped) => skippedByPath.set(skipped.filePath, skipped)
   }
   const byKind = new Map()
   for (const kind of registry.capabilities.fileKinds) {
-    byKind.set(kind.id, collectFileKind(projectMap, kind, walkOptions))
+    byKind.set(kind.id, collectFileKind(projectContext, kind, walkOptions))
   }
 
   const frontRoot = resolveRepoPath(projectMap.sourceRoots.frontend)
@@ -64,7 +59,8 @@ function phaseWalkFiles(projectMap, registry) {
   return { frontFiles, frontTestFiles, backFiles, allBackFiles, skippedFiles }
 }
 
-function collectFileKind(projectMap, kind, walkOptions) {
+function collectFileKind(projectContext, kind, walkOptions) {
+  const { projectMap, resolveRepoPath, toRepoPath } = projectContext
   const root = projectMap.sourceRoots?.[kind.rootKey]
   if (!root) {
     return []
@@ -85,7 +81,8 @@ function collectFileKind(projectMap, kind, walkOptions) {
   })
 }
 
-function phaseApplyRuntimeLinks(graph, projectMap) {
+function phaseApplyRuntimeLinks(graph, projectContext) {
+  const { projectMap, resolveRepoPath } = projectContext
   if (!projectMap.project.runtimeLinks) {
     return
   }
@@ -108,7 +105,8 @@ function phaseApplyRuntimeLinks(graph, projectMap) {
   }
 }
 
-function phaseApplyCoverage(graph, testFiles) {
+function phaseApplyCoverage(graph, testFiles, projectContext) {
+  const { toRepoPath } = projectContext
   const coverageBySource = new Map()
   const testCaseCountByFile = new Map()
 
@@ -124,7 +122,7 @@ function phaseApplyCoverage(graph, testFiles) {
     testCaseCountByFile.set(toRepoPath(testFile), countTestCases(content))
     const imports = content.matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]/g)
     for (const match of imports) {
-      const resolved = resolveTsImport(testFile, match[1])
+      const resolved = resolveTsImport(testFile, match[1], projectContext)
       if (resolved && !isTestFile(resolved)) {
         covered.add(resolved)
       }
@@ -209,7 +207,7 @@ function sourceCandidatesForTest(testFile) {
   return candidates
 }
 
-function computeOrphans(graph) {
+function computeOrphans(graph, projectContext) {
   const incoming = new Map()
   for (const node of graph.allNodes()) {
     incoming.set(node.id, 0)
@@ -237,7 +235,7 @@ function computeOrphans(graph) {
   return graph
     .allNodes()
     .filter((node) => orphanTypes.has(node.type))
-    .filter((node) => (incoming.get(node.id) ?? 0) === 0 && !isEntryPoint(node))
+    .filter((node) => (incoming.get(node.id) ?? 0) === 0 && !isEntryPoint(node, projectContext))
     .map((node) => ({
       id: node.id,
       label: node.label,
@@ -424,25 +422,25 @@ function addInternalComponentQuality(graph, parent, internal) {
 
 // ── Orchestrator ──────────────────────────────────────────────────────────────
 
-function buildGraph() {
-  const projectMap = getProjectMap()
+function buildGraph(projectContext) {
+  const { projectMap } = projectContext
   const registry = buildTemplateRegistry(projectMap)
   const effectiveProjectMap = buildEffectiveProjectMap(projectMap, registry)
   const graph = new Graph()
   clearFindings()
 
-  const files = phaseWalkFiles(projectMap, registry)
-  const context = createScanContext(graph, projectMap, registry, files)
+  const files = phaseWalkFiles(projectContext, registry)
+  const context = createScanContext(graph, projectContext, registry, files)
   phaseRunRegisteredScanners(context)
-  phaseApplyRuntimeLinks(graph, projectMap)
+  phaseApplyRuntimeLinks(graph, projectContext)
   phaseRunRegisteredEnrichers(context)
 
   const nodes = graph.allNodes().sort((a, b) => a.id.localeCompare(b.id))
   const edges = graph.allEdges().sort((a, b) => a.id.localeCompare(b.id))
-  const orphans = computeOrphans(graph)
-  const findings = getFindings()
-  const activeFindings = getActiveFindings()
-  const suppressedFindings = getSuppressedFindings()
+  const orphans = computeOrphans(graph, projectContext)
+  const findings = getFindings(projectMap)
+  const activeFindings = getActiveFindings(projectMap)
+  const suppressedFindings = getSuppressedFindings(projectMap)
 
   return {
     version: 1,
@@ -474,16 +472,16 @@ function buildGraph() {
       projectMap.project.runtimeLinks
         ? `Static analysis is heuristic. Add runtime-only relationships to ${projectMap.project.runtimeLinks}.`
         : 'Static analysis is heuristic. Configure project.runtimeLinks to add runtime-only relationships.',
-      skippedFilesWarning(files.skippedFiles)
+      skippedFilesWarning(files.skippedFiles, projectContext)
     ].filter(Boolean)
   }
 }
 
-function skippedFilesWarning(skippedFiles) {
+function skippedFilesWarning(skippedFiles, projectContext) {
   if (skippedFiles.length === 0) {
     return null
   }
-  const shown = skippedFiles.slice(0, 5).map((item) => toRepoPath(item.filePath))
+  const shown = skippedFiles.slice(0, 5).map((item) => projectContext.toRepoPath(item.filePath))
   const remaining = skippedFiles.length - shown.length
   const paths = `${shown.join(', ')}${remaining > 0 ? `, and ${remaining} more` : ''}`
   const limitMiB = maxSourceFileBytes / (1024 * 1024)
@@ -509,10 +507,12 @@ function mergeById(left = [], right = []) {
   return [...byId.values()]
 }
 
-function createScanContext(graph, projectMap, registry, files) {
+function createScanContext(graph, projectContext, registry, files) {
+  const { projectMap, toRepoPath } = projectContext
   return {
     graph,
     projectMap,
+    projectContext,
     registry,
     files,
     frontEndpointIds: [],
@@ -521,7 +521,7 @@ function createScanContext(graph, projectMap, registry, files) {
       files.backFiles.filter((file) =>
         toRepoPath(file).includes(projectMap.backend?.controllerPathFragment ?? '/Controllers/')
       ),
-    applyCoverage: () => phaseApplyCoverage(graph, files.frontTestFiles),
+    applyCoverage: () => phaseApplyCoverage(graph, files.frontTestFiles, projectContext),
     trackInternalComponents: () => phaseTrackInternals(graph)
   }
 }
@@ -541,19 +541,20 @@ function phaseRunRegisteredEnrichers(context) {
   }
 }
 
-export function writeGraph(outputPath = resolveGraphOutputPath()) {
-  const result = buildGraph()
-  writeJsonFileAtomic(outputPath, result)
-  removeLegacyDefaultGraph(outputPath)
+export function writeGraph(outputPath, projectContext = loadProjectContext()) {
+  const targetPath = outputPath ?? projectContext.resolveGraphOutputPath()
+  const result = buildGraph(projectContext)
+  writeJsonFileAtomic(targetPath, result)
+  removeLegacyDefaultGraph(targetPath, projectContext)
   return result
 }
 
-function removeLegacyDefaultGraph(outputPath) {
-  const managedOutput = path.resolve(repoRoot, '.code-map', 'graph.json')
+function removeLegacyDefaultGraph(outputPath, projectContext) {
+  const managedOutput = path.resolve(projectContext.repoRoot, '.code-map', 'graph.json')
   if (path.resolve(outputPath) !== managedOutput) {
     return
   }
-  const legacyOutput = path.resolve(repoRoot, 'graph.json')
+  const legacyOutput = path.resolve(projectContext.repoRoot, 'graph.json')
   if (!fs.existsSync(legacyOutput)) {
     return
   }
@@ -574,19 +575,17 @@ function removeLegacyDefaultGraph(outputPath) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const configPath = getConfigPathFromArgs()
-  if (configPath) {
-    loadProjectMap(configPath)
-  } else {
-    loadProjectMap(detect(repoRoot))
-  }
-  await loadTemplatePlugins(getProjectMap(), configPath ?? path.join(repoRoot, 'project-map.json'), {
+  const projectRoot = process.cwd()
+  const configPath = getConfigPathFromArgs(process.argv, { cwd: projectRoot })
+  const projectContext = loadProjectContext(configPath ?? detect(projectRoot), { repoRoot: projectRoot })
+  await loadTemplatePlugins(projectContext.projectMap, configPath ?? path.join(projectRoot, 'project-map.json'), {
     allow: process.argv.includes('--allow-plugins')
   })
   const outArgIndex = process.argv.indexOf('--out')
-  const outputPath = outArgIndex >= 0 ? path.resolve(process.argv[outArgIndex + 1]) : resolveGraphOutputPath()
-  const result = writeGraph(outputPath)
+  const outputPath =
+    outArgIndex >= 0 ? path.resolve(process.argv[outArgIndex + 1]) : projectContext.resolveGraphOutputPath()
+  const result = writeGraph(outputPath, projectContext)
   console.log(
-    `Code map written to ${toRepoPath(outputPath)} (${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.orphans} orphans).`
+    `Code map written to ${projectContext.toRepoPath(outputPath)} (${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.orphans} orphans).`
   )
 }

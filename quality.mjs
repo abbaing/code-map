@@ -1,5 +1,3 @@
-import { getProjectMap } from './config.mjs'
-
 const METRIC_TYPES = new Set([
   'component',
   'main-component',
@@ -15,8 +13,8 @@ const METRIC_TYPES = new Set([
   'handler'
 ])
 
-export function isEntryPoint(node) {
-  const projectMap = getProjectMap()
+export function isEntryPoint(node, projectContext) {
+  const projectMap = projectContext.projectMap
   return (
     projectMap.frontend.entryPoints.includes(node.path) ||
     projectMap.backend?.entryPointSuffixes?.some((suffix) => node.path?.endsWith(suffix)) ||
@@ -28,14 +26,14 @@ function clampScore(value) {
   return Math.max(1, Math.min(10, value))
 }
 
-function buildCohesionReason(node, internalRelations, externalRelations, outgoingCount, incomingCount) {
+function buildCohesionReason(node, internalRelations, externalRelations, outgoingCount, incomingCount, projectMap) {
   const parts = [
     `${internalRelations} relations inside module ${node.module}`,
     `${externalRelations} relations outside module`,
     `${outgoingCount} outgoing dependencies`,
     `${incomingCount} detected usages`
   ]
-  if (isInsideFeatureFolder(node)) {
+  if (isInsideFeatureFolder(node, projectMap)) {
     parts.push('located inside its feature folder')
   }
   return parts.join('; ')
@@ -58,7 +56,8 @@ function buildCouplingReason(outgoingCount, externalModules, outgoingExternal) {
   return parts.join('; ')
 }
 
-export function applyQualityMetrics(graph) {
+export function applyQualityMetrics(graph, projectContext) {
+  const projectMap = projectContext.projectMap
   const incomingByNode = new Map()
   const outgoingByNode = new Map()
 
@@ -90,16 +89,14 @@ export function applyQualityMetrics(graph) {
     const externalRelations = relatedNodes.filter((related) => related.module !== node.module).length
     const outgoingExternal = scoredOutgoing
       .map((edge) => graph.getNode(edge.to))
-      .filter(
-        (related) => related && related.module !== node.module && related.module !== getProjectMap().modules.shared
-      )
+      .filter((related) => related && related.module !== node.module && related.module !== projectMap.modules.shared)
     const externalModules = new Set(outgoingExternal.map((related) => related.module))
     const outgoingCount = scoredOutgoing.length
     const incomingCount = scoredIncoming.length
-    const insideFeatureFolder = isInsideFeatureFolder(node)
+    const insideFeatureFolder = isInsideFeatureFolder(node, projectMap)
     const internalRatioBonus = relatedNodes.length > 0 ? Math.round((internalRelations / relatedNodes.length) * 3) : 0
     const cohesionDependencyPenalty = outgoingCount > 12 ? 2 : outgoingCount > 8 ? 1 : 0
-    const unusedPenalty = incomingCount === 0 && !isEntryPoint(node) ? 1 : 0
+    const unusedPenalty = incomingCount === 0 && !isEntryPoint(node, projectContext) ? 1 : 0
 
     let cohesion = 6
     cohesion += internalRatioBonus
@@ -138,7 +135,14 @@ export function applyQualityMetrics(graph) {
           summary: `Score ${score}/10; cohesion ${cohesionScore}/10; coupling ${couplingScore}/10`,
           cohesion: {
             score: cohesionScore,
-            reason: buildCohesionReason(node, internalRelations, externalRelations, outgoingCount, incomingCount)
+            reason: buildCohesionReason(
+              node,
+              internalRelations,
+              externalRelations,
+              outgoingCount,
+              incomingCount,
+              projectMap
+            )
           },
           coupling: {
             score: couplingScore,
@@ -154,7 +158,7 @@ export function applyQualityMetrics(graph) {
               incomingUsages: incomingCount,
               externalModules: [...externalModules].filter(Boolean).sort(),
               insideFeatureFolder,
-              entryPoint: isEntryPoint(node)
+              entryPoint: isEntryPoint(node, projectContext)
             },
             cohesion: {
               base: 6,
@@ -179,8 +183,8 @@ export function applyQualityMetrics(graph) {
   }
 }
 
-function isInsideFeatureFolder(node) {
-  const pattern = getProjectMap().frontend.featureFolderPattern.replace('{module}', node.module)
+function isInsideFeatureFolder(node, projectMap) {
+  const pattern = projectMap.frontend.featureFolderPattern.replace('{module}', node.module)
   return Boolean(node.path?.includes(pattern))
 }
 

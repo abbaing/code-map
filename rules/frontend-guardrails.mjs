@@ -1,4 +1,3 @@
-import { getProjectMap } from '../config.mjs'
 import { addFinding } from './findings.mjs'
 import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from './rule-runner.mjs'
 
@@ -157,8 +156,8 @@ export const RULES = [
   }
 ]
 
-export function runFrontendGuardrails(files, defaultRules = {}) {
-  runFileRules(files, RULES, defaultRules, getProjectMap().rules)
+export function runFrontendGuardrails(files, defaultRules, projectContext) {
+  runFileRules(files, RULES, defaultRules, projectContext.projectMap.rules, projectContext)
 }
 
 export function getFrontendGuardrailMetadata() {

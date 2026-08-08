@@ -16,18 +16,26 @@ export const qualityTemplate = {
   capabilities: {
     enrichers: [
       { id: 'quality.coverage', run: (context) => context.applyCoverage() },
-      { id: 'quality.score', run: (context) => applyQualityMetrics(context.graph) },
+      { id: 'quality.score', run: (context) => applyQualityMetrics(context.graph, context.projectContext) },
       { id: 'quality.track-internals', run: (context) => context.trackInternalComponents() },
       {
         id: 'quality.guardrails',
-        run: (context) => runFrontendGuardrails(context.files.frontFiles, context.registry.rules)
+        run: (context) =>
+          runFrontendGuardrails(context.files.frontFiles, context.registry.rules, context.projectContext)
       },
       {
         id: 'quality.architecture-guardrails',
         run: (context) =>
-          runArchitectureGuardrails([...context.files.frontFiles, ...context.files.backFiles], context.registry.rules)
+          runArchitectureGuardrails(
+            [...context.files.frontFiles, ...context.files.backFiles],
+            context.registry.rules,
+            context.projectContext
+          )
       },
-      { id: 'quality.findings', run: (context) => attachFindingsToNodes(context.graph) }
+      {
+        id: 'quality.findings',
+        run: (context) => attachFindingsToNodes(context.graph, context.projectMap)
+      }
     ]
   }
 }

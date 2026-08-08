@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs'
 import path from 'node:path'
-import { getConfigPathFromArgs, loadProjectMap, getProjectMap, resolveGraphOutputPath } from './config.mjs'
+import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
 import { detect, detectSummary } from './detect.mjs'
 import { writeGraph } from './scan.mjs'
 import { listTemplates, loadTemplatePlugins } from './templates/registry.mjs'
@@ -90,13 +90,14 @@ const explicitConfigPath = (() => {
 
 const configPath = explicitConfigPath ?? getConfigPathFromArgs()
 let pluginBasePath = configPath
+let projectContext
 
 if (configPath) {
   if (!fs.existsSync(configPath)) {
     console.error(`Config file not found: ${configPath}`)
     process.exit(1)
   }
-  loadProjectMap(configPath)
+  projectContext = loadProjectContext(configPath, { repoRoot })
   console.log(`Using config: ${path.relative(repoRoot, configPath)}`)
 } else {
   const summary = detectSummary(repoRoot)
@@ -104,12 +105,12 @@ if (configPath) {
     `Auto-detected: ${summary.frontendFramework ?? 'unknown'} + ${summary.backendStack ?? 'none'}, ${summary.moduleCount} modules`
   )
   console.log('Tip: run with --init to generate a project-map.json you can customize.')
-  loadProjectMap(detect(repoRoot))
+  projectContext = loadProjectContext(detect(repoRoot), { repoRoot })
   pluginBasePath = path.join(repoRoot, 'project-map.json')
 }
 
 try {
-  await loadTemplatePlugins(getProjectMap(), pluginBasePath ?? path.join(repoRoot, 'project-map.json'), {
+  await loadTemplatePlugins(projectContext.projectMap, pluginBasePath ?? path.join(repoRoot, 'project-map.json'), {
     allow: hasFlag('--allow-plugins')
   })
 } catch (error) {
@@ -121,9 +122,9 @@ try {
 
 if (hasFlag('--scan')) {
   const outArgIndex = args.indexOf('--out')
-  const outputPath = outArgIndex >= 0 ? path.resolve(args[outArgIndex + 1]) : resolveGraphOutputPath()
+  const outputPath = outArgIndex >= 0 ? path.resolve(args[outArgIndex + 1]) : projectContext.resolveGraphOutputPath()
 
-  const result = writeGraph(outputPath)
+  const result = writeGraph(outputPath, projectContext)
   const displayOutput = path.relative(repoRoot, outputPath).replaceAll(path.sep, '/')
   console.log(
     `Scan complete: ${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.findings} findings -> ${displayOutput}`
@@ -133,8 +134,8 @@ if (hasFlag('--scan')) {
 
 // ── Default: scan + open viewer ───────────────────────────────────────────────
 
-const outputPath = resolveGraphOutputPath()
-writeGraph(outputPath)
+const outputPath = projectContext.resolveGraphOutputPath()
+writeGraph(outputPath, projectContext)
 
 const { startServer } = await import('./server.mjs')
-startServer()
+startServer({ projectContext })

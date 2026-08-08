@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { detect, detectSummary } from '../detect.mjs'
-import { getConfigPathFromArgs, loadProjectMap } from '../config.mjs'
+import { getConfigPathFromArgs, loadProjectContext } from '../config.mjs'
 import { writeGraph } from '../scan.mjs'
 import { escapeRegExp, maxSourceFileBytes, readText } from '../scan-utils.mjs'
 import { architectureFixture, createFixtureTree, typescriptFixture } from './fixtures.mjs'
@@ -16,7 +16,7 @@ function repoRelative(absolutePath) {
 
 function scanTypeScriptFixture(name) {
   const frontendRoot = path.join(fixtureRoot, 'typescript/front/src')
-  loadProjectMap({
+  const projectContext = loadProjectContext({
     schemaVersion: 1,
     project: {
       name: 'TypeScript Fixture',
@@ -31,7 +31,7 @@ function scanTypeScriptFixture(name) {
     rules: { enabled: [], options: {}, suppressions: [] },
     backend: { classifiers: [] }
   })
-  return writeGraph(path.join(fixtureRoot, `${name}.graph.json`))
+  return writeGraph(path.join(fixtureRoot, `${name}.graph.json`), projectContext)
 }
 
 function scanArchitectureFixture(name) {
@@ -39,7 +39,7 @@ function scanArchitectureFixture(name) {
   const backendRoot = path.join(fixtureRoot, 'architecture/back')
   const frontendPattern = escapeRegExp(repoRelative(frontendRoot))
   const backendPattern = escapeRegExp(repoRelative(backendRoot))
-  loadProjectMap({
+  const projectContext = loadProjectContext({
     schemaVersion: 1,
     project: {
       name: 'Architecture Fixture',
@@ -118,7 +118,7 @@ function scanArchitectureFixture(name) {
       ]
     }
   })
-  return writeGraph(path.join(fixtureRoot, `${name}.graph.json`))
+  return writeGraph(path.join(fixtureRoot, `${name}.graph.json`), projectContext)
 }
 
 const typescriptGraph = scanTypeScriptFixture('typescript-template-fixture')
@@ -371,7 +371,7 @@ const oversizedSourcePath = path.join(frontendOnlyRoot, 'src/oversized.ts')
 fs.writeFileSync(oversizedSourcePath, '')
 fs.truncateSync(oversizedSourcePath, maxSourceFileBytes + 1)
 
-loadProjectMap({
+const frontendOnlyContext = loadProjectContext({
   schemaVersion: 1,
   project: { name: 'Frontend Only', graphOutput: path.join(tempRoot, 'frontend-only.graph.json') },
   sourceRoots: { frontend: path.join(frontendOnlyRoot, 'src') },
@@ -381,7 +381,7 @@ loadProjectMap({
   layers: [{ id: 'ui-component-logic', label: 'Components' }]
 })
 
-const frontendOnlyGraph = writeGraph(path.join(tempRoot, 'frontend-only.graph.json'))
+const frontendOnlyGraph = writeGraph(path.join(tempRoot, 'frontend-only.graph.json'), frontendOnlyContext)
 assert.equal(frontendOnlyGraph.stats.backFiles, 0, 'frontend-only scan should not require sourceRoots.backend')
 assert.equal(
   frontendOnlyGraph.stats.skippedFiles,
@@ -400,7 +400,7 @@ assert.throws(
   'direct scanner reads must enforce the same size limit'
 )
 
-loadProjectMap({
+const templateDefaultsContext = loadProjectContext({
   schemaVersion: 1,
   project: { name: 'Template Defaults', graphOutput: path.join(tempRoot, 'template-defaults.graph.json') },
   sourceRoots: { frontend: path.join(frontendOnlyRoot, 'src') },
@@ -409,7 +409,7 @@ loadProjectMap({
   modules: { frontendFeaturePattern: '^$' }
 })
 
-const templateDefaultsGraph = writeGraph(path.join(tempRoot, 'template-defaults.graph.json'))
+const templateDefaultsGraph = writeGraph(path.join(tempRoot, 'template-defaults.graph.json'), templateDefaultsContext)
 assert.equal(
   templateDefaultsGraph.projectMap.layers.some((layer) => layer.id === 'ui-route'),
   true,

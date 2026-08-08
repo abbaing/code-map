@@ -14,7 +14,10 @@ export const entityFrameworkTemplate = {
   },
   capabilities: {
     scanners: [
-      { id: 'entity-framework.database', run: (context) => scanDatabase(context.graph, context.files.backFiles) }
+      {
+        id: 'entity-framework.database',
+        run: (context) => scanDatabase(context.graph, context.files.backFiles, context.projectContext)
+      }
     ]
   }
 }

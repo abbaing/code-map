@@ -161,7 +161,11 @@ assert.doesNotMatch(
 )
 
 const localServerMessages = []
-const localServer = startServer({ port: 0, log: (message) => localServerMessages.push(message) })
+const localServer = startServer({
+  port: 0,
+  application: {},
+  log: (message) => localServerMessages.push(message)
+})
 await new Promise((resolve, reject) => {
   localServer.once('listening', resolve)
   localServer.once('error', reject)

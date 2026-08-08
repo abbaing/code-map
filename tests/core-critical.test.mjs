@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { Graph } from '../graph.mjs'
-import { loadProjectMap, normalizeProjectMap, validateProjectMap } from '../config.mjs'
+import { createProjectContext, loadProjectContext, normalizeProjectMap, validateProjectMap } from '../config.mjs'
 import { buildTemplateRegistry, loadTemplatePlugins, registerTemplate } from '../templates/registry.mjs'
 import { SubmapError, readJson, writeJsonAtomic } from '../submap/index.mjs'
 
@@ -43,18 +43,70 @@ assert.equal(
   'normalized configs without an explicit output must default below .code-map'
 )
 
+const mutableInput = {
+  schemaVersion: 1,
+  project: { name: 'Immutable Context', graphOutput: 'graph.json' },
+  sourceRoots: { frontend: 'src' },
+  modules: { shared: 'shared' }
+}
+const firstContext = createProjectContext(mutableInput, {
+  repoRoot: path.join(os.tmpdir(), 'context-one'),
+  configPath: 'config/project-map.json'
+})
+const secondContext = createProjectContext(
+  {
+    schemaVersion: 1,
+    project: { name: 'Independent Context' },
+    sourceRoots: { frontend: 'client' },
+    modules: { shared: 'common' }
+  },
+  { repoRoot: path.join(os.tmpdir(), 'context-two') }
+)
+mutableInput.project.name = 'Mutated Input'
+assert.equal(firstContext.projectMap.project.name, 'Immutable Context', 'contexts must clone their configuration input')
+assert.equal(Object.isFrozen(firstContext), true, 'the context boundary must be immutable')
+assert.equal(Object.isFrozen(firstContext.projectMap.modules), true, 'nested configuration must be immutable')
+assert.throws(
+  () => {
+    firstContext.projectMap.modules.shared = 'changed'
+  },
+  TypeError,
+  'configuration mutation must fail immediately'
+)
+assert.equal(secondContext.projectMap.modules.shared, 'common', 'contexts must not share configuration state')
+assert.equal(
+  firstContext.resolveGraphOutputPath(),
+  path.join(os.tmpdir(), 'context-one', 'config', 'graph.json'),
+  'bare graph outputs must resolve beside an explicit project map'
+)
+assert.equal(
+  secondContext.resolveRepoPath('client/index.ts'),
+  path.join(os.tmpdir(), 'context-two', 'client', 'index.ts'),
+  'repository paths must resolve against their own context root'
+)
+
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-map-core-'))
 try {
   assert.throws(
-    () => loadProjectMap(),
+    () => loadProjectContext(),
     (error) => /No project-map\.json found/u.test(error.message),
     'loading without a config must explain how to provide one'
   )
 
+  const loadedContext = loadProjectContext(
+    {
+      schemaVersion: 1,
+      project: { name: 'Loaded Context' },
+      sourceRoots: { frontend: 'src' }
+    },
+    { repoRoot: tempRoot }
+  )
+  assert.equal(loadedContext.repoRoot, tempRoot)
+
   const malformedPath = path.join(tempRoot, 'malformed.project-map.json')
   fs.writeFileSync(malformedPath, '{ invalid json', 'utf8')
   assert.throws(
-    () => loadProjectMap(malformedPath),
+    () => loadProjectContext(malformedPath),
     (error) => /Failed to read project map/u.test(error.message) && /JSON/u.test(error.message),
     'malformed JSON must retain config-path context'
   )

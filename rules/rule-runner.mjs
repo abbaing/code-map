@@ -1,7 +1,7 @@
-import { importsOf, readText, toRepoPath } from '../scan-utils.mjs'
+import { importsOf, readText } from '../scan-utils.mjs'
 import { classifyFront } from '../classify.mjs'
 
-export function runFileRules(files, rules, defaultRules, repoRules, classify = classifySource) {
+export function runFileRules(files, rules, defaultRules, repoRules, projectContext, classify = classifySource) {
   const effectiveRules = effectiveRuleConfig(repoRules, defaultRules)
   const enabledIds = new Set(
     effectiveRules.enabled ?? rules.filter((rule) => rule.defaultEnabled).map((rule) => rule.id)
@@ -9,9 +9,9 @@ export function runFileRules(files, rules, defaultRules, repoRules, classify = c
   const activeRules = rules.filter((rule) => ruleEnabled(rule, enabledIds))
 
   for (const file of files) {
-    const repoPath = toRepoPath(file)
+    const repoPath = projectContext.toRepoPath(file)
     const content = readText(file)
-    const classification = classify(repoPath)
+    const classification = classify(repoPath, projectContext)
     const nodeId = `file:${repoPath}`
 
     for (const rule of activeRules) {
@@ -21,7 +21,8 @@ export function runFileRules(files, rules, defaultRules, repoRules, classify = c
         content,
         type: classification.type,
         layer: classification.layer,
-        projectMapRules: effectiveRules
+        projectMapRules: effectiveRules,
+        projectContext
       })
     }
   }
@@ -61,8 +62,8 @@ export function lineOfIndex(content, index = 0) {
 
 export { importsOf }
 
-function classifySource(repoPath) {
-  const [type, layer] = classifyFront(repoPath)
+function classifySource(repoPath, projectContext) {
+  const [type, layer] = classifyFront(repoPath, projectContext)
   return { type, layer }
 }
 

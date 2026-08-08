@@ -1,4 +1,3 @@
-import { getProjectMap } from '../config.mjs'
 import { escapeRegExp } from '../scan-utils.mjs'
 import { addFinding } from './findings.mjs'
 import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from './rule-runner.mjs'
@@ -102,8 +101,8 @@ export const ARCHITECTURE_RULES = [
         'Move the shared contract to a public feature entrypoint or shared/application layer, or declare an explicit allowed edge.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content, projectMapRules }) {
-      const sourceFeature = featureFromPath(repoPath)
+    check({ nodeId, repoPath, content, projectMapRules, projectContext }) {
+      const sourceFeature = featureFromPath(repoPath, projectContext)
       if (!sourceFeature) {
         return
       }
@@ -270,16 +269,16 @@ export const ARCHITECTURE_RULES = [
   }
 ]
 
-export function runArchitectureGuardrails(files, defaultRules = {}) {
-  runFileRules(files, ARCHITECTURE_RULES, defaultRules, getProjectMap().rules)
+export function runArchitectureGuardrails(files, defaultRules, projectContext) {
+  runFileRules(files, ARCHITECTURE_RULES, defaultRules, projectContext.projectMap.rules, projectContext)
 }
 
 export function getArchitectureGuardrailMetadata() {
   return getRuleMetadata(ARCHITECTURE_RULES)
 }
 
-function featureFromPath(repoPath) {
-  const pattern = getProjectMap().modules?.frontendFeaturePattern
+function featureFromPath(repoPath, projectContext) {
+  const pattern = projectContext.projectMap.modules?.frontendFeaturePattern
   if (!pattern) {
     return null
   }

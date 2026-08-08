@@ -1,9 +1,8 @@
 import path from 'node:path'
-import { getProjectMap } from './config.mjs'
 import { kebab, findComponentDirIndex } from './scan-utils.mjs'
 
-export function featureFromRepoPath(repoPath) {
-  const projectMap = getProjectMap()
+export function featureFromRepoPath(repoPath, projectContext) {
+  const projectMap = projectContext.projectMap
   const shared = projectMap.modules.shared
   const frontMatch = matchPattern(repoPath, projectMap.modules.frontendFeaturePattern)
   if (frontMatch) {
@@ -38,8 +37,8 @@ export function featureFromRepoPath(repoPath) {
   return shared
 }
 
-export function classifyFront(repoPath) {
-  const projectMap = getProjectMap()
+export function classifyFront(repoPath, projectContext) {
+  const projectMap = projectContext.projectMap
   const segments = repoPath.split('/')
   const basename = path.basename(repoPath, path.extname(repoPath))
   const parent = segments.at(-2) ?? ''
@@ -101,8 +100,8 @@ export function classifyFront(repoPath) {
   return ['auxiliary', 'auxiliary']
 }
 
-export function classifyBack(repoPath) {
-  const classifier = getProjectMap().backend.classifiers.find((rule) => repoPath.includes(rule.contains))
+export function classifyBack(repoPath, projectContext) {
+  const classifier = projectContext.projectMap.backend.classifiers.find((rule) => repoPath.includes(rule.contains))
   if (classifier) {
     return [classifier.type, classifier.layer]
   }

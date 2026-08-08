@@ -1,13 +1,15 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { getProjectMap, resolveRepoPath } from './config.mjs'
 import { tsExtensions } from './scan-utils.mjs'
 
-export function aliases() {
-  return getProjectMap().imports.aliases.map((alias) => [alias.prefix, resolveRepoPath(alias.path) + path.sep])
+export function aliases(projectContext) {
+  return projectContext.projectMap.imports.aliases.map((alias) => [
+    alias.prefix,
+    projectContext.resolveRepoPath(alias.path) + path.sep
+  ])
 }
 
-export function resolveTsImport(fromFile, specifier) {
+export function resolveTsImport(fromFile, specifier, projectContext) {
   if (!specifier || (!specifier.startsWith('.') && !specifier.startsWith('@'))) {
     return null
   }
@@ -16,7 +18,7 @@ export function resolveTsImport(fromFile, specifier) {
   if (specifier.startsWith('.')) {
     base = path.resolve(path.dirname(fromFile), specifier)
   } else {
-    const alias = aliases().find(([prefix]) => specifier.startsWith(prefix))
+    const alias = aliases(projectContext).find(([prefix]) => specifier.startsWith(prefix))
     if (!alias) {
       return null
     }

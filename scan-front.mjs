@@ -1,4 +1,4 @@
-import { toRepoPath, displayLabel, importsOf, readText, stripTsComments } from './scan-utils.mjs'
+import { displayLabel, importsOf, readText, stripTsComments } from './scan-utils.mjs'
 import { classifyFront, featureFromRepoPath } from './classify.mjs'
 import { addEndpoint, extractFrontendEndpoints } from './endpoints.mjs'
 import { resolveTsImport } from './resolve.mjs'
@@ -21,16 +21,17 @@ export function detectFrontBehavior(content) {
   }
 }
 
-export function scanFront(graph, files) {
+export function scanFront(graph, files, projectContext) {
+  const { toRepoPath } = projectContext
   const frontEndpointNodes = []
   const apiVersionPrefix = detectApiVersionPrefix(files)
-  const exportedEndpointBindings = collectExportedEndpointBindings(files)
+  const exportedEndpointBindings = collectExportedEndpointBindings(files, toRepoPath)
 
   for (const file of files) {
     const repoPath = toRepoPath(file)
     const content = readText(file)
-    const [type, layer] = classifyFront(repoPath)
-    const module = featureFromRepoPath(repoPath)
+    const [type, layer] = classifyFront(repoPath, projectContext)
+    const module = featureFromRepoPath(repoPath, projectContext)
     const id = `file:${repoPath}`
     const behavior = detectFrontBehavior(content)
     const review = ['route', 'page', 'main-component'].includes(type) && behavior.reasons.length > 0
@@ -53,7 +54,7 @@ export function scanFront(graph, files) {
     })
 
     for (const { specifier } of importsOf(content)) {
-      const resolved = resolveTsImport(file, specifier)
+      const resolved = resolveTsImport(file, specifier, projectContext)
       if (resolved) {
         const target = `file:${toRepoPath(resolved)}`
         graph.addEdge(id, target, 'imports', { confidence: 'high' })
@@ -62,14 +63,19 @@ export function scanFront(graph, files) {
 
     const dynamicImports = stripTsComments(content).matchAll(/import\(\s*['"]([^'"]+)['"]\s*\)/g)
     for (const match of dynamicImports) {
-      const resolved = resolveTsImport(file, match[1])
+      const resolved = resolveTsImport(file, match[1], projectContext)
       if (resolved) {
         const target = `file:${toRepoPath(resolved)}`
         graph.addEdge(id, target, 'lazy-imports', { confidence: 'high' })
       }
     }
 
-    const importedEndpointBindings = resolveImportedEndpointBindings(file, content, exportedEndpointBindings)
+    const importedEndpointBindings = resolveImportedEndpointBindings(
+      file,
+      content,
+      exportedEndpointBindings,
+      projectContext
+    )
     for (const { url, method } of extractFrontendEndpoints(content, importedEndpointBindings)) {
       const runtimeUrl = applyApiVersionPrefix(url, apiVersionPrefix)
       const endpoint = addEndpoint(graph, runtimeUrl, method, module)
@@ -83,7 +89,7 @@ export function scanFront(graph, files) {
   return frontEndpointNodes
 }
 
-function collectExportedEndpointBindings(files) {
+function collectExportedEndpointBindings(files, toRepoPath) {
   const byFile = new Map()
   const candidates = new Map()
   const pattern = /\bexport\s+const\s+([A-Za-z_$][\w$]*)\s*(?::[^=;\n]+)?=\s*['"`]((?:\/api)(?:[^'"`\\]|\\.)*)['"`]/g
@@ -110,11 +116,12 @@ function collectExportedEndpointBindings(files) {
   return { byFile, unique }
 }
 
-function resolveImportedEndpointBindings(file, content, exportedBindings) {
+function resolveImportedEndpointBindings(file, content, exportedBindings, projectContext) {
+  const { toRepoPath } = projectContext
   const result = new Map()
   const importPattern = /\bimport\s*\{([\s\S]*?)\}\s*from\s*['"]([^'"]+)['"]/g
   for (const match of content.matchAll(importPattern)) {
-    const resolved = resolveTsImport(file, match[2])
+    const resolved = resolveTsImport(file, match[2], projectContext)
     if (!resolved) {
       continue
     }
