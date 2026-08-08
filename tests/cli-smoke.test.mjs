@@ -76,8 +76,12 @@ assert.equal(fs.existsSync(path.join(appRoot, 'graph.json')), true, 'unrecognize
 const arbitraryRoot = path.join(tempRoot, 'arbitrary')
 const arbitraryConfigDir = path.join(arbitraryRoot, 'code-map')
 const arbitraryTemplatesDir = path.join(arbitraryConfigDir, 'templates')
+const outsideSourceRoot = path.join(tempRoot, 'outside-source')
+const linkedOutsideRoot = path.join(arbitraryRoot, 'linked-outside')
 fs.mkdirSync(path.join(arbitraryRoot, 'src'), { recursive: true })
 fs.mkdirSync(arbitraryTemplatesDir, { recursive: true })
+fs.mkdirSync(outsideSourceRoot)
+fs.symlinkSync(outsideSourceRoot, linkedOutsideRoot, process.platform === 'win32' ? 'junction' : 'dir')
 fs.writeFileSync(path.join(arbitraryRoot, 'src/index.ts'), 'export const arbitraryValue = 1\n', 'utf8')
 fs.writeFileSync(
   path.join(arbitraryTemplatesDir, 'custom-plugin.mjs'),
@@ -241,6 +245,7 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async (port, 
   assert.equal(localUtilityCss.status, 200, 'the viewer utility stylesheet must be served locally')
   assert.match(localUtilityCss.headers['content-type'], /^text\/css/u)
   assert.match(localUtilityCss.body, /tailwindcss v4\.3\.3/u)
+  assert.equal((await request(port, 'GET', '/viewer-unlisted.js', null)).status, 404, 'only explicitly registered viewer assets may be served')
 
   const missingSession = await request(port, 'POST', '/api/scan', {})
   assert.equal(missingSession.status, 403, 'mutating endpoints must require a viewer session')
@@ -308,6 +313,25 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async (port, 
   assert.equal(invalidConfigResponse.status, 400, 'invalid project-map documents must be rejected before persistence')
   assert.match(JSON.parse(invalidConfigResponse.body).error, /project\.name is required/u)
   assert.equal(fs.readFileSync(arbitraryConfigPath, 'utf8'), configBeforeInvalidSave, 'an invalid save must preserve the last valid config')
+
+  for (const [field, mutate] of [
+    ['graph output', document => { document.project.graphOutput = '../escaped-graph.json' }],
+    ['submap directory', document => { document.project.submapsDirectory = '../escaped-submaps' }],
+    ['frontend source root', document => { document.sourceRoots.frontend = '../outside-source' }],
+    ['symlinked source root', document => { document.sourceRoots.frontend = 'linked-outside' }],
+    ['runtime links', document => { document.project.runtimeLinks = '../outside-runtime-links.json' }],
+    ['import alias', document => { document.imports = { aliases: [{ prefix: '@outside/', path: '../outside-source' }] } }],
+    ['template plugin', document => { document.templates.plugins = ['../../../outside-plugin.mjs'] }]
+  ]) {
+    const escapedConfig = structuredClone(current)
+    mutate(escapedConfig)
+    const configBeforeEscape = fs.readFileSync(arbitraryConfigPath, 'utf8')
+    const escapedResponse = await request(port, 'POST', '/api/project-map', escapedConfig, session)
+    assert.equal(escapedResponse.status, 400, `${field} must not escape the project root`)
+    assert.match(JSON.parse(escapedResponse.body).error, /must resolve within the project root/u)
+    assert.equal(fs.readFileSync(arbitraryConfigPath, 'utf8'), configBeforeEscape, `a rejected ${field} must not modify the config`)
+  }
+  assert.equal(fs.existsSync(path.join(tempRoot, 'escaped-graph.json')), false, 'rejected graph paths must not create files outside the project')
 
   const notFound = await request(port, 'GET', '/missing', null)
   assert.equal(notFound.status, 404)

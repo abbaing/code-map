@@ -13,6 +13,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = process.cwd()
 const viewerRoot = path.join(__dirname, 'viewer')
 const indexPath = path.join(viewerRoot, 'viewer.html')
+const viewerAssets = new Map([
+  'tailwind.css',
+  'viewer.css',
+  'viewer-actions.js',
+  'viewer-data.js',
+  'viewer-findings.js',
+  'viewer-graph.js',
+  'viewer-init.js',
+  'viewer-overview.js',
+  'viewer-selection.js',
+  'viewer-state.js',
+  'viewer-trace.js',
+  'viewer-utils.js'
+].map(file => [`/${file}`, path.join(viewerRoot, file)]))
 const port = Number(process.env.CODE_MAP_PORT) || 1133
 const host = process.env.CODE_MAP_HOST?.trim() || '127.0.0.1'
 const application = createServerApplication({ repoRoot })
@@ -176,16 +190,12 @@ function publicError(error) {
   return { status: 500, message: 'Internal server error.' }
 }
 
-function isViewerAsset(pathname) {
-  return pathname === '/tailwind.css' || pathname === '/viewer.css' || (pathname.startsWith('/viewer-') && pathname.endsWith('.js'))
-}
-
 function createRoutes(sessionToken) {
   return [
     { method: 'GET', test: pathname => pathname === '/', handler: (request, response) => sendFile(response, indexPath, { 'Set-Cookie': sessionCookie(sessionToken) }) },
     { method: 'GET', test: pathname => pathname === '/graph.json', handler: (request, response) => sendFile(response, application.graphPath()) },
     { method: 'GET', test: pathname => pathname === '/project-map.json', handler: (request, response) => sendJson(response, 200, application.projectMap()) },
-    { method: 'GET', test: isViewerAsset, handler: (request, response, url) => sendFile(response, path.join(viewerRoot, url.pathname.slice(1))) },
+    { method: 'GET', test: pathname => viewerAssets.has(pathname), handler: (request, response, url) => sendFile(response, viewerAssets.get(url.pathname)) },
     { method: 'POST', test: pathname => pathname === '/api/scan', handler: handleScan },
     { method: 'POST', test: pathname => pathname === '/api/project-map', handler: handleProjectMap },
     { method: 'POST', test: pathname => pathname === '/api/submaps/from-trace', handler: handleTraceSubmap }
@@ -210,8 +220,12 @@ export function startServer(options = {}) {
       return sendJson(response, 403, { ok: false, error: 'A same-origin viewer session is required.' })
     }
     const route = routes.find(candidate => candidate.method === request.method && candidate.test(url.pathname))
-    if (route) route.handler(request, response, url)
-    else send(response, 404, 'Not found')
+    try {
+      if (route) route.handler(request, response, url)
+      else send(response, 404, 'Not found')
+    } catch (error) {
+      sendApiError(response, error)
+    }
   })
   server.maxHeadersCount = options.maxHeadersCount ?? 100
   server.maxRequestsPerSocket = options.maxRequestsPerSocket ?? 100
