@@ -5,6 +5,7 @@ import http from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { startServer } from '../server.mjs'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const packageRoot = path.resolve(testDir, '..')
@@ -21,6 +22,7 @@ function run(args, cwd = tempRoot) {
 
 const help = run(['--help'])
 assert.match(help, /code-map - architectural graph generator/u)
+assert.match(help, /CODE_MAP_HOST\s+Viewer server host \(default: 127\.0\.0\.1\)/u)
 
 const templates = run(['--templates'])
 assert.match(templates, /^base\s+core/mu)
@@ -110,6 +112,21 @@ assert.match(arbitraryScan, /Scan complete:/u)
 assert.equal(fs.existsSync(arbitraryGraphPath), true, 'a bare graphOutput filename should be resolved beside the project-map file')
 const arbitraryGraph = JSON.parse(fs.readFileSync(arbitraryGraphPath, 'utf8'))
 assert.equal(arbitraryGraph.templates.includes('custom-plugin'), true, 'plugins should resolve relative to the project-map file')
+
+const localServerMessages = []
+const localServer = startServer({ port: 0, log: message => localServerMessages.push(message) })
+await new Promise((resolve, reject) => {
+  localServer.once('listening', resolve)
+  localServer.once('error', reject)
+})
+const localAddress = localServer.address()
+assert.equal(localAddress.address, '127.0.0.1', 'the viewer server must bind to IPv4 loopback by default')
+assert.equal(
+  localServerMessages[0],
+  `Code map available at http://127.0.0.1:${localAddress.port}`,
+  'the startup message must report the actual listening address'
+)
+await new Promise((resolve, reject) => localServer.close(error => error ? reject(error) : resolve()))
 
 async function withServer(args, cwd, callback) {
   const port = String(4300 + Math.floor(Math.random() * 1000))

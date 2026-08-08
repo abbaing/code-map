@@ -237,10 +237,11 @@ code-map submap --help            Show partial graph commands
 code-map --help                   Show help
 ```
 
-| Variable          | Default | Description              |
-| ----------------- | ------- | ------------------------ |
-| `CODE_MAP_CONFIG` | none    | Path to project-map.json |
-| `CODE_MAP_PORT`   | `1133`  | Viewer server port       |
+| Variable          | Default     | Description                                      |
+| ----------------- | ----------- | ------------------------------------------------ |
+| `CODE_MAP_CONFIG` | none        | Path to project-map.json                         |
+| `CODE_MAP_HOST`   | `127.0.0.1` | Viewer server host; override only when necessary |
+| `CODE_MAP_PORT`   | `1133`      | Viewer server port                               |
 
 ---
 

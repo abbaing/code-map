@@ -35,6 +35,7 @@ Usage:
 
 Environment variables:
   CODE_MAP_CONFIG   Path to project-map.json (same as --config)
+  CODE_MAP_HOST     Viewer server host (default: 127.0.0.1)
   CODE_MAP_PORT     Port for the viewer server (default: 1133)
 
 Config:

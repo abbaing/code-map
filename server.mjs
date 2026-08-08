@@ -12,6 +12,7 @@ const repoRoot = process.cwd()
 const viewerRoot = path.join(__dirname, 'viewer')
 const indexPath = path.join(viewerRoot, 'viewer.html')
 const port = Number(process.env.CODE_MAP_PORT) || 1133
+const host = process.env.CODE_MAP_HOST?.trim() || '127.0.0.1'
 const application = createServerApplication({ repoRoot })
 
 const contentTypes = {
@@ -98,15 +99,24 @@ const routes = [
   { method: 'POST', test: pathname => pathname === '/api/submaps/from-trace', handler: handleTraceSubmap }
 ]
 
-export function startServer() {
+export function startServer(options = {}) {
+  const serverPort = options.port ?? port
+  const serverHost = options.host ?? host
+  const log = options.log ?? console.log
   const server = http.createServer((request, response) => {
     const url = new URL(request.url ?? '/', `http://${request.headers.host}`)
     const route = routes.find(candidate => candidate.method === request.method && candidate.test(url.pathname))
     if (route) route.handler(request, response, url)
     else send(response, 404, 'Not found')
   })
-  server.listen(port, () => console.log(`Code map available at http://localhost:${port}`))
+  server.listen(serverPort, serverHost, () => log(`Code map available at ${serverUrl(server.address())}`))
   return server
+}
+
+function serverUrl(address) {
+  if (typeof address === 'string') return address
+  const addressHost = address.address.includes(':') ? `[${address.address}]` : address.address
+  return `http://${addressHost}:${address.port}`
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
