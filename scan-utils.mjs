@@ -3,6 +3,7 @@ import path from 'node:path'
 import { getProjectMap, repoRoot, toRepoPath } from './config.mjs'
 
 export const tsExtensions = ['.ts', '.tsx', '.js', '.jsx']
+export const maxSourceFileBytes = 2 * 1024 * 1024
 
 export const componentContainerDirs = ['components', 'pages']
 
@@ -30,8 +31,20 @@ export function normalizePath(input) {
   return input.replaceAll('\\', '/')
 }
 
-export function readText(filePath) {
+export function readText(filePath, maxBytes = maxSourceFileBytes) {
+  const size = fs.statSync(filePath).size
+  if (size > maxBytes) throw new SourceFileTooLargeError(filePath, size, maxBytes)
   return fs.readFileSync(filePath, 'utf8')
+}
+
+export class SourceFileTooLargeError extends Error {
+  constructor(filePath, size, limit) {
+    super(`Source file exceeds the ${formatBytes(limit)} scan limit: ${toRepoPath(filePath)}`)
+    this.code = 'SOURCE_FILE_TOO_LARGE'
+    this.filePath = filePath
+    this.size = size
+    this.limit = limit
+  }
 }
 
 export function escapeRegExp(value) {
@@ -70,9 +83,10 @@ export function kebab(value) {
     .toLowerCase()
 }
 
-export function walk(dir, predicate = () => true) {
+export function walk(dir, predicate = () => true, options = {}) {
   if (!fs.existsSync(dir)) return []
   const ignoredDirs = new Set(getProjectMap().ignoredDirs)
+  const maxFileBytes = options.maxFileBytes ?? maxSourceFileBytes
   const result = []
   const stack = [dir]
 
@@ -83,13 +97,25 @@ export function walk(dir, predicate = () => true) {
         if (!ignoredDirs.has(entry.name)) stack.push(path.join(current, entry.name))
         continue
       }
+      if (!entry.isFile()) continue
 
       const fullPath = path.join(current, entry.name)
-      if (predicate(fullPath)) result.push(fullPath)
+      if (!predicate(fullPath)) continue
+      const size = fs.statSync(fullPath).size
+      if (size > maxFileBytes) {
+        options.onSkippedFile?.({ filePath: fullPath, size, limit: maxFileBytes })
+        continue
+      }
+      result.push(fullPath)
     }
   }
 
   return result.sort((a, b) => toRepoPath(a).localeCompare(toRepoPath(b)))
+}
+
+function formatBytes(bytes) {
+  if (bytes % (1024 * 1024) === 0) return `${bytes / (1024 * 1024)} MiB`
+  return `${bytes} bytes`
 }
 
 export { repoRoot, toRepoPath }

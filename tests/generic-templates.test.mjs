@@ -5,7 +5,7 @@ import path from 'node:path'
 import { detect, detectSummary } from '../detect.mjs'
 import { getConfigPathFromArgs, loadProjectMap } from '../config.mjs'
 import { writeGraph } from '../scan.mjs'
-import { escapeRegExp } from '../scan-utils.mjs'
+import { escapeRegExp, maxSourceFileBytes, readText } from '../scan-utils.mjs'
 import { architectureFixture, createFixtureTree, typescriptFixture } from './fixtures.mjs'
 
 const fixtureRoot = createFixtureTree(typescriptFixture, architectureFixture)
@@ -285,6 +285,9 @@ assert.equal(detectedConfig.project.graphOutput, '.code-map/graph.json', 'auto-d
 const frontendOnlyRoot = path.join(tempRoot, 'frontend-only')
 fs.mkdirSync(path.join(frontendOnlyRoot, 'src'), { recursive: true })
 fs.writeFileSync(path.join(frontendOnlyRoot, 'src/index.ts'), 'const value: any = 1\nexport { value }\n', 'utf8')
+const oversizedSourcePath = path.join(frontendOnlyRoot, 'src/oversized.ts')
+fs.writeFileSync(oversizedSourcePath, '')
+fs.truncateSync(oversizedSourcePath, maxSourceFileBytes + 1)
 
 loadProjectMap({
   schemaVersion: 1,
@@ -298,6 +301,10 @@ loadProjectMap({
 
 const frontendOnlyGraph = writeGraph(path.join(tempRoot, 'frontend-only.graph.json'))
 assert.equal(frontendOnlyGraph.stats.backFiles, 0, 'frontend-only scan should not require sourceRoots.backend')
+assert.equal(frontendOnlyGraph.stats.skippedFiles, 1, 'oversized source files must be counted once across template discovery passes')
+assert.equal(frontendOnlyGraph.nodes.some(node => node.path?.endsWith('/oversized.ts')), false, 'oversized source files must not enter the graph')
+assert.match(frontendOnlyGraph.warnings.join('\n'), /1 source file larger than 2 MiB was skipped/u)
+assert.throws(() => readText(oversizedSourcePath), error => error.code === 'SOURCE_FILE_TOO_LARGE', 'direct scanner reads must enforce the same size limit')
 
 loadProjectMap({
   schemaVersion: 1,

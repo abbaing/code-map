@@ -74,6 +74,7 @@ function initializeFilters() {
   const moduleCount = unique(nodes.map(node => node.module || 'shared')).length
   const covered = nodes.filter(node => isCoverable(node) && node.meta?.coverage?.hasCoverage).length
   const coveragePercent = coverable ? Math.round((covered / coverable) * 100) : null
+  const skippedFiles = stats.skippedFiles ?? 0
 
   els.projectName.textContent = state.graph.projectMap?.project?.name ?? 'Architecture explorer'
   els.metricModules.textContent = moduleCount.toLocaleString()
@@ -89,6 +90,7 @@ function initializeFilters() {
       <div class="flex justify-between"><span class="text-gray-500">Components</span><span class="font-semibold">${stats.nodes.toLocaleString()}</span></div>
       <div class="flex justify-between"><span class="text-gray-500">Relations</span><span class="font-semibold">${stats.edges.toLocaleString()}</span></div>
       <div class="flex justify-between"><span class="text-gray-500">Orphans</span><span class="font-semibold ${stats.orphans > 0 ? 'text-amber-600' : ''}">${stats.orphans.toLocaleString()}</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">Skipped large files</span><span class="font-semibold ${skippedFiles > 0 ? 'text-amber-600' : ''}">${skippedFiles.toLocaleString()}</span></div>
       <div class="flex justify-between"><span class="text-gray-500">No coverage</span><span class="font-semibold ${uncovered > 0 ? 'text-orange-600' : ''}">${uncovered} / ${coverable}</span></div>
       <div class="flex justify-between"><span class="text-gray-500">Findings</span><span class="font-semibold ${findings.length > 0 ? 'text-red-600' : ''}">${findings.length.toLocaleString()}</span></div>
       <div class="flex justify-between"><span class="text-gray-500">Suppressed</span><span class="font-semibold ${suppressedFindings.length > 0 ? 'text-gray-600' : ''}">${suppressedFindings.length.toLocaleString()}</span></div>

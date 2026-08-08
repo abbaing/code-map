@@ -15,7 +15,8 @@
       "properties": {
         "nodes": { "type": "integer" },
         "edges": { "type": "integer" },
-        "orphans": { "type": "integer" }
+        "orphans": { "type": "integer" },
+        "skippedFiles": { "type": "integer", "minimum": 0 }
       },
       "additionalProperties": true
     },

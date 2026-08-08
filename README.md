@@ -34,7 +34,7 @@ Open `http://localhost:1133` and see the full picture: a live dependency graph w
 
 ## How it works
 
-code-map scans your source tree statically. No build required, no instrumentation. It reads imports, classifies files by architectural role, matches frontend calls to backend endpoints, and scores each module by cohesion and coupling.
+code-map scans your source tree statically. No build required, no instrumentation. It reads imports, classifies files by architectural role, matches frontend calls to backend endpoints, and scores each module by cohesion and coupling. Individual source files larger than 2 MiB are skipped and reported in the generated graph warnings.
 
 The result is a `.code-map/graph.json` and a local viewer served at port 1133. Everything runs on your machine. Nothing leaves your repo.
 

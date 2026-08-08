@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { repoRoot, toRepoPath, readText, normalizePath, walk, isTestFile, isBackTestFile, tsExtensions, findComponentDirIndex } from './scan-utils.mjs'
+import { repoRoot, toRepoPath, readText, normalizePath, walk, isTestFile, isBackTestFile, tsExtensions, findComponentDirIndex, maxSourceFileBytes } from './scan-utils.mjs'
 import { getConfigPathFromArgs, getProjectMap, loadProjectMap, resolveGraphOutputPath, resolveRepoPath } from './config.mjs'
 import { Graph } from './graph.mjs'
 import { resolveTsImport } from './resolve.mjs'
@@ -14,17 +14,22 @@ import { writeJsonFileAtomic } from './json-io.mjs'
 // ── Phase functions ───────────────────────────────────────────────────────────
 
 function phaseWalkFiles(projectMap, registry) {
+  const skippedByPath = new Map()
+  const walkOptions = {
+    maxFileBytes: maxSourceFileBytes,
+    onSkippedFile: skipped => skippedByPath.set(skipped.filePath, skipped)
+  }
   const byKind = new Map()
   for (const kind of registry.capabilities.fileKinds) {
-    byKind.set(kind.id, collectFileKind(projectMap, kind))
+    byKind.set(kind.id, collectFileKind(projectMap, kind, walkOptions))
   }
 
   const frontRoot = resolveRepoPath(projectMap.sourceRoots.frontend)
   const backRoot = projectMap.sourceRoots.backend ? resolveRepoPath(projectMap.sourceRoots.backend) : null
-  const allFrontFiles = walk(frontRoot, file => tsExtensions.includes(path.extname(file)))
+  const allFrontFiles = walk(frontRoot, file => tsExtensions.includes(path.extname(file)), walkOptions)
   const frontTestFiles = byKind.get('frontend-test') ?? allFrontFiles.filter(isTestFile)
   const frontFiles = byKind.get('frontend-source') ?? allFrontFiles.filter(file => !isTestFile(file))
-  const allBackFiles = byKind.get('backend-source') ?? (backRoot ? walk(backRoot, file => path.extname(file) === '.cs' && !isBackTestFile(toRepoPath(file))) : [])
+  const allBackFiles = byKind.get('backend-source') ?? (backRoot ? walk(backRoot, file => path.extname(file) === '.cs' && !isBackTestFile(toRepoPath(file)), walkOptions) : [])
   const backInternalFragments = [
     projectMap.backend?.dtoPathFragment,
     projectMap.backend?.validatorPathFragment,
@@ -34,15 +39,16 @@ function phaseWalkFiles(projectMap, registry) {
     const rp = toRepoPath(file)
     return backInternalFragments.every(fragment => !rp.includes(fragment))
   })
-  return { frontFiles, frontTestFiles, backFiles, allBackFiles }
+  const skippedFiles = [...skippedByPath.values()].sort((a, b) => a.filePath.localeCompare(b.filePath))
+  return { frontFiles, frontTestFiles, backFiles, allBackFiles, skippedFiles }
 }
 
-function collectFileKind(projectMap, kind) {
+function collectFileKind(projectMap, kind, walkOptions) {
   const root = projectMap.sourceRoots?.[kind.rootKey]
   if (!root) return []
   const rootPath = resolveRepoPath(root)
   const extensions = new Set(kind.extensions ?? [])
-  const allFiles = walk(rootPath, file => extensions.size === 0 || extensions.has(path.extname(file)))
+  const allFiles = walk(rootPath, file => extensions.size === 0 || extensions.has(path.extname(file)), walkOptions)
   return allFiles.filter(file => {
     const repoPath = toRepoPath(file)
     const test = Boolean(kind.test?.(repoPath, file))
@@ -350,7 +356,8 @@ function buildGraph() {
       findings: activeFindings.length,
       errorFindings: activeFindings.filter(finding => finding.severity === 'error').length,
       suppressedFindings: suppressedFindings.length,
-      totalFindings: findings.length
+      totalFindings: findings.length,
+      skippedFiles: files.skippedFiles.length
     },
     nodes,
     edges,
@@ -363,9 +370,19 @@ function buildGraph() {
     warnings: [
       projectMap.project.runtimeLinks
         ? `Static analysis is heuristic. Add runtime-only relationships to ${projectMap.project.runtimeLinks}.`
-        : 'Static analysis is heuristic. Configure project.runtimeLinks to add runtime-only relationships.'
-    ]
+        : 'Static analysis is heuristic. Configure project.runtimeLinks to add runtime-only relationships.',
+      skippedFilesWarning(files.skippedFiles)
+    ].filter(Boolean)
   }
+}
+
+function skippedFilesWarning(skippedFiles) {
+  if (skippedFiles.length === 0) return null
+  const shown = skippedFiles.slice(0, 5).map(item => toRepoPath(item.filePath))
+  const remaining = skippedFiles.length - shown.length
+  const paths = `${shown.join(', ')}${remaining > 0 ? `, and ${remaining} more` : ''}`
+  const limitMiB = maxSourceFileBytes / (1024 * 1024)
+  return `${skippedFiles.length} source file${skippedFiles.length === 1 ? '' : 's'} larger than ${limitMiB} MiB ${skippedFiles.length === 1 ? 'was' : 'were'} skipped: ${paths}.`
 }
 
 function buildEffectiveProjectMap(projectMap, registry) {
