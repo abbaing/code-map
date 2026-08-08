@@ -344,7 +344,6 @@ function buildGraph() {
     version: 1,
     projectMap: effectiveProjectMap,
     generatedAt: new Date().toISOString(),
-    repoRoot,
     stats: {
       nodes: nodes.length,
       edges: edges.length,

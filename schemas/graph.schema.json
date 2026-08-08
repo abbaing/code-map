@@ -8,7 +8,7 @@
     "version": { "type": "integer" },
     "projectMap": { "$ref": "./project-map.schema.json" },
     "generatedAt": { "type": "string" },
-    "repoRoot": { "type": "string" },
+    "repoRoot": false,
     "stats": {
       "type": "object",
       "required": ["nodes", "edges"],

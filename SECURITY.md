@@ -24,3 +24,5 @@ Security-sensitive areas include:
 The viewer binds to loopback by default. Mutating requests require a same-origin session, request bodies and connection lifetimes are bounded, and every response includes a restrictive Content Security Policy and defensive browser headers. The packaged viewer does not load remote runtime assets. Viewer-managed source, configuration, graph, submap, alias, runtime-link, and plugin paths are confined to the project root, including through symbolic links.
 
 Custom JavaScript plugins are disabled unless the process starts with `--allow-plugins`. Review every configured module before opting in: plugins run with the same permissions as code-map. The viewer cannot change the trusted plugin list.
+
+Generated graphs omit the absolute repository root so shared artifacts do not disclose workstation-specific paths.

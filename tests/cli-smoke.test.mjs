@@ -129,6 +129,8 @@ assert.match(arbitraryScan, /Scan complete:/u)
 assert.equal(fs.existsSync(arbitraryGraphPath), true, 'a bare graphOutput filename should be resolved beside the project-map file')
 const arbitraryGraph = JSON.parse(fs.readFileSync(arbitraryGraphPath, 'utf8'))
 assert.equal(arbitraryGraph.templates.includes('custom-plugin'), true, 'plugins should resolve relative to the project-map file')
+assert.equal('repoRoot' in arbitraryGraph, false, 'generated graphs must not expose the absolute workspace path')
+assert.doesNotMatch(JSON.stringify(arbitraryGraph), new RegExp(arbitraryRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'iu'), 'generated graphs must remain portable across workspaces')
 
 const localServerMessages = []
 const localServer = startServer({ port: 0, log: message => localServerMessages.push(message) })
