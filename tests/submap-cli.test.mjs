@@ -19,28 +19,61 @@ const graph = {
     { id: 'a', label: 'A', type: 'service', layer: 'application', module: 'demo', path: 'src/a.ts', meta: {} },
     { id: 'b', label: 'B', type: 'repository', layer: 'infrastructure', module: 'demo', path: 'src/b.ts', meta: {} }
   ],
-  edges: [{ id: 'a::imports::b', from: 'a', to: 'b', type: 'imports', label: 'imports', confidence: 'high', source: 'fixture' }],
+  edges: [
+    {
+      id: 'a::imports::b',
+      from: 'a',
+      to: 'b',
+      type: 'imports',
+      label: 'imports',
+      confidence: 'high',
+      source: 'fixture'
+    }
+  ],
   findings: [],
   orphans: []
 }
 fs.writeFileSync(graphPath, `${JSON.stringify(graph, null, 2)}\n`, 'utf8')
 fs.mkdirSync(path.join(tempRoot, 'src'))
-fs.writeFileSync(configPath, `${JSON.stringify({
-  schemaVersion: 1,
-  project: { name: 'CLI Fixture', graphOutput: 'graph.json', submapsDirectory: 'configured-submaps' },
-  sourceRoots: { frontend: 'src' }
-}, null, 2)}\n`, 'utf8')
+fs.writeFileSync(
+  configPath,
+  `${JSON.stringify(
+    {
+      schemaVersion: 1,
+      project: { name: 'CLI Fixture', graphOutput: 'graph.json', submapsDirectory: 'configured-submaps' },
+      sourceRoots: { frontend: 'src' }
+    },
+    null,
+    2
+  )}\n`,
+  'utf8'
+)
 
-const stdoutCreate = run(['submap', 'create', 'cli-demo', '--graph', graphPath, '--node', 'a', '--depth', '1', '--stdout', '--quiet'])
+const stdoutCreate = run([
+  'submap',
+  'create',
+  'cli-demo',
+  '--graph',
+  graphPath,
+  '--node',
+  'a',
+  '--depth',
+  '1',
+  '--stdout',
+  '--quiet'
+])
 assert.equal(stdoutCreate.status, 0, stdoutCreate.stderr)
 assert.equal(stdoutCreate.stderr, '', 'quiet stdout mode must not emit diagnostics')
 const stdoutSubmap = JSON.parse(stdoutCreate.stdout)
 assert.equal(stdoutSubmap.kind, 'code-map/submap')
-assert.deepEqual(stdoutSubmap.nodes.map(node => node.id), ['a', 'b'])
+assert.deepEqual(
+  stdoutSubmap.nodes.map((node) => node.id),
+  ['a', 'b']
+)
 
 const fileCreate = run(['submap', 'create', 'stored-demo', '--graph', graphPath, '--node', 'a', '--dir', submapsDir])
 assert.equal(fileCreate.status, 0, fileCreate.stderr)
-const files = fs.readdirSync(submapsDir).filter(name => name.endsWith('.submap.json'))
+const files = fs.readdirSync(submapsDir).filter((name) => name.endsWith('.submap.json'))
 assert.equal(files.length, 1)
 const submapPath = path.join(submapsDir, files[0])
 
@@ -58,9 +91,23 @@ assert.equal(JSON.parse(list.stdout).length, 1)
 
 const configuredCreate = run(['submap', 'create', 'configured-demo', '--config', configPath, '--node', 'a', '--quiet'])
 assert.equal(configuredCreate.status, 0, configuredCreate.stderr)
-assert.equal(fs.readdirSync(path.join(tempRoot, 'configured-submaps')).some(name => name.startsWith('configured-demo@')), true)
+assert.equal(
+  fs.readdirSync(path.join(tempRoot, 'configured-submaps')).some((name) => name.startsWith('configured-demo@')),
+  true
+)
 
-const duplicateOutput = run(['submap', 'create', 'stored-demo', '--graph', graphPath, '--node', 'a', '--output', submapPath, '--json-errors'])
+const duplicateOutput = run([
+  'submap',
+  'create',
+  'stored-demo',
+  '--graph',
+  graphPath,
+  '--node',
+  'a',
+  '--output',
+  submapPath,
+  '--json-errors'
+])
 assert.equal(duplicateOutput.status, 6)
 assert.equal(JSON.parse(duplicateOutput.stderr).error.code, 'SUBMAP_OUTPUT_EXISTS')
 
@@ -69,7 +116,10 @@ const spec = {
   selectors: { nodeIds: ['a'] },
   traversal: { direction: 'outgoing', maxDepth: 0 }
 }
-const stdinCreate = run(['submap', 'create', '--graph', graphPath, '--spec', '-', '--stdout', '--quiet'], JSON.stringify(spec))
+const stdinCreate = run(
+  ['submap', 'create', '--graph', graphPath, '--spec', '-', '--stdout', '--quiet'],
+  JSON.stringify(spec)
+)
 assert.equal(stdinCreate.status, 0, stdinCreate.stderr)
 assert.equal(JSON.parse(stdinCreate.stdout).id, 'stdin-demo')
 

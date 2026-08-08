@@ -38,8 +38,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Run tests
-        run: npm test
+      - name: Run static checks and tests
+        run: npm run check
       - name: Verify generated viewer styles
         run: |
           npm run build:viewer-css

@@ -122,14 +122,22 @@ function scanArchitectureFixture(name) {
 }
 
 const typescriptGraph = scanTypeScriptFixture('typescript-template-fixture')
-const typeScriptRules = new Set(typescriptGraph.findings.map(finding => finding.ruleId))
+const typeScriptRules = new Set(typescriptGraph.findings.map((finding) => finding.ruleId))
 
-assert.equal(typeScriptRules.has('technology.typescript.relative-imports'), true, 'typescript template should detect relative imports')
+assert.equal(
+  typeScriptRules.has('technology.typescript.relative-imports'),
+  true,
+  'typescript template should detect relative imports'
+)
 assert.equal(typeScriptRules.has('technology.typescript.no-any'), true, 'typescript template should detect any')
-assert.equal([...typeScriptRules].every(ruleId => ruleId.startsWith('technology.') || ruleId.startsWith('framework.')), true, 'generic templates must emit generic rule ids')
+assert.equal(
+  [...typeScriptRules].every((ruleId) => ruleId.startsWith('technology.') || ruleId.startsWith('framework.')),
+  true,
+  'generic templates must emit generic rule ids'
+)
 
 const architectureGraph = scanArchitectureFixture('architecture-template-fixture')
-const architectureRules = new Set(architectureGraph.findings.map(finding => finding.ruleId))
+const architectureRules = new Set(architectureGraph.findings.map((finding) => finding.ruleId))
 
 for (const ruleId of [
   'framework.react.component-folder-entry',
@@ -143,8 +151,8 @@ for (const ruleId of [
   assert.equal(architectureRules.has(ruleId), true, `architecture fixture should emit ${ruleId}`)
 }
 
-const architectureNodes = new Map(architectureGraph.nodes.map(node => [node.label, node]))
-const architectureOrphans = new Set(architectureGraph.orphans.map(orphan => orphan.label))
+const architectureNodes = new Map(architectureGraph.nodes.map((node) => [node.label, node]))
+const architectureOrphans = new Set(architectureGraph.orphans.map((orphan) => orphan.label))
 
 assert.equal(
   ['command', 'query'].includes(architectureNodes.get('ICommand.cs')?.type),
@@ -167,10 +175,10 @@ assert.equal(
   'a command dispatched from an application handler must receive a sends edge'
 )
 
-const orphanPaths = new Set(architectureGraph.orphans.map(orphan => orphan.path))
+const orphanPaths = new Set(architectureGraph.orphans.map((orphan) => orphan.path))
 const duplicateRequestPaths = architectureGraph.nodes
-  .filter(node => node.path?.endsWith('/Queries/GetStatusQuery.cs'))
-  .map(node => node.path)
+  .filter((node) => node.path?.endsWith('/Queries/GetStatusQuery.cs'))
+  .map((node) => node.path)
 
 assert.equal(duplicateRequestPaths.length, 2, 'fixture should expose the same request name in two modules')
 for (const requestPath of duplicateRequestPaths) {
@@ -187,47 +195,97 @@ assert.equal(
   'a command only referenced inside a comment must not receive a sends edge'
 )
 
-const createEndpoint = architectureGraph.nodes.find(node => node.id === 'endpoint:POST /api/accounts')
-const archiveEndpoint = architectureGraph.nodes.find(node => node.id === 'endpoint:DELETE /api/accounts/{}')
-const createSends = architectureGraph.edges.filter(edge => edge.from === createEndpoint?.id && edge.type === 'sends')
-const archiveSends = architectureGraph.edges.filter(edge => edge.from === archiveEndpoint?.id && edge.type === 'sends')
-assert.deepEqual(createSends.map(edge => architectureGraph.nodes.find(node => node.id === edge.to)?.label), ['CreateAccountCommand'], 'an endpoint must only dispatch the request used by its own controller action')
-assert.deepEqual(archiveSends.map(edge => architectureGraph.nodes.find(node => node.id === edge.to)?.label), ['ArchiveAccountCommand'], 'a second controller action must keep an independent request trace')
-assert.equal(createEndpoint?.meta?.backend?.action, 'Create', 'endpoint metadata should describe the controller action without requiring a controller node in the trace')
-
-const handlerNode = architectureGraph.nodes.find(node => node.label === 'CreateAccountCommandHandler.cs')
-const repositoryNode = architectureGraph.nodes.find(node => node.label === 'AccountRepository.cs')
-assert.equal(repositoryNode?.type, 'repository', 'backend repository implementations should have an architectural role')
-assert.equal(repositoryNode?.layer, 'backend-repository', 'backend repositories should render after application handlers')
+const createEndpoint = architectureGraph.nodes.find((node) => node.id === 'endpoint:POST /api/accounts')
+const archiveEndpoint = architectureGraph.nodes.find((node) => node.id === 'endpoint:DELETE /api/accounts/{}')
+const createSends = architectureGraph.edges.filter((edge) => edge.from === createEndpoint?.id && edge.type === 'sends')
+const archiveSends = architectureGraph.edges.filter(
+  (edge) => edge.from === archiveEndpoint?.id && edge.type === 'sends'
+)
+assert.deepEqual(
+  createSends.map((edge) => architectureGraph.nodes.find((node) => node.id === edge.to)?.label),
+  ['CreateAccountCommand'],
+  'an endpoint must only dispatch the request used by its own controller action'
+)
+assert.deepEqual(
+  archiveSends.map((edge) => architectureGraph.nodes.find((node) => node.id === edge.to)?.label),
+  ['ArchiveAccountCommand'],
+  'a second controller action must keep an independent request trace'
+)
 assert.equal(
-  architectureGraph.edges.some(edge => edge.from === handlerNode?.id && edge.to === repositoryNode?.id && edge.type === 'depends-on'),
+  createEndpoint?.meta?.backend?.action,
+  'Create',
+  'endpoint metadata should describe the controller action without requiring a controller node in the trace'
+)
+
+const handlerNode = architectureGraph.nodes.find((node) => node.label === 'CreateAccountCommandHandler.cs')
+const repositoryNode = architectureGraph.nodes.find((node) => node.label === 'AccountRepository.cs')
+assert.equal(repositoryNode?.type, 'repository', 'backend repository implementations should have an architectural role')
+assert.equal(
+  repositoryNode?.layer,
+  'backend-repository',
+  'backend repositories should render after application handlers'
+)
+assert.equal(
+  architectureGraph.edges.some(
+    (edge) => edge.from === handlerNode?.id && edge.to === repositoryNode?.id && edge.type === 'depends-on'
+  ),
   true,
   'constructor injection should connect a handler to the implementation of its repository interface'
 )
 
-const commentedImportEdge = architectureGraph.edges.find(edge =>
-  edge.type === 'imports'
-  && edge.from.endsWith('/reports/hooks/useReports.ts')
-  && edge.to.endsWith('/reports/components/Widget.tsx'))
+const commentedImportEdge = architectureGraph.edges.find(
+  (edge) =>
+    edge.type === 'imports' &&
+    edge.from.endsWith('/reports/hooks/useReports.ts') &&
+    edge.to.endsWith('/reports/components/Widget.tsx')
+)
 assert.equal(commentedImportEdge, undefined, 'a commented-out import must not create an imports edge')
 
-assert.equal(architectureGraph.nodes.find(node => node.label === 'ReportsPage')?.type, 'page', 'a page directory entry should remain a page')
-assert.equal(architectureGraph.nodes.find(node => node.label === '_DateRangeSelector')?.type, 'subcomponent', 'nested page UI must not become a top-level page')
-assert.equal(architectureGraph.nodes.find(node => node.path?.endsWith('/reports/pages/index.ts'))?.type, 'auxiliary', 'a pages barrel is not a routeable page')
-
-const importedConstantEndpoint = architectureGraph.nodes.find(node => node.id === 'endpoint:GET /api/v1/admin/users')
-const importedMutationEndpoint = architectureGraph.nodes.find(node => node.id === 'endpoint:POST /api/v1/admin/users')
-const importedUpdateEndpoint = architectureGraph.nodes.find(node => node.id === 'endpoint:PUT /api/v1/admin/users/{}')
-const usersRepository = architectureGraph.nodes.find(node => node.path?.endsWith('/users/repositories/UsersRepository.ts'))
 assert.equal(
-  architectureGraph.edges.some(edge => edge.from === usersRepository?.id && edge.to === importedConstantEndpoint?.id && edge.type === 'calls-api'),
+  architectureGraph.nodes.find((node) => node.label === 'ReportsPage')?.type,
+  'page',
+  'a page directory entry should remain a page'
+)
+assert.equal(
+  architectureGraph.nodes.find((node) => node.label === '_DateRangeSelector')?.type,
+  'subcomponent',
+  'nested page UI must not become a top-level page'
+)
+assert.equal(
+  architectureGraph.nodes.find((node) => node.path?.endsWith('/reports/pages/index.ts'))?.type,
+  'auxiliary',
+  'a pages barrel is not a routeable page'
+)
+
+const importedConstantEndpoint = architectureGraph.nodes.find((node) => node.id === 'endpoint:GET /api/v1/admin/users')
+const importedMutationEndpoint = architectureGraph.nodes.find((node) => node.id === 'endpoint:POST /api/v1/admin/users')
+const importedUpdateEndpoint = architectureGraph.nodes.find((node) => node.id === 'endpoint:PUT /api/v1/admin/users/{}')
+const usersRepository = architectureGraph.nodes.find((node) =>
+  node.path?.endsWith('/users/repositories/UsersRepository.ts')
+)
+assert.equal(
+  architectureGraph.edges.some(
+    (edge) => edge.from === usersRepository?.id && edge.to === importedConstantEndpoint?.id && edge.type === 'calls-api'
+  ),
   true,
   'frontend API wrappers must resolve imported URL constants, including aliased imports'
 )
-assert.equal(architectureGraph.edges.some(edge => edge.from === usersRepository?.id && edge.to === importedMutationEndpoint?.id && edge.type === 'calls-api'), true, 'positional HTTP wrappers must preserve POST semantics')
-assert.equal(architectureGraph.edges.some(edge => edge.from === usersRepository?.id && edge.to === importedUpdateEndpoint?.id && edge.type === 'calls-api'), true, 'positional HTTP wrappers must preserve templated PUT URLs')
+assert.equal(
+  architectureGraph.edges.some(
+    (edge) => edge.from === usersRepository?.id && edge.to === importedMutationEndpoint?.id && edge.type === 'calls-api'
+  ),
+  true,
+  'positional HTTP wrappers must preserve POST semantics'
+)
+assert.equal(
+  architectureGraph.edges.some(
+    (edge) => edge.from === usersRepository?.id && edge.to === importedUpdateEndpoint?.id && edge.type === 'calls-api'
+  ),
+  true,
+  'positional HTTP wrappers must preserve templated PUT URLs'
+)
 
-const fetchEndpoint = architectureGraph.nodes.find(node => node.id === 'endpoint:GET /api/reports')
+const fetchEndpoint = architectureGraph.nodes.find((node) => node.id === 'endpoint:GET /api/reports')
 assert.equal(fetchEndpoint?.type, 'endpoint', 'native fetch calls should create GET endpoints by default')
 
 const originalCwd = process.cwd()
@@ -253,26 +311,46 @@ try {
   assert.equal(getConfigPathFromArgs(['code-map']), localConfig, 'local *.project-map.json should be discovered')
 
   process.env.CODE_MAP_CONFIG = path.join(tempRoot, 'env.project-map.json')
-  assert.equal(getConfigPathFromArgs(['code-map']), path.join(tempRoot, 'env.project-map.json'), 'CODE_MAP_CONFIG should win over local discovery')
+  assert.equal(
+    getConfigPathFromArgs(['code-map']),
+    path.join(tempRoot, 'env.project-map.json'),
+    'CODE_MAP_CONFIG should win over local discovery'
+  )
 
   const explicitConfig = path.join(tempRoot, 'explicit.project-map.json')
-  assert.equal(getConfigPathFromArgs(['code-map', '--config', explicitConfig]), explicitConfig, '--config should win over env vars')
+  assert.equal(
+    getConfigPathFromArgs(['code-map', '--config', explicitConfig]),
+    explicitConfig,
+    '--config should win over env vars'
+  )
 } finally {
   process.chdir(originalCwd)
-  if (originalConfigEnv === undefined) delete process.env.CODE_MAP_CONFIG
-  else process.env.CODE_MAP_CONFIG = originalConfigEnv
+  if (originalConfigEnv === undefined) {
+    delete process.env.CODE_MAP_CONFIG
+  } else {
+    process.env.CODE_MAP_CONFIG = originalConfigEnv
+  }
 }
 
 const detectedRepo = path.join(tempRoot, 'detected')
 fs.mkdirSync(path.join(detectedRepo, 'front/src/features/accounts'), { recursive: true })
 fs.mkdirSync(path.join(detectedRepo, 'back/Demo.Api'), { recursive: true })
-fs.writeFileSync(path.join(detectedRepo, 'front/package.json'), JSON.stringify({ dependencies: { react: '18.0.0', 'react-dom': '18.0.0' } }), 'utf8')
+fs.writeFileSync(
+  path.join(detectedRepo, 'front/package.json'),
+  JSON.stringify({ dependencies: { react: '18.0.0', 'react-dom': '18.0.0' } }),
+  'utf8'
+)
 fs.writeFileSync(path.join(detectedRepo, 'back/Demo.Api/Demo.Api.csproj'), '<Project />\n', 'utf8')
 fs.writeFileSync(path.join(detectedRepo, 'front/src/App.tsx'), 'export function App() { return null }\n', 'utf8')
 
 const summary = detectSummary(detectedRepo)
 assert.deepEqual(
-  { frontendRoot: summary.frontendRoot, backendRoot: summary.backendRoot, frontendFramework: summary.frontendFramework, backendStack: summary.backendStack },
+  {
+    frontendRoot: summary.frontendRoot,
+    backendRoot: summary.backendRoot,
+    frontendFramework: summary.frontendFramework,
+    backendStack: summary.backendStack
+  },
   { frontendRoot: 'front/src', backendRoot: 'back', frontendFramework: 'react', backendStack: 'dotnet' },
   'detect should support front/src + back repositories'
 )
@@ -280,7 +358,11 @@ assert.deepEqual(
 const detectedConfig = detect(detectedRepo)
 assert.equal(detectedConfig.sourceRoots.frontend, 'front/src')
 assert.equal(detectedConfig.sourceRoots.backend, 'back')
-assert.equal(detectedConfig.project.graphOutput, '.code-map/graph.json', 'auto-detected projects must keep generated graphs under .code-map')
+assert.equal(
+  detectedConfig.project.graphOutput,
+  '.code-map/graph.json',
+  'auto-detected projects must keep generated graphs under .code-map'
+)
 
 const frontendOnlyRoot = path.join(tempRoot, 'frontend-only')
 fs.mkdirSync(path.join(frontendOnlyRoot, 'src'), { recursive: true })
@@ -301,10 +383,22 @@ loadProjectMap({
 
 const frontendOnlyGraph = writeGraph(path.join(tempRoot, 'frontend-only.graph.json'))
 assert.equal(frontendOnlyGraph.stats.backFiles, 0, 'frontend-only scan should not require sourceRoots.backend')
-assert.equal(frontendOnlyGraph.stats.skippedFiles, 1, 'oversized source files must be counted once across template discovery passes')
-assert.equal(frontendOnlyGraph.nodes.some(node => node.path?.endsWith('/oversized.ts')), false, 'oversized source files must not enter the graph')
+assert.equal(
+  frontendOnlyGraph.stats.skippedFiles,
+  1,
+  'oversized source files must be counted once across template discovery passes'
+)
+assert.equal(
+  frontendOnlyGraph.nodes.some((node) => node.path?.endsWith('/oversized.ts')),
+  false,
+  'oversized source files must not enter the graph'
+)
 assert.match(frontendOnlyGraph.warnings.join('\n'), /1 source file larger than 2 MiB was skipped/u)
-assert.throws(() => readText(oversizedSourcePath), error => error.code === 'SOURCE_FILE_TOO_LARGE', 'direct scanner reads must enforce the same size limit')
+assert.throws(
+  () => readText(oversizedSourcePath),
+  (error) => error.code === 'SOURCE_FILE_TOO_LARGE',
+  'direct scanner reads must enforce the same size limit'
+)
 
 loadProjectMap({
   schemaVersion: 1,
@@ -316,8 +410,16 @@ loadProjectMap({
 })
 
 const templateDefaultsGraph = writeGraph(path.join(tempRoot, 'template-defaults.graph.json'))
-assert.equal(templateDefaultsGraph.projectMap.layers.some(layer => layer.id === 'ui-route'), true, 'template layers should be exported without config layers')
-assert.equal(templateDefaultsGraph.projectMap.types.labels.component, 'Component', 'template type labels should be exported without config types')
+assert.equal(
+  templateDefaultsGraph.projectMap.layers.some((layer) => layer.id === 'ui-route'),
+  true,
+  'template layers should be exported without config layers'
+)
+assert.equal(
+  templateDefaultsGraph.projectMap.types.labels.component,
+  'Component',
+  'template type labels should be exported without config types'
+)
 
 fs.rmSync(fixtureRoot, { recursive: true, force: true })
 fs.rmSync(tempRoot, { recursive: true, force: true })

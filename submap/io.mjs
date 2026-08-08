@@ -46,9 +46,12 @@ export function defaultSubmapFilename(submap) {
 }
 
 export function listSubmapFiles(directory) {
-  if (!fs.existsSync(directory)) return []
-  return fs.readdirSync(directory, { withFileTypes: true })
-    .filter(entry => entry.isFile() && entry.name.endsWith('.submap.json'))
-    .map(entry => path.join(directory, entry.name))
+  if (!fs.existsSync(directory)) {
+    return []
+  }
+  return fs
+    .readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.submap.json'))
+    .map((entry) => path.join(directory, entry.name))
     .sort()
 }

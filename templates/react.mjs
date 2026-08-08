@@ -57,6 +57,12 @@ export const reactTemplate = {
     'framework.react.component-folder-entry'
   ]),
   capabilities: {
-    scanners: [{ id: 'react.frontend', assign: 'frontEndpointIds', run: context => scanFront(context.graph, context.files.frontFiles) }]
+    scanners: [
+      {
+        id: 'react.frontend',
+        assign: 'frontEndpointIds',
+        run: (context) => scanFront(context.graph, context.files.frontFiles)
+      }
+    ]
   }
 }

@@ -15,12 +15,19 @@ export const qualityTemplate = {
   description: 'Coverage, cohesion/coupling score, orphan detection, and findings attachment.',
   capabilities: {
     enrichers: [
-      { id: 'quality.coverage', run: context => context.applyCoverage() },
-      { id: 'quality.score', run: context => applyQualityMetrics(context.graph) },
-      { id: 'quality.track-internals', run: context => context.trackInternalComponents() },
-      { id: 'quality.guardrails', run: context => runFrontendGuardrails(context.files.frontFiles, context.registry.rules) },
-      { id: 'quality.architecture-guardrails', run: context => runArchitectureGuardrails([...context.files.frontFiles, ...context.files.backFiles], context.registry.rules) },
-      { id: 'quality.findings', run: context => attachFindingsToNodes(context.graph) }
+      { id: 'quality.coverage', run: (context) => context.applyCoverage() },
+      { id: 'quality.score', run: (context) => applyQualityMetrics(context.graph) },
+      { id: 'quality.track-internals', run: (context) => context.trackInternalComponents() },
+      {
+        id: 'quality.guardrails',
+        run: (context) => runFrontendGuardrails(context.files.frontFiles, context.registry.rules)
+      },
+      {
+        id: 'quality.architecture-guardrails',
+        run: (context) =>
+          runArchitectureGuardrails([...context.files.frontFiles, ...context.files.backFiles], context.registry.rules)
+      },
+      { id: 'quality.findings', run: (context) => attachFindingsToNodes(context.graph) }
     ]
   }
 }

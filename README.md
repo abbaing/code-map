@@ -214,9 +214,7 @@ Load the plugin from `project-map.json`:
       "my-guardrails",
       "quality"
     ],
-    "plugins": [
-      "./templates/my-guardrails.mjs"
-    ]
+    "plugins": ["./templates/my-guardrails.mjs"]
   }
 }
 ```
@@ -300,7 +298,7 @@ Compose capability sets in `templates.enabled`. Order matters: later templates e
 | `filesystem`                      | File discovery, ignored dirs                 |
 | `typescript`                      | Import graph, alias resolution, TS rules     |
 | `react`                           | Component classification, React rules        |
-| `http-endpoints`                  | Frontend to backend endpoint matching       |
+| `http-endpoints`                  | Frontend to backend endpoint matching        |
 | `dotnet-api`                      | .NET controllers, handlers, CQRS             |
 | `entity-framework`                | EF entities, DbSet, table mappings           |
 | `coverage`                        | Test file detection, coverage metadata       |
@@ -335,10 +333,7 @@ Rules run after the scan and attach findings to graph nodes.
 ```json
 {
   "rules": {
-    "enabled": [
-      "technology.typescript.no-any",
-      "framework.react.component-max-lines"
-    ],
+    "enabled": ["technology.typescript.no-any", "framework.react.component-max-lines"],
     "options": {
       "framework.react.component-max-lines": { "max": 200 }
     }
@@ -496,15 +491,15 @@ Public JSON Schemas are exported at `@abbaing/code-map/schemas/submap` and `@abb
 
 ### Exit codes
 
-| Code | Meaning |
-| ---- | ------- |
-| `0` | Success |
-| `1` | Unexpected internal error |
-| `2` | Invalid arguments or request |
-| `3` | Graph, submap, or seed not found |
-| `4` | Invalid or inconsistent submap |
-| `5` | Submap does not match the current graph |
-| `6` | Output file already exists |
+| Code | Meaning                                 |
+| ---- | --------------------------------------- |
+| `0`  | Success                                 |
+| `1`  | Unexpected internal error               |
+| `2`  | Invalid arguments or request            |
+| `3`  | Graph, submap, or seed not found        |
+| `4`  | Invalid or inconsistent submap          |
+| `5`  | Submap does not match the current graph |
+| `6`  | Output file already exists              |
 
 Submaps describe access intent but do not enforce filesystem permissions. External tools remain responsible for controlling writes.
 

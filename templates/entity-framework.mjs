@@ -13,6 +13,8 @@ export const entityFrameworkTemplate = {
     colors: { entity: '#9333ea', table: '#9333ea' }
   },
   capabilities: {
-    scanners: [{ id: 'entity-framework.database', run: context => scanDatabase(context.graph, context.files.backFiles) }]
+    scanners: [
+      { id: 'entity-framework.database', run: (context) => scanDatabase(context.graph, context.files.backFiles) }
+    ]
   }
 }

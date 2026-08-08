@@ -1,8 +1,25 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { repoRoot, toRepoPath, readText, normalizePath, walk, isTestFile, isBackTestFile, tsExtensions, findComponentDirIndex, maxSourceFileBytes } from './scan-utils.mjs'
-import { getConfigPathFromArgs, getProjectMap, loadProjectMap, resolveGraphOutputPath, resolveRepoPath } from './config.mjs'
+import {
+  repoRoot,
+  toRepoPath,
+  readText,
+  normalizePath,
+  walk,
+  isTestFile,
+  isBackTestFile,
+  tsExtensions,
+  findComponentDirIndex,
+  maxSourceFileBytes
+} from './scan-utils.mjs'
+import {
+  getConfigPathFromArgs,
+  getProjectMap,
+  loadProjectMap,
+  resolveGraphOutputPath,
+  resolveRepoPath
+} from './config.mjs'
 import { Graph } from './graph.mjs'
 import { resolveTsImport } from './resolve.mjs'
 import { isEntryPoint } from './quality.mjs'
@@ -17,7 +34,7 @@ function phaseWalkFiles(projectMap, registry) {
   const skippedByPath = new Map()
   const walkOptions = {
     maxFileBytes: maxSourceFileBytes,
-    onSkippedFile: skipped => skippedByPath.set(skipped.filePath, skipped)
+    onSkippedFile: (skipped) => skippedByPath.set(skipped.filePath, skipped)
   }
   const byKind = new Map()
   for (const kind of registry.capabilities.fileKinds) {
@@ -26,18 +43,22 @@ function phaseWalkFiles(projectMap, registry) {
 
   const frontRoot = resolveRepoPath(projectMap.sourceRoots.frontend)
   const backRoot = projectMap.sourceRoots.backend ? resolveRepoPath(projectMap.sourceRoots.backend) : null
-  const allFrontFiles = walk(frontRoot, file => tsExtensions.includes(path.extname(file)), walkOptions)
+  const allFrontFiles = walk(frontRoot, (file) => tsExtensions.includes(path.extname(file)), walkOptions)
   const frontTestFiles = byKind.get('frontend-test') ?? allFrontFiles.filter(isTestFile)
-  const frontFiles = byKind.get('frontend-source') ?? allFrontFiles.filter(file => !isTestFile(file))
-  const allBackFiles = byKind.get('backend-source') ?? (backRoot ? walk(backRoot, file => path.extname(file) === '.cs' && !isBackTestFile(toRepoPath(file)), walkOptions) : [])
+  const frontFiles = byKind.get('frontend-source') ?? allFrontFiles.filter((file) => !isTestFile(file))
+  const allBackFiles =
+    byKind.get('backend-source') ??
+    (backRoot
+      ? walk(backRoot, (file) => path.extname(file) === '.cs' && !isBackTestFile(toRepoPath(file)), walkOptions)
+      : [])
   const backInternalFragments = [
     projectMap.backend?.dtoPathFragment,
     projectMap.backend?.validatorPathFragment,
-    projectMap.backend?.mappingPathFragment,
+    projectMap.backend?.mappingPathFragment
   ].filter(Boolean)
-  const backFiles = allBackFiles.filter(file => {
+  const backFiles = allBackFiles.filter((file) => {
     const rp = toRepoPath(file)
-    return backInternalFragments.every(fragment => !rp.includes(fragment))
+    return backInternalFragments.every((fragment) => !rp.includes(fragment))
   })
   const skippedFiles = [...skippedByPath.values()].sort((a, b) => a.filePath.localeCompare(b.filePath))
   return { frontFiles, frontTestFiles, backFiles, allBackFiles, skippedFiles }
@@ -45,28 +66,40 @@ function phaseWalkFiles(projectMap, registry) {
 
 function collectFileKind(projectMap, kind, walkOptions) {
   const root = projectMap.sourceRoots?.[kind.rootKey]
-  if (!root) return []
+  if (!root) {
+    return []
+  }
   const rootPath = resolveRepoPath(root)
   const extensions = new Set(kind.extensions ?? [])
-  const allFiles = walk(rootPath, file => extensions.size === 0 || extensions.has(path.extname(file)), walkOptions)
-  return allFiles.filter(file => {
+  const allFiles = walk(rootPath, (file) => extensions.size === 0 || extensions.has(path.extname(file)), walkOptions)
+  return allFiles.filter((file) => {
     const repoPath = toRepoPath(file)
     const test = Boolean(kind.test?.(repoPath, file))
-    if (kind.testsOnly) return test
-    if (kind.includeTests) return true
+    if (kind.testsOnly) {
+      return test
+    }
+    if (kind.includeTests) {
+      return true
+    }
     return !test
   })
 }
 
 function phaseApplyRuntimeLinks(graph, projectMap) {
-  if (!projectMap.project.runtimeLinks) return
+  if (!projectMap.project.runtimeLinks) {
+    return
+  }
   const runtimeLinksPath = resolveRepoPath(projectMap.project.runtimeLinks)
-  if (!fs.existsSync(runtimeLinksPath)) return
+  if (!fs.existsSync(runtimeLinksPath)) {
+    return
+  }
   const parsed = JSON.parse(readText(runtimeLinksPath))
   for (const link of parsed.links ?? []) {
     const from = resolveRuntimeNode(graph, link.from)
     const to = resolveRuntimeNode(graph, link.to)
-    if (!from || !to) continue
+    if (!from || !to) {
+      continue
+    }
     graph.addEdge(from, to, link.type ?? 'runtime-link', {
       label: link.reason ?? link.type ?? 'runtime-link',
       confidence: link.confidence ?? 'manual',
@@ -92,12 +125,16 @@ function phaseApplyCoverage(graph, testFiles) {
     const imports = content.matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]/g)
     for (const match of imports) {
       const resolved = resolveTsImport(testFile, match[1])
-      if (resolved && !isTestFile(resolved)) covered.add(resolved)
+      if (resolved && !isTestFile(resolved)) {
+        covered.add(resolved)
+      }
     }
 
     for (const sourceFile of covered) {
       const sourceId = `file:${toRepoPath(sourceFile)}`
-      if (!graph.hasNode(sourceId)) continue
+      if (!graph.hasNode(sourceId)) {
+        continue
+      }
       const testRepoPath = toRepoPath(testFile)
       const current = coverageBySource.get(sourceId) ?? []
       current.push(testRepoPath)
@@ -131,11 +168,24 @@ function phaseTrackInternals(graph) {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function resolveRuntimeNode(graph, value) {
-  if (!value) return null
-  if (value.startsWith('file:') || value.startsWith('endpoint:') || value.startsWith('table:') || value.startsWith('entity:')) return value
+  if (!value) {
+    return null
+  }
+  if (
+    value.startsWith('file:') ||
+    value.startsWith('endpoint:') ||
+    value.startsWith('table:') ||
+    value.startsWith('entity:')
+  ) {
+    return value
+  }
   const repoPath = normalizePath(value)
-  if (graph.hasNode(`file:${repoPath}`)) return `file:${repoPath}`
-  if (graph.hasNode(value)) return value
+  if (graph.hasNode(`file:${repoPath}`)) {
+    return `file:${repoPath}`
+  }
+  if (graph.hasNode(value)) {
+    return value
+  }
   return null
 }
 
@@ -161,16 +211,34 @@ function sourceCandidatesForTest(testFile) {
 
 function computeOrphans(graph) {
   const incoming = new Map()
-  for (const node of graph.allNodes()) incoming.set(node.id, 0)
+  for (const node of graph.allNodes()) {
+    incoming.set(node.id, 0)
+  }
   for (const edge of graph.allEdges()) {
     incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1)
   }
 
-  const orphanTypes = new Set(['component', 'main-component', 'subcomponent', 'page', 'route', 'hook', 'service', 'repository', 'controller', 'query', 'command', 'handler', 'entity', 'table'])
-  return graph.allNodes()
-    .filter(node => orphanTypes.has(node.type))
-    .filter(node => (incoming.get(node.id) ?? 0) === 0 && !isEntryPoint(node))
-    .map(node => ({
+  const orphanTypes = new Set([
+    'component',
+    'main-component',
+    'subcomponent',
+    'page',
+    'route',
+    'hook',
+    'service',
+    'repository',
+    'controller',
+    'query',
+    'command',
+    'handler',
+    'entity',
+    'table'
+  ])
+  return graph
+    .allNodes()
+    .filter((node) => orphanTypes.has(node.type))
+    .filter((node) => (incoming.get(node.id) ?? 0) === 0 && !isEntryPoint(node))
+    .map((node) => ({
       id: node.id,
       label: node.label,
       type: node.type,
@@ -181,41 +249,58 @@ function computeOrphans(graph) {
 }
 
 function isInternalComponentNode(node) {
-  if (!node.path) return false
-  if (!['component', 'main-component', 'subcomponent', 'page'].includes(node.type)) return false
+  if (!node.path) {
+    return false
+  }
+  if (!['component', 'main-component', 'subcomponent', 'page'].includes(node.type)) {
+    return false
+  }
   const segments = node.path.split('/')
   const dirIndex = findComponentDirIndex(segments)
-  if (dirIndex < 0) return false
-  return segments.slice(dirIndex + 1, -1).some(segment => segment.startsWith('_'))
+  if (dirIndex < 0) {
+    return false
+  }
+  return segments.slice(dirIndex + 1, -1).some((segment) => segment.startsWith('_'))
 }
 
 function findInternalComponentParent(graph, node) {
   const pathParent = findPathParent(graph, node)
-  if (pathParent) return pathParent
+  if (pathParent) {
+    return pathParent
+  }
 
   const relatedIds = []
   for (const edge of graph.allEdges()) {
-    if (edge.to === node.id) relatedIds.push(edge.from)
-    if (edge.from === node.id) relatedIds.push(edge.to)
+    if (edge.to === node.id) {
+      relatedIds.push(edge.from)
+    }
+    if (edge.from === node.id) {
+      relatedIds.push(edge.to)
+    }
   }
 
-  return relatedIds
-    .map(id => graph.getNode(id))
-    .filter(related => related && related.id !== node.id)
-    .filter(related => related.module === node.module && !isInternalComponentNode(related))
-    .filter(related => ['main-component', 'component', 'page', 'route'].includes(related.type))
-    .sort((a, b) => parentPriority(a) - parentPriority(b))[0]?.id
-    ?? findModuleParent(graph, node)
+  return (
+    relatedIds
+      .map((id) => graph.getNode(id))
+      .filter((related) => related && related.id !== node.id)
+      .filter((related) => related.module === node.module && !isInternalComponentNode(related))
+      .filter((related) => ['main-component', 'component', 'page', 'route'].includes(related.type))
+      .sort((a, b) => parentPriority(a) - parentPriority(b))[0]?.id ?? findModuleParent(graph, node)
+  )
 }
 
 function findPathParent(graph, node) {
   const segments = node.path.split('/')
   const dirIndex = findComponentDirIndex(segments)
-  if (dirIndex < 0) return null
+  if (dirIndex < 0) {
+    return null
+  }
 
   const relativeSegments = segments.slice(dirIndex + 1, -1)
-  const internalIndex = relativeSegments.findIndex(segment => segment.startsWith('_'))
-  if (internalIndex <= 0) return null
+  const internalIndex = relativeSegments.findIndex((segment) => segment.startsWith('_'))
+  if (internalIndex <= 0) {
+    return null
+  }
 
   for (let index = internalIndex - 1; index >= 0; index -= 1) {
     const candidateSegments = relativeSegments.slice(0, index + 1)
@@ -223,7 +308,9 @@ function findPathParent(graph, node) {
     for (const extension of tsExtensions) {
       const candidateId = `file:${candidateBase}/index${extension}`
       const candidate = graph.getNode(candidateId)
-      if (candidate && !isInternalComponentNode(candidate)) return candidateId
+      if (candidate && !isInternalComponentNode(candidate)) {
+        return candidateId
+      }
     }
   }
 
@@ -231,18 +318,27 @@ function findPathParent(graph, node) {
 }
 
 function parentPriority(node) {
-  if (node.type === 'main-component') return 0
-  if (node.type === 'component') return 1
-  if (node.type === 'page') return 2
-  if (node.type === 'route') return 3
+  if (node.type === 'main-component') {
+    return 0
+  }
+  if (node.type === 'component') {
+    return 1
+  }
+  if (node.type === 'page') {
+    return 2
+  }
+  if (node.type === 'route') {
+    return 3
+  }
   return 4
 }
 
 function findModuleParent(graph, node) {
-  return graph.allNodes()
-    .filter(candidate => candidate.id !== node.id)
-    .filter(candidate => candidate.module === node.module && !isInternalComponentNode(candidate))
-    .filter(candidate => ['main-component', 'component', 'page', 'route'].includes(candidate.type))
+  return graph
+    .allNodes()
+    .filter((candidate) => candidate.id !== node.id)
+    .filter((candidate) => candidate.module === node.module && !isInternalComponentNode(candidate))
+    .filter((candidate) => ['main-component', 'component', 'page', 'route'].includes(candidate.type))
     .sort((a, b) => parentPriority(a) - parentPriority(b) || (a.path ?? '').localeCompare(b.path ?? ''))[0]?.id
 }
 
@@ -250,15 +346,21 @@ function trackInternalComponents(graph) {
   const internalToParent = new Map()
 
   for (const node of graph.allNodes()) {
-    if (!isInternalComponentNode(node)) continue
+    if (!isInternalComponentNode(node)) {
+      continue
+    }
     const parentId = findInternalComponentParent(graph, node)
-    if (parentId) internalToParent.set(node.id, parentId)
+    if (parentId) {
+      internalToParent.set(node.id, parentId)
+    }
   }
 
   for (const [internalId, parentId] of internalToParent) {
     const internal = graph.getNode(internalId)
     const parent = graph.getNode(parentId)
-    if (!internal || !parent) continue
+    if (!internal || !parent) {
+      continue
+    }
     addInternalComponentQuality(graph, parent, internal)
     graph.addNode(internalId, {
       meta: {
@@ -274,7 +376,9 @@ function trackInternalComponents(graph) {
 function addInternalComponentQuality(graph, parent, internal) {
   const parentQuality = parent.meta?.quality
   const internalQuality = internal.meta?.quality
-  if (!internalQuality) return
+  if (!internalQuality) {
+    return
+  }
 
   const currentInternalComponents = parentQuality?.internalComponents ?? []
   const internalComponents = [
@@ -298,11 +402,11 @@ function addInternalComponentQuality(graph, parent, internal) {
     related: []
   }
 
-  const scores = [parentQuality?.score, ...internalComponents.map(component => component.score)]
-    .filter(score => Number.isFinite(score))
-  const aggregateScore = scores.length > 0
-    ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
-    : baseQuality.score
+  const scores = [parentQuality?.score, ...internalComponents.map((component) => component.score)].filter((score) =>
+    Number.isFinite(score)
+  )
+  const aggregateScore =
+    scores.length > 0 ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : baseQuality.score
   const worst = internalComponents[0]
   const internalSummary = `${internalComponents.length} internal component${internalComponents.length === 1 ? '' : 's'} tracked; worst ${worst.label} ${worst.score}/10`
 
@@ -353,7 +457,7 @@ function buildGraph() {
       backFiles: files.backFiles.length,
       hiddenDtoFiles: files.allBackFiles.length - files.backFiles.length,
       findings: activeFindings.length,
-      errorFindings: activeFindings.filter(finding => finding.severity === 'error').length,
+      errorFindings: activeFindings.filter((finding) => finding.severity === 'error').length,
       suppressedFindings: suppressedFindings.length,
       totalFindings: findings.length,
       skippedFiles: files.skippedFiles.length
@@ -376,8 +480,10 @@ function buildGraph() {
 }
 
 function skippedFilesWarning(skippedFiles) {
-  if (skippedFiles.length === 0) return null
-  const shown = skippedFiles.slice(0, 5).map(item => toRepoPath(item.filePath))
+  if (skippedFiles.length === 0) {
+    return null
+  }
+  const shown = skippedFiles.slice(0, 5).map((item) => toRepoPath(item.filePath))
   const remaining = skippedFiles.length - shown.length
   const paths = `${shown.join(', ')}${remaining > 0 ? `, and ${remaining} more` : ''}`
   const limitMiB = maxSourceFileBytes / (1024 * 1024)
@@ -396,8 +502,10 @@ function buildEffectiveProjectMap(projectMap, registry) {
 }
 
 function mergeById(left = [], right = []) {
-  const byId = new Map(left.map(item => [item.id, item]))
-  for (const item of right) byId.set(item.id, { ...(byId.get(item.id) ?? {}), ...item })
+  const byId = new Map(left.map((item) => [item.id, item]))
+  for (const item of right) {
+    byId.set(item.id, { ...(byId.get(item.id) ?? {}), ...item })
+  }
   return [...byId.values()]
 }
 
@@ -409,7 +517,10 @@ function createScanContext(graph, projectMap, registry, files) {
     files,
     frontEndpointIds: [],
     controllerEndpoints: [],
-    controllerFiles: () => files.backFiles.filter(file => toRepoPath(file).includes(projectMap.backend?.controllerPathFragment ?? '/Controllers/')),
+    controllerFiles: () =>
+      files.backFiles.filter((file) =>
+        toRepoPath(file).includes(projectMap.backend?.controllerPathFragment ?? '/Controllers/')
+      ),
     applyCoverage: () => phaseApplyCoverage(graph, files.frontTestFiles),
     trackInternalComponents: () => phaseTrackInternals(graph)
   }
@@ -418,7 +529,9 @@ function createScanContext(graph, projectMap, registry, files) {
 function phaseRunRegisteredScanners(context) {
   for (const scanner of context.registry.capabilities.scanners) {
     const result = scanner.run(context)
-    if (scanner.assign) context[scanner.assign] = result ?? []
+    if (scanner.assign) {
+      context[scanner.assign] = result ?? []
+    }
   }
 }
 
@@ -437,31 +550,43 @@ export function writeGraph(outputPath = resolveGraphOutputPath()) {
 
 function removeLegacyDefaultGraph(outputPath) {
   const managedOutput = path.resolve(repoRoot, '.code-map', 'graph.json')
-  if (path.resolve(outputPath) !== managedOutput) return
+  if (path.resolve(outputPath) !== managedOutput) {
+    return
+  }
   const legacyOutput = path.resolve(repoRoot, 'graph.json')
-  if (!fs.existsSync(legacyOutput)) return
+  if (!fs.existsSync(legacyOutput)) {
+    return
+  }
   try {
     const document = JSON.parse(fs.readFileSync(legacyOutput, 'utf8'))
-    const generatedByCodeMap = Number.isInteger(document?.version)
-      && Array.isArray(document?.nodes)
-      && Array.isArray(document?.edges)
-      && document?.projectMap
-      && document?.stats
-    if (generatedByCodeMap) fs.rmSync(legacyOutput)
-  } catch { /* preserve files that are not recognizable code-map output */ }
+    const generatedByCodeMap =
+      Number.isInteger(document?.version) &&
+      Array.isArray(document?.nodes) &&
+      Array.isArray(document?.edges) &&
+      document?.projectMap &&
+      document?.stats
+    if (generatedByCodeMap) {
+      fs.rmSync(legacyOutput)
+    }
+  } catch {
+    /* preserve files that are not recognizable code-map output */
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const configPath = getConfigPathFromArgs()
-  if (configPath) loadProjectMap(configPath)
-  else loadProjectMap(detect(repoRoot))
-  await loadTemplatePlugins(
-    getProjectMap(),
-    configPath ?? path.join(repoRoot, 'project-map.json'),
-    { allow: process.argv.includes('--allow-plugins') }
-  )
+  if (configPath) {
+    loadProjectMap(configPath)
+  } else {
+    loadProjectMap(detect(repoRoot))
+  }
+  await loadTemplatePlugins(getProjectMap(), configPath ?? path.join(repoRoot, 'project-map.json'), {
+    allow: process.argv.includes('--allow-plugins')
+  })
   const outArgIndex = process.argv.indexOf('--out')
   const outputPath = outArgIndex >= 0 ? path.resolve(process.argv[outArgIndex + 1]) : resolveGraphOutputPath()
   const result = writeGraph(outputPath)
-  console.log(`Code map written to ${toRepoPath(outputPath)} (${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.orphans} orphans).`)
+  console.log(
+    `Code map written to ${toRepoPath(outputPath)} (${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.orphans} orphans).`
+  )
 }

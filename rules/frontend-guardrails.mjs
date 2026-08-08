@@ -21,8 +21,16 @@ export const RULES = [
     },
     check({ nodeId, repoPath, content }) {
       for (const { specifier, index } of importsOf(content)) {
-        if (!specifier.startsWith('.')) continue
-        addFinding({ ...findingBase(this), nodeId, path: repoPath, line: lineOfIndex(content, index), evidence: specifier })
+        if (!specifier.startsWith('.')) {
+          continue
+        }
+        addFinding({
+          ...findingBase(this),
+          nodeId,
+          path: repoPath,
+          line: lineOfIndex(content, index),
+          evidence: specifier
+        })
       }
     }
   },
@@ -37,17 +45,33 @@ export const RULES = [
       effort: 'medium',
       message: 'Component files exceed the configured line limit.',
       why: 'Large component files usually mix orchestration, view model derivation, and rendering, which makes changes risky.',
-      fixHint: 'Extract private subcomponents, typed config, helpers, or a dedicated hook until the component is below the limit.',
+      fixHint:
+        'Extract private subcomponents, typed config, helpers, or a dedicated hook until the component is below the limit.',
       docsPath: 'docs/frontend-rules.md'
     },
     check({ nodeId, repoPath, content, type, projectMapRules }) {
-      if (!['component', 'main-component', 'subcomponent'].includes(type)) return
-      if (!/\.[jt]sx$/u.test(repoPath)) return
-      if (!isPathInRuleScope(repoPath, this, projectMapRules)) return
+      if (!['component', 'main-component', 'subcomponent'].includes(type)) {
+        return
+      }
+      if (!/\.[jt]sx$/u.test(repoPath)) {
+        return
+      }
+      if (!isPathInRuleScope(repoPath, this, projectMapRules)) {
+        return
+      }
       const max = ruleOption(projectMapRules, this, 'max') ?? 200
       const lines = content.split(/\r?\n/).length
-      if (lines <= max) return
-      addFinding({ ...findingBase(this), nodeId, path: repoPath, line: max + 1, message: `Component files may not exceed ${max} lines.`, evidence: `${lines} lines` })
+      if (lines <= max) {
+        return
+      }
+      addFinding({
+        ...findingBase(this),
+        nodeId,
+        path: repoPath,
+        line: max + 1,
+        message: `Component files may not exceed ${max} lines.`,
+        evidence: `${lines} lines`
+      })
     }
   },
   {
@@ -61,7 +85,8 @@ export const RULES = [
       effort: 'medium',
       message: '`any` and `as any` are forbidden in frontend source.',
       why: '`any` removes compile-time guarantees at exactly the boundaries where UI contracts drift most easily.',
-      fixHint: 'Replace with a concrete type, generic contract, discriminated union, or bounded unknown with explicit narrowing.',
+      fixHint:
+        'Replace with a concrete type, generic contract, discriminated union, or bounded unknown with explicit narrowing.',
       docsPath: 'docs/frontend-rules.md'
     },
     check({ nodeId, repoPath, content }) {
@@ -73,7 +98,13 @@ export const RULES = [
       ]
       for (const { pattern, label } of patterns) {
         for (const match of content.matchAll(pattern)) {
-          addFinding({ ...findingBase(this), nodeId, path: repoPath, line: lineOfIndex(content, match.index), evidence: label })
+          addFinding({
+            ...findingBase(this),
+            nodeId,
+            path: repoPath,
+            line: lineOfIndex(content, match.index),
+            evidence: label
+          })
         }
       }
     }
@@ -89,12 +120,17 @@ export const RULES = [
       effort: 'medium',
       message: 'Feature route files must only declare typed RouteConfig entries and render FeatureRoutes.',
       why: 'Routes stay predictable when lazy loading, permission gates, and access-denied rendering are centralized outside feature route config.',
-      fixHint: 'Statically import pages, use RouteConfig[] with { path, component }, and move permissions into PermissionedPage.',
+      fixHint:
+        'Statically import pages, use RouteConfig[] with { path, component }, and move permissions into PermissionedPage.',
       docsPath: 'docs/frontend-rules.md'
     },
     check({ nodeId, repoPath, content, type }) {
-      if (type !== 'route') return
-      if (!repoPath.endsWith('/routes/index.tsx') && !repoPath.endsWith('/routes/index.jsx')) return
+      if (type !== 'route') {
+        return
+      }
+      if (!repoPath.endsWith('/routes/index.tsx') && !repoPath.endsWith('/routes/index.jsx')) {
+        return
+      }
       const checks = [
         { rule: /\blazy\s*\(/g, label: 'lazy()' },
         { rule: /\bSuspense\b/g, label: 'Suspense' },
@@ -106,8 +142,16 @@ export const RULES = [
       for (const check of checks) {
         const match = check.rule.exec(content)
         check.rule.lastIndex = 0
-        if (!match) continue
-        addFinding({ ...findingBase(this), nodeId, path: repoPath, line: lineOfIndex(content, match.index), evidence: check.label })
+        if (!match) {
+          continue
+        }
+        addFinding({
+          ...findingBase(this),
+          nodeId,
+          path: repoPath,
+          line: lineOfIndex(content, match.index),
+          evidence: check.label
+        })
       }
     }
   }
@@ -133,5 +177,5 @@ function isPathInRuleScope(repoPath, rule, projectMapRules) {
 }
 
 function matchesAny(value, patterns) {
-  return patterns.some(pattern => new RegExp(pattern).test(value))
+  return patterns.some((pattern) => new RegExp(pattern).test(value))
 }

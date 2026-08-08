@@ -6,14 +6,16 @@ Thanks for considering a contribution to code-map.
 
 Requirements:
 
-- Node.js 20 or later
+- Node.js 20.9 or later
 - npm
 
-Run the test suite:
+Run the complete local quality gate:
 
 ```bash
-npm test
+npm run check
 ```
+
+This runs ESLint, verifies formatting with Prettier, and executes the test suite. Use `npm run format` to apply formatting before committing.
 
 Rebuild the local viewer utility stylesheet after changing classes in `viewer/`:
 
@@ -23,7 +25,7 @@ npm run build:viewer-css
 
 Commit the generated `viewer/tailwind.css` together with the source change.
 
-Pull requests run the test suite on Node.js 20, 22, and 24 under Linux, plus Node.js 24 under Windows. CI also rejects stale generated viewer styles.
+Pull requests run static checks and the test suite on Node.js 20, 22, and 24 under Linux, plus Node.js 24 under Windows. CI also rejects stale generated viewer styles.
 
 Dependabot checks npm packages and GitHub Actions weekly. Related updates are grouped to keep review noise low. Before merging an automated update, review the upstream release notes and confirm that CI passes. Keep `tailwindcss` and `@tailwindcss/cli` on matching versions.
 

@@ -18,10 +18,16 @@ export class Graph {
   }
 
   addEdge(from, to, type, data = {}) {
-    if (!from || !to || from === to) return
-    if (!this.nodeMap.has(from) || !this.nodeMap.has(to)) return
+    if (!from || !to || from === to) {
+      return
+    }
+    if (!this.nodeMap.has(from) || !this.nodeMap.has(to)) {
+      return
+    }
     const id = `${from}::${type}::${to}`
-    if (this.edgeMap.has(id)) return
+    if (this.edgeMap.has(id)) {
+      return
+    }
     this.edgeMap.set(id, {
       id,
       from,
@@ -33,10 +39,23 @@ export class Graph {
     })
   }
 
-  getNode(id) { return this.nodeMap.get(id) }
-  getEdge(id) { return this.edgeMap.get(id) }
-  hasNode(id) { return this.nodeMap.has(id) }
-  allNodes() { return [...this.nodeMap.values()] }
-  allEdges() { return [...this.edgeMap.values()] }
-  clear() { this.nodeMap.clear(); this.edgeMap.clear() }
+  getNode(id) {
+    return this.nodeMap.get(id)
+  }
+  getEdge(id) {
+    return this.edgeMap.get(id)
+  }
+  hasNode(id) {
+    return this.nodeMap.has(id)
+  }
+  allNodes() {
+    return [...this.nodeMap.values()]
+  }
+  allEdges() {
+    return [...this.edgeMap.values()]
+  }
+  clear() {
+    this.nodeMap.clear()
+    this.edgeMap.clear()
+  }
 }

@@ -6,11 +6,18 @@ export function featureFromRepoPath(repoPath) {
   const projectMap = getProjectMap()
   const shared = projectMap.modules.shared
   const frontMatch = matchPattern(repoPath, projectMap.modules.frontendFeaturePattern)
-  if (frontMatch) return frontMatch[1]
+  if (frontMatch) {
+    return frontMatch[1]
+  }
 
   const rawName = repoPath.split('/').pop() ?? ''
-  const stem = rawName.replace(/\.[^.]+$/, '').toLowerCase().replace(/[\s._-]/g, '')
-  if (new Set(projectMap.modules.bootstrapStems).has(stem)) return shared
+  const stem = rawName
+    .replace(/\.[^.]+$/, '')
+    .toLowerCase()
+    .replace(/[\s._-]/g, '')
+  if (new Set(projectMap.modules.bootstrapStems).has(stem)) {
+    return shared
+  }
 
   const controllerMatch = matchPattern(repoPath, projectMap.modules.backendControllerPattern)
   if (controllerMatch) {
@@ -22,7 +29,9 @@ export function featureFromRepoPath(repoPath) {
   const backMatch = matchPattern(repoPath, projectMap.modules.backendProjectFolderPattern)
   if (backMatch) {
     const folder = backMatch[1].toLowerCase().replace(/[\s._-]/g, '')
-    if (new Set(projectMap.modules.infrastructureFolders).has(folder)) return shared
+    if (new Set(projectMap.modules.infrastructureFolders).has(folder)) {
+      return shared
+    }
     return kebab(backMatch[1])
   }
 
@@ -35,9 +44,11 @@ export function classifyFront(repoPath) {
   const basename = path.basename(repoPath, path.extname(repoPath))
   const parent = segments.at(-2) ?? ''
 
-  if (isHookPath(repoPath, basename, parent)) return ['hook', 'ui-component-logic']
+  if (isHookPath(repoPath, basename, parent)) {
+    return ['hook', 'ui-component-logic']
+  }
 
-  const classifier = projectMap.frontend.classifiers.find(rule => repoPath.includes(rule.contains))
+  const classifier = projectMap.frontend.classifiers.find((rule) => repoPath.includes(rule.contains))
 
   const dirIndex = findComponentDirIndex(segments)
 
@@ -45,50 +56,72 @@ export function classifyFront(repoPath) {
     const relativeSegments = segments.slice(dirIndex + 1)
     const isInComponents = segments[dirIndex] === 'components'
     const isInPages = segments[dirIndex] === 'pages'
-    const isSubComponent = relativeSegments.some(segment => segment.startsWith('_'))
-      || ((isInComponents || isInPages) && relativeSegments.length > 2)
+    const isSubComponent =
+      relativeSegments.some((segment) => segment.startsWith('_')) ||
+      ((isInComponents || isInPages) && relativeSegments.length > 2)
 
     if (isInPages) {
-      if (isSubComponent) return ['subcomponent', 'ui-component-logic']
+      if (isSubComponent) {
+        return ['subcomponent', 'ui-component-logic']
+      }
       const isPageFile = relativeSegments.length === 1 && basename !== 'index'
       const isPageDirectoryIndex = relativeSegments.length === 2 && basename === 'index'
-      if (isPageFile || isPageDirectoryIndex) return ['page', classifier?.layer ?? 'ui-page']
+      if (isPageFile || isPageDirectoryIndex) {
+        return ['page', classifier?.layer ?? 'ui-page']
+      }
       return ['auxiliary', 'auxiliary']
     }
 
     if (isInComponents) {
       const componentName = relativeSegments[0] ?? path.basename(repoPath, path.extname(repoPath))
       const mainPattern = new RegExp(projectMap.frontend.componentMainNamePattern, 'u')
-      const isMainComponent = isTopLevelComponentIndex(relativeSegments, repoPath)
-        && (mainPattern.test(componentName) || componentName.endsWith('Main'))
+      const isMainComponent =
+        isTopLevelComponentIndex(relativeSegments, repoPath) &&
+        (mainPattern.test(componentName) || componentName.endsWith('Main'))
 
-      if (isMainComponent) return ['main-component', 'ui-main-component']
+      if (isMainComponent) {
+        return ['main-component', 'ui-main-component']
+      }
     }
 
-    if (isSubComponent) return ['subcomponent', 'ui-component-logic']
-    if (isInComponents) return ['component', 'ui-component-logic']
+    if (isSubComponent) {
+      return ['subcomponent', 'ui-component-logic']
+    }
+    if (isInComponents) {
+      return ['component', 'ui-component-logic']
+    }
   }
 
-  if (classifier && classifier.type !== 'component') return [classifier.type, classifier.layer]
-  if (classifier) return [classifier.type, classifier.layer]
+  if (classifier && classifier.type !== 'component') {
+    return [classifier.type, classifier.layer]
+  }
+  if (classifier) {
+    return [classifier.type, classifier.layer]
+  }
   return ['auxiliary', 'auxiliary']
 }
 
 export function classifyBack(repoPath) {
-  const classifier = getProjectMap().backend.classifiers.find(rule => repoPath.includes(rule.contains))
-  if (classifier) return [classifier.type, classifier.layer]
+  const classifier = getProjectMap().backend.classifiers.find((rule) => repoPath.includes(rule.contains))
+  if (classifier) {
+    return [classifier.type, classifier.layer]
+  }
   return ['auxiliary', 'auxiliary']
 }
 
 function matchPattern(value, pattern) {
-  if (!pattern) return null
+  if (!pattern) {
+    return null
+  }
   return value.match(new RegExp(pattern))
 }
 
 function isHookPath(repoPath, basename, parent) {
-  return /^use[A-Z0-9]/.test(basename)
-    || /^use[A-Z0-9]/.test(parent)
-    || /\/use[A-Z0-9][^/]*\/index\.[jt]sx?$/u.test(repoPath)
+  return (
+    /^use[A-Z0-9]/.test(basename) ||
+    /^use[A-Z0-9]/.test(parent) ||
+    /\/use[A-Z0-9][^/]*\/index\.[jt]sx?$/u.test(repoPath)
+  )
 }
 
 function isTopLevelComponentIndex(relativeSegments, repoPath) {

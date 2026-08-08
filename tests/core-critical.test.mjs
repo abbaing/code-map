@@ -12,10 +12,19 @@ graph.addNode('a', { label: 'A', type: 'service', meta: { first: true } })
 graph.addNode('a', { layer: 'application', meta: { second: true } })
 graph.addNode('b', { label: 'B' })
 
-assert.deepEqual(graph.getNode('a'), {
-  id: 'a', label: 'A', type: 'service', layer: 'application', module: 'shared', path: undefined,
-  meta: { first: true, second: true }
-}, 'repeated node discoveries must merge metadata without losing classification')
+assert.deepEqual(
+  graph.getNode('a'),
+  {
+    id: 'a',
+    label: 'A',
+    type: 'service',
+    layer: 'application',
+    module: 'shared',
+    path: undefined,
+    meta: { first: true, second: true }
+  },
+  'repeated node discoveries must merge metadata without losing classification'
+)
 
 graph.addEdge('a', 'b', 'imports', { confidence: 'high', source: 'test' })
 graph.addEdge('a', 'b', 'imports', { confidence: 'low', source: 'duplicate' })
@@ -38,7 +47,7 @@ const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-map-core-'))
 try {
   assert.throws(
     () => loadProjectMap(),
-    error => /No project-map\.json found/u.test(error.message),
+    (error) => /No project-map\.json found/u.test(error.message),
     'loading without a config must explain how to provide one'
   )
 
@@ -46,56 +55,63 @@ try {
   fs.writeFileSync(malformedPath, '{ invalid json', 'utf8')
   assert.throws(
     () => loadProjectMap(malformedPath),
-    error => /Failed to read project map/u.test(error.message) && /JSON/u.test(error.message),
+    (error) => /Failed to read project map/u.test(error.message) && /JSON/u.test(error.message),
     'malformed JSON must retain config-path context'
   )
 
   assert.throws(
-    () => validateProjectMap({ schemaVersion: '1', project: {}, sourceRoots: {}, layers: [], imports: { aliases: {} } }),
-    error => [
-      'schemaVersion must be an integer', 'project.name is required', 'sourceRoots.frontend is required',
-      'layers must contain at least one layer', 'imports.aliases must be an array'
-    ].every(message => error.message.includes(message)),
+    () =>
+      validateProjectMap({ schemaVersion: '1', project: {}, sourceRoots: {}, layers: [], imports: { aliases: {} } }),
+    (error) =>
+      [
+        'schemaVersion must be an integer',
+        'project.name is required',
+        'sourceRoots.frontend is required',
+        'layers must contain at least one layer',
+        'imports.aliases must be an array'
+      ].every((message) => error.message.includes(message)),
     'config validation must report all independent schema errors together'
   )
   assert.throws(
-    () => validateProjectMap({
-      schemaVersion: 0,
-      project: { name: 42, graphOutput: '' },
-      sourceRoots: { frontend: [], extra: 'outside-contract' },
-      templates: { enabled: [''], plugins: 'plugin.mjs' },
-      ignoredDirs: 'node_modules',
-      imports: { aliases: [null, { prefix: '', path: 1, extra: true }] },
-      layers: [null, { id: '', label: 2 }],
-      modules: [],
-      types: null,
-      frontend: 'frontend',
-      backend: [],
-      rules: { enabled: 'rule', options: [], suppressions: [null, { reason: '', ruleId: 1 }] }
-    }),
-    error => [
-      'schemaVersion must be at least 1',
-      'project.name must be a non-empty string',
-      'project.graphOutput must be a non-empty string',
-      'sourceRoots.frontend must be a non-empty string',
-      'sourceRoots contains unknown properties: extra',
-      'templates.enabled must contain only non-empty strings',
-      'templates.plugins must be an array',
-      'ignoredDirs must be an array',
-      'imports.aliases[0] must be an object',
-      'imports.aliases[1].prefix must be a non-empty string',
-      'imports.aliases[1].path must be a non-empty string',
-      'layers[0] must be an object',
-      'layers[1].id must be a non-empty string',
-      'rules.enabled must be an array',
-      'rules.options must be an object',
-      'rules.suppressions[0] must be an object',
-      'rules.suppressions[1].reason must be a non-empty string',
-      'modules must be an object',
-      'types must be an object',
-      'frontend must be an object',
-      'backend must be an object'
-    ].every(message => error.message.includes(message)),
+    () =>
+      validateProjectMap({
+        schemaVersion: 0,
+        project: { name: 42, graphOutput: '' },
+        sourceRoots: { frontend: [], extra: 'outside-contract' },
+        templates: { enabled: [''], plugins: 'plugin.mjs' },
+        ignoredDirs: 'node_modules',
+        imports: { aliases: [null, { prefix: '', path: 1, extra: true }] },
+        layers: [null, { id: '', label: 2 }],
+        modules: [],
+        types: null,
+        frontend: 'frontend',
+        backend: [],
+        rules: { enabled: 'rule', options: [], suppressions: [null, { reason: '', ruleId: 1 }] }
+      }),
+    (error) =>
+      [
+        'schemaVersion must be at least 1',
+        'project.name must be a non-empty string',
+        'project.graphOutput must be a non-empty string',
+        'sourceRoots.frontend must be a non-empty string',
+        'sourceRoots contains unknown properties: extra',
+        'templates.enabled must contain only non-empty strings',
+        'templates.plugins must be an array',
+        'ignoredDirs must be an array',
+        'imports.aliases[0] must be an object',
+        'imports.aliases[1].prefix must be a non-empty string',
+        'imports.aliases[1].path must be a non-empty string',
+        'layers[0] must be an object',
+        'layers[1].id must be a non-empty string',
+        'rules.enabled must be an array',
+        'rules.options must be an object',
+        'rules.suppressions[0] must be an object',
+        'rules.suppressions[1].reason must be a non-empty string',
+        'modules must be an object',
+        'types must be an object',
+        'frontend must be an object',
+        'backend must be an object'
+      ].every((message) => error.message.includes(message)),
     'config validation must aggregate nested type and shape errors'
   )
 
@@ -111,23 +127,29 @@ try {
     'custom plugins must require explicit trust before module resolution'
   )
   await assert.rejects(
-    loadTemplatePlugins({ templates: { plugins: ['./missing-plugin.mjs'] } }, path.join(tempRoot, 'project-map.json'), { allow: true }),
-    error => error.code === 'ERR_MODULE_NOT_FOUND',
+    loadTemplatePlugins({ templates: { plugins: ['./missing-plugin.mjs'] } }, path.join(tempRoot, 'project-map.json'), {
+      allow: true
+    }),
+    (error) => error.code === 'ERR_MODULE_NOT_FOUND',
     'missing template plugins must fail with their import error'
   )
 
   const ignoredPluginPath = path.join(tempRoot, 'ignored-plugin.mjs')
   fs.writeFileSync(ignoredPluginPath, 'export const notATemplate = { description: "no id" }\n', 'utf8')
-  await loadTemplatePlugins({ templates: { plugins: ['./ignored-plugin.mjs'] } }, path.join(tempRoot, 'project-map.json'), { allow: true })
+  await loadTemplatePlugins(
+    { templates: { plugins: ['./ignored-plugin.mjs'] } },
+    path.join(tempRoot, 'project-map.json'),
+    { allow: true }
+  )
 
   const missingJson = path.join(tempRoot, 'missing.json')
   assert.throws(
     () => readJson(missingJson),
-    error => error instanceof SubmapError && error.code === 'SUBMAP_FILE_NOT_FOUND' && error.exitCode === 3
+    (error) => error instanceof SubmapError && error.code === 'SUBMAP_FILE_NOT_FOUND' && error.exitCode === 3
   )
   assert.throws(
     () => readJson(malformedPath),
-    error => error instanceof SubmapError && error.code === 'SUBMAP_INVALID_JSON' && error.exitCode === 2
+    (error) => error instanceof SubmapError && error.code === 'SUBMAP_INVALID_JSON' && error.exitCode === 2
   )
 
   const atomicPath = path.join(tempRoot, 'nested', 'document.json')
@@ -135,15 +157,27 @@ try {
   assert.deepEqual(JSON.parse(fs.readFileSync(atomicPath, 'utf8')), { revision: 1 })
   assert.throws(
     () => writeJsonAtomic(atomicPath, { revision: 2 }),
-    error => error instanceof SubmapError && error.code === 'SUBMAP_OUTPUT_EXISTS'
+    (error) => error instanceof SubmapError && error.code === 'SUBMAP_OUTPUT_EXISTS'
   )
   writeJsonAtomic(atomicPath, { revision: 2 }, { force: true })
-  assert.deepEqual(JSON.parse(fs.readFileSync(atomicPath, 'utf8')), { revision: 2 }, 'force writes must replace existing JSON')
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(atomicPath, 'utf8')),
+    { revision: 2 },
+    'force writes must replace existing JSON'
+  )
   const cyclicDocument = {}
   cyclicDocument.self = cyclicDocument
   assert.throws(() => writeJsonAtomic(atomicPath, cyclicDocument, { force: true }), /circular structure/iu)
-  assert.deepEqual(JSON.parse(fs.readFileSync(atomicPath, 'utf8')), { revision: 2 }, 'serialization failures must preserve the previous document')
-  assert.deepEqual(fs.readdirSync(path.dirname(atomicPath)), ['document.json'], 'atomic writes must not leave temporary files behind')
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(atomicPath, 'utf8')),
+    { revision: 2 },
+    'serialization failures must preserve the previous document'
+  )
+  assert.deepEqual(
+    fs.readdirSync(path.dirname(atomicPath)),
+    ['document.json'],
+    'atomic writes must not leave temporary files behind'
+  )
 } finally {
   fs.rmSync(tempRoot, { recursive: true, force: true })
 }

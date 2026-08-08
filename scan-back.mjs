@@ -1,5 +1,12 @@
 import path from 'node:path'
-import { toRepoPath, displayLabel, escapeRegExp, readText, stripCSharpComments, stripCSharpStringLiterals } from './scan-utils.mjs'
+import {
+  toRepoPath,
+  displayLabel,
+  escapeRegExp,
+  readText,
+  stripCSharpComments,
+  stripCSharpStringLiterals
+} from './scan-utils.mjs'
 import { getProjectMap } from './config.mjs'
 import { classifyBack, featureFromRepoPath } from './classify.mjs'
 import { addEndpoint, normalizeEndpoint } from './endpoints.mjs'
@@ -15,8 +22,11 @@ export function initBackFileIndex(allBackFiles) {
   for (const file of allBackFiles) {
     const key = path.basename(file).toLowerCase()
     const bucket = backFilesByName.get(key)
-    if (bucket) bucket.push(file)
-    else backFilesByName.set(key, [file])
+    if (bucket) {
+      bucket.push(file)
+    } else {
+      backFilesByName.set(key, [file])
+    }
 
     const content = stripCSharpComments(stripCSharpStringLiterals(readText(file)))
     for (const declaration of csharpTypeDeclarations(content)) {
@@ -24,8 +34,10 @@ export function initBackFileIndex(allBackFiles) {
       const typeBucket = backTypesByName.get(declaration.name) ?? []
       typeBucket.push(entry)
       backTypesByName.set(declaration.name, typeBucket)
-      if (declaration.kind !== 'class') continue
-      for (const implemented of declaration.baseTypes.filter(name => name.startsWith('I'))) {
+      if (declaration.kind !== 'class') {
+        continue
+      }
+      for (const implemented of declaration.baseTypes.filter((name) => name.startsWith('I'))) {
         const implementations = implementationsByInterface.get(implemented) ?? []
         implementations.push(entry)
         implementationsByInterface.set(implemented, implementations)
@@ -36,10 +48,14 @@ export function initBackFileIndex(allBackFiles) {
 
 export function findBackFileByName(fileName, preferModule) {
   const bucket = backFilesByName.get(fileName.toLowerCase())
-  if (!bucket) return undefined
+  if (!bucket) {
+    return undefined
+  }
   if (preferModule) {
-    const sameModule = bucket.find(file => featureFromRepoPath(toRepoPath(file)) === preferModule)
-    if (sameModule) return sameModule
+    const sameModule = bucket.find((file) => featureFromRepoPath(toRepoPath(file)) === preferModule)
+    if (sameModule) {
+      return sameModule
+    }
   }
   return bucket[0]
 }
@@ -52,10 +68,14 @@ export function scanBackFiles(graph, files) {
     if (type === 'handler' && !isRequestHandlerFile(file)) {
       ;[type, layer] = semanticSupportRole(repoPath)
     }
-    if (isDbContextFile(file)) [type, layer] = ['data-context', 'backend-repository']
-    if (type === 'repository' && isImplementedRepositoryInterface(file)) [type, layer] = ['auxiliary', 'auxiliary']
+    if (isDbContextFile(file)) {
+      ;[type, layer] = ['data-context', 'backend-repository']
+    }
+    if (type === 'repository' && isImplementedRepositoryInterface(file)) {
+      ;[type, layer] = ['auxiliary', 'auxiliary']
+    }
     if ((type === 'command' || type === 'query') && isMarkerInterfaceFile(file)) {
-      [type, layer] = ['auxiliary', 'auxiliary']
+      ;[type, layer] = ['auxiliary', 'auxiliary']
     }
     graph.addNode(`file:${repoPath}`, {
       label: displayLabel(repoPath),
@@ -69,8 +89,9 @@ export function scanBackFiles(graph, files) {
 
 function isDbContextFile(file) {
   const content = stripCSharpComments(stripCSharpStringLiterals(readText(file)))
-  return /\bclass\s+\w+\s*(?:\([^)]*\))?\s*:\s*DbContext\b/.test(content)
-    || /\bDbSet<\w+>\s+\w+\s*(?:\{|=>)/.test(content)
+  return (
+    /\bclass\s+\w+\s*(?:\([^)]*\))?\s*:\s*DbContext\b/.test(content) || /\bDbSet<\w+>\s+\w+\s*(?:\{|=>)/.test(content)
+  )
 }
 
 function isImplementedRepositoryInterface(file) {
@@ -85,16 +106,28 @@ function isRequestHandlerFile(file) {
 }
 
 function semanticBackendRole(repoPath, type, layer) {
-  if (type === 'command' || type === 'query') return [type, 'application-request']
-  if (type === 'handler') return [type, 'application-handler']
-  if (type !== 'auxiliary') return [type, layer]
+  if (type === 'command' || type === 'query') {
+    return [type, 'application-request']
+  }
+  if (type === 'handler') {
+    return [type, 'application-handler']
+  }
+  if (type !== 'auxiliary') {
+    return [type, layer]
+  }
   const stem = path.basename(repoPath, '.cs')
-  if (repoPath.includes('/Repositories/') || /Repository$/.test(stem)) return ['repository', 'backend-repository']
-  if (/Service$/.test(stem)
-    || (!repoPath.includes('/Models/') && !repoPath.includes('/Configuration/') && (
-      repoPath.includes('/Services/')
-      || /(?:Client|Provider|Resolver|Sender|Processor|Orchestrator|Selector|Adapter|Worker|Queue|Runtime|Guard|Factory)$/.test(stem)
-    ))) {
+  if (repoPath.includes('/Repositories/') || /Repository$/.test(stem)) {
+    return ['repository', 'backend-repository']
+  }
+  if (
+    /Service$/.test(stem) ||
+    (!repoPath.includes('/Models/') &&
+      !repoPath.includes('/Configuration/') &&
+      (repoPath.includes('/Services/') ||
+        /(?:Client|Provider|Resolver|Sender|Processor|Orchestrator|Selector|Adapter|Worker|Queue|Runtime|Guard|Factory)$/.test(
+          stem
+        )))
+  ) {
     return ['service', 'backend-service']
   }
   return [type, layer]
@@ -102,7 +135,11 @@ function semanticBackendRole(repoPath, type, layer) {
 
 function semanticSupportRole(repoPath) {
   const stem = path.basename(repoPath, '.cs')
-  if (/(?:Service|Client|Provider|Resolver|Sender|Processor|Orchestrator|Selector|Adapter|Worker|Queue|Runtime|Guard|Factory)$/.test(stem)) {
+  if (
+    /(?:Service|Client|Provider|Resolver|Sender|Processor|Orchestrator|Selector|Adapter|Worker|Queue|Runtime|Guard|Factory)$/.test(
+      stem
+    )
+  ) {
     return ['service', 'backend-service']
   }
   return ['auxiliary', 'auxiliary']
@@ -111,7 +148,9 @@ function semanticSupportRole(repoPath) {
 function isMarkerInterfaceFile(file) {
   const stem = path.basename(file, '.cs')
   const looksLikeInterface = /^I[A-Z]/.test(stem)
-  if (!looksLikeInterface) return false
+  if (!looksLikeInterface) {
+    return false
+  }
   return new RegExp(`\\binterface\\s+${escapeRegExp(stem)}\\b`).test(readText(file))
 }
 
@@ -141,7 +180,9 @@ export function scanControllers(graph, files) {
         const method = action.method
         const actionRoute = action.route
         const fullUrl = normalizeEndpoint(`${baseRoute}/${actionRoute}`)
-        if (!fullUrl) continue
+        if (!fullUrl) {
+          continue
+        }
         const endpoint = addEndpoint(graph, fullUrl, method, module)
         graph.addNode(endpoint, {
           meta: {
@@ -172,25 +213,40 @@ function parseControllerActions(content) {
   for (const match of content.matchAll(pattern)) {
     const publicIndex = content.indexOf('public ', match.index + match[0].length)
     const nextHttpIndex = content.indexOf('[Http', match.index + match[0].length)
-    if (publicIndex < 0 || (nextHttpIndex >= 0 && nextHttpIndex < publicIndex)) continue
+    if (publicIndex < 0 || (nextHttpIndex >= 0 && nextHttpIndex < publicIndex)) {
+      continue
+    }
     const openParen = content.indexOf('(', publicIndex)
-    if (openParen < 0) continue
+    if (openParen < 0) {
+      continue
+    }
     const signaturePrefix = content.slice(publicIndex, openParen)
     const name = signaturePrefix.match(/(\w+)\s*$/)?.[1]
-    if (!name) continue
+    if (!name) {
+      continue
+    }
     const closeParen = findMatchingDelimiter(content, openParen, '(', ')')
-    if (closeParen < 0) continue
+    if (closeParen < 0) {
+      continue
+    }
     const bodyStart = content.slice(closeParen + 1).search(/\S/) + closeParen + 1
     let bodyEnd = -1
-    if (content[bodyStart] === '{') bodyEnd = findMatchingBrace(content, bodyStart)
-    else if (content.slice(bodyStart, bodyStart + 2) === '=>') bodyEnd = content.indexOf(';', bodyStart)
-    if (bodyEnd < 0) continue
+    if (content[bodyStart] === '{') {
+      bodyEnd = findMatchingBrace(content, bodyStart)
+    } else if (content.slice(bodyStart, bodyStart + 2) === '=>') {
+      bodyEnd = content.indexOf(';', bodyStart)
+    }
+    if (bodyEnd < 0) {
+      continue
+    }
     let source = content.slice(publicIndex, bodyEnd + 1)
     const directRequests = collectDispatchedRequests(source)
     if (directRequests.size === 0) {
       for (const helperName of collectInvokedMethodNames(source)) {
         const helperSource = findMethodSource(content, helperName)
-        if (helperSource) source += `\n${helperSource}`
+        if (helperSource) {
+          source += `\n${helperSource}`
+        }
       }
     }
     actions.push({
@@ -207,18 +263,27 @@ function collectInvokedMethodNames(source) {
   const names = new Set()
   const ignored = new Set(['Send', 'Ok', 'BadRequest', 'NoContent', 'StatusCode', 'Unauthorized', 'NotFound'])
   for (const match of source.matchAll(/(?<![.\w])([A-Z]\w*)\s*\(/g)) {
-    if (!ignored.has(match[1])) names.add(match[1])
+    if (!ignored.has(match[1])) {
+      names.add(match[1])
+    }
   }
   return names
 }
 
 function findMethodSource(content, methodName) {
-  const signature = new RegExp(`\\b(?:private|protected|internal)\\s+(?:async\\s+)?[^;{}=]+?\\b${escapeRegExp(methodName)}\\s*\\(`, 'g')
+  const signature = new RegExp(
+    `\\b(?:private|protected|internal)\\s+(?:async\\s+)?[^;{}=]+?\\b${escapeRegExp(methodName)}\\s*\\(`,
+    'g'
+  )
   const match = signature.exec(content)
-  if (!match) return null
+  if (!match) {
+    return null
+  }
   const openParen = content.indexOf('(', match.index)
   const closeParen = findMatchingDelimiter(content, openParen, '(', ')')
-  if (closeParen < 0) return null
+  if (closeParen < 0) {
+    return null
+  }
   const bodyStart = content.slice(closeParen + 1).search(/\S/) + closeParen + 1
   if (content[bodyStart] === '{') {
     const bodyEnd = findMatchingBrace(content, bodyStart)
@@ -238,18 +303,28 @@ function findMatchingDelimiter(content, openIndex, openCharacter, closeCharacter
   for (let index = openIndex; index < content.length; index += 1) {
     const character = content[index]
     if (quote) {
-      if (escaped) escaped = false
-      else if (character === '\\') escaped = true
-      else if (character === quote) quote = null
+      if (escaped) {
+        escaped = false
+      } else if (character === '\\') {
+        escaped = true
+      } else if (character === quote) {
+        quote = null
+      }
       continue
     }
     if (character === '"' || character === "'") {
       quote = character
       continue
     }
-    if (character === openCharacter) depth += 1
-    if (character === closeCharacter) depth -= 1
-    if (depth === 0) return index
+    if (character === openCharacter) {
+      depth += 1
+    }
+    if (character === closeCharacter) {
+      depth -= 1
+    }
+    if (depth === 0) {
+      return index
+    }
   }
   return -1
 }
@@ -261,18 +336,28 @@ function findMatchingBrace(content, openBrace) {
   for (let index = openBrace; index < content.length; index += 1) {
     const character = content[index]
     if (quote) {
-      if (escaped) escaped = false
-      else if (character === '\\') escaped = true
-      else if (character === quote) quote = null
+      if (escaped) {
+        escaped = false
+      } else if (character === '\\') {
+        escaped = true
+      } else if (character === quote) {
+        quote = null
+      }
       continue
     }
     if (character === '"' || character === "'") {
       quote = character
       continue
     }
-    if (character === '{') depth += 1
-    if (character === '}') depth -= 1
-    if (depth === 0) return index
+    if (character === '{') {
+      depth += 1
+    }
+    if (character === '}') {
+      depth -= 1
+    }
+    if (depth === 0) {
+      return index
+    }
   }
   return -1
 }
@@ -283,7 +368,9 @@ function collectDispatchedRequests(content) {
   for (const match of code.matchAll(/new\s+([A-Z]\w+(?:Query|Command))\b/g)) {
     requests.add(match[1])
   }
-  for (const match of code.matchAll(/(?:\[From(?:Body|Query|Route|Form)\][^,()]*?\b|\(\s*|,\s*)([A-Z]\w+(?:Query|Command))\s+\w+/g)) {
+  for (const match of code.matchAll(
+    /(?:\[From(?:Body|Query|Route|Form)\][^,()]*?\b|\(\s*|,\s*)([A-Z]\w+(?:Query|Command))\s+\w+/g
+  )) {
     requests.add(match[1])
   }
   return requests
@@ -306,23 +393,31 @@ export function scanBackDependencies(graph, files) {
   for (const file of files) {
     const repoPath = toRepoPath(file)
     const sourceId = `file:${repoPath}`
-    if (!graph.hasNode(sourceId)) continue
+    if (!graph.hasNode(sourceId)) {
+      continue
+    }
     const content = stripCSharpComments(stripCSharpStringLiterals(readText(file)))
-    const declaration = csharpTypeDeclarations(content).find(item => item.kind === 'class')
-    if (!declaration) continue
+    const declaration = csharpTypeDeclarations(content).find((item) => item.kind === 'class')
+    if (!declaration) {
+      continue
+    }
 
     for (const dependency of collectConstructorDependencies(content, declaration.name)) {
       const target = resolveDependencyTarget(dependency.name, repoPath)
-      if (!target || target.file === file) continue
+      if (!target || target.file === file) {
+        continue
+      }
       const genericEntity = dependency.display.match(/<\s*([A-Z]\w*)\s*>/)?.[1]
-      const isRepositoryAbstraction = genericEntity && /(?:Repository|Searchable|Pageable|Includable|Aggregatable|BulkOperations|Stateful)/.test(dependency.name)
+      const isRepositoryAbstraction =
+        genericEntity &&
+        /(?:Repository|Searchable|Pageable|Includable|Aggregatable|BulkOperations|Stateful)/.test(dependency.name)
       const useLogicalDependency = isRepositoryAbstraction || target.ambiguous
       const logicalType = dependencyRole(dependency.name)
       const targetId = isRepositoryAbstraction
         ? `backend-repository:${featureFromRepoPath(repoPath)}:${dependency.display.replace(/\s+/g, '')}`
         : target.ambiguous
           ? `backend-${logicalType}:${featureFromRepoPath(repoPath)}:${dependency.display.replace(/\s+/g, '')}`
-        : `file:${toRepoPath(target.file)}`
+          : `file:${toRepoPath(target.file)}`
       if (useLogicalDependency) {
         graph.addNode(targetId, {
           label: dependency.display,
@@ -338,7 +433,9 @@ export function scanBackDependencies(graph, files) {
             }
           }
         })
-      } else if (!graph.hasNode(targetId)) continue
+      } else if (!graph.hasNode(targetId)) {
+        continue
+      }
       graph.addEdge(sourceId, targetId, 'depends-on', {
         confidence: target.implementation && !target.ambiguous ? 'high' : 'medium',
         label: dependency.display
@@ -355,17 +452,25 @@ function dependencyRole(typeName) {
 
 function collectConstructorDependencies(content, className) {
   const blocks = []
-  const primary = content.match(new RegExp(`\\bclass\\s+${escapeRegExp(className)}(?:\\s*<[^>{]+>)?\\s*\\(([\\s\\S]{0,3000}?)\\)\\s*(?::|\\{)`))
-  if (primary) blocks.push(primary[1])
+  const primary = content.match(
+    new RegExp(`\\bclass\\s+${escapeRegExp(className)}(?:\\s*<[^>{]+>)?\\s*\\(([\\s\\S]{0,3000}?)\\)\\s*(?::|\\{)`)
+  )
+  if (primary) {
+    blocks.push(primary[1])
+  }
   const constructors = new RegExp(`\\b${escapeRegExp(className)}\\s*\\(([\\s\\S]{0,3000}?)\\)\\s*(?::[^\\{]+)?\\{`, 'g')
-  for (const match of content.matchAll(constructors)) blocks.push(match[1])
+  for (const match of content.matchAll(constructors)) {
+    blocks.push(match[1])
+  }
 
   const dependencies = new Map()
   for (const block of blocks) {
     for (const match of block.matchAll(/(?:^|,)\s*([A-ZI][\w.]*(?:\s*<[^>]+>)?)\s+\w+/gm)) {
       const display = match[1].replace(/\s+/g, ' ').trim()
       const name = display.match(/(?:^|\.)([A-ZI]\w*)\s*(?:<|$)/)?.[1]
-      if (name) dependencies.set(`${name}:${display}`, { name, display })
+      if (name) {
+        dependencies.set(`${name}:${display}`, { name, display })
+      }
     }
   }
   return [...dependencies.values()]
@@ -379,7 +484,7 @@ function resolveDependencyTarget(typeName, sourcePath) {
       ...preferredImplementation,
       implementation: true,
       ambiguous: implementations.length > 1,
-      alternatives: implementations.map(item => toRepoPath(item.file)).sort()
+      alternatives: implementations.map((item) => toRepoPath(item.file)).sort()
     }
   }
   const declarations = backTypesByName.get(typeName) ?? []
@@ -387,20 +492,24 @@ function resolveDependencyTarget(typeName, sourcePath) {
 }
 
 function preferDependencyCandidate(candidates, sourcePath) {
-  if (!candidates.length) return null
+  if (!candidates.length) {
+    return null
+  }
   const sourceModule = featureFromRepoPath(sourcePath)
-  return candidates.find(candidate => featureFromRepoPath(toRepoPath(candidate.file)) === sourceModule)
-    ?? candidates.find(candidate => !toRepoPath(candidate.file).includes('.Tests/'))
-    ?? candidates[0]
+  return (
+    candidates.find((candidate) => featureFromRepoPath(toRepoPath(candidate.file)) === sourceModule) ??
+    candidates.find((candidate) => !toRepoPath(candidate.file).includes('.Tests/')) ??
+    candidates[0]
+  )
 }
 
 function csharpTypeDeclarations(content) {
   const declarations = []
-  const pattern = /\b(class|interface)\s+(\w+)(?:\s*<[^>{]+>)?(?:\s*\([^)]*\))?\s*(?::\s*([^\{]+))?\s*\{/g
+  const pattern = /\b(class|interface)\s+(\w+)(?:\s*<[^>{]+>)?(?:\s*\([^)]*\))?\s*(?::\s*([^{]+))?\s*\{/g
   for (const match of content.matchAll(pattern)) {
     const baseTypes = (match[3] ?? '')
       .split(',')
-      .map(value => value.trim().match(/(?:^|\.)([A-ZI]\w*)\s*(?:<|$)/)?.[1])
+      .map((value) => value.trim().match(/(?:^|\.)([A-ZI]\w*)\s*(?:<|$)/)?.[1])
       .filter(Boolean)
     declarations.push({ kind: match[1], name: match[2], baseTypes })
   }
@@ -411,15 +520,21 @@ export function scanRequestDispatches(graph, files) {
   const controllerFragment = getProjectMap().backend?.controllerPathFragment ?? '/Controllers/'
   for (const file of files) {
     const repoPath = toRepoPath(file)
-    if (repoPath.includes(controllerFragment)) continue
+    if (repoPath.includes(controllerFragment)) {
+      continue
+    }
     const id = `file:${repoPath}`
-    if (!graph.hasNode(id)) continue
+    if (!graph.hasNode(id)) {
+      continue
+    }
     const module = featureFromRepoPath(repoPath)
     const content = stripCSharpComments(stripCSharpStringLiterals(readText(file)))
     const ownRequest = path.basename(file, '.cs').replace(/Handler$/, '')
     for (const match of content.matchAll(/new\s+([A-Z]\w+(?:Query|Command))\b/g)) {
       const requestName = match[1]
-      if (requestName === ownRequest) continue
+      if (requestName === ownRequest) {
+        continue
+      }
       linkRequest(graph, id, requestName, module, 'medium')
     }
   }
@@ -427,7 +542,7 @@ export function scanRequestDispatches(graph, files) {
 
 export function scanRequestHandlers(graph, files) {
   const handlerPathFragment = getProjectMap().backend.handlerPathFragment
-  for (const file of files.filter(file => toRepoPath(file).includes(handlerPathFragment))) {
+  for (const file of files.filter((file) => toRepoPath(file).includes(handlerPathFragment))) {
     const repoPath = toRepoPath(file)
     const handlerName = path.basename(file, '.cs')
     const requestName = handlerName.replace(/Handler$/, '')
@@ -472,12 +587,16 @@ function extractDbSets(graph, files) {
     }
   }
 
-  for (const file of files.filter(file => toRepoPath(file).includes(getProjectMap().backend.entityConfigurationPathFragment))) {
+  for (const file of files.filter((file) =>
+    toRepoPath(file).includes(getProjectMap().backend.entityConfigurationPathFragment)
+  )) {
     const content = readText(file)
     const configName = path.basename(file, '.cs')
     const entity = configName.replace(/Configuration$/, '')
     const tableMatch = content.match(/\.ToTable\("([^"]+)"\)/)
-    if (tableMatch) tableByEntity.set(entity, tableMatch[1])
+    if (tableMatch) {
+      tableByEntity.set(entity, tableMatch[1])
+    }
   }
 
   return { entityNodeByName, dbSetByEntity, tableByEntity }
@@ -486,10 +605,14 @@ function extractDbSets(graph, files) {
 function extractEntityProperties(graph, entityNodeByName) {
   const entityPropertiesByName = new Map()
   for (const [entity, entityId] of entityNodeByName) {
-    if (!entityId.startsWith('file:')) continue
+    if (!entityId.startsWith('file:')) {
+      continue
+    }
     const filePath = entityId.slice('file:'.length)
     const fullPath = findBackFileByName(path.basename(filePath))
-    if (!fullPath) continue
+    if (!fullPath) {
+      continue
+    }
     const properties = parseEntityProperties(readText(fullPath))
     entityPropertiesByName.set(entity, properties)
     graph.addNode(entityId, { meta: { domain: { properties } } })
@@ -518,10 +641,14 @@ function extractTableNodes(graph, entityNodeByName, dbSetByEntity, tableByEntity
 function extractEntityRelationships(graph, entityNodeByName, entityPropertiesByName) {
   for (const [entity, properties] of entityPropertiesByName) {
     const entityId = entityNodeByName.get(entity)
-    if (!entityId) continue
+    if (!entityId) {
+      continue
+    }
     for (const property of properties) {
       for (const relatedEntity of entityTypesFromProperty(property.type, entityNodeByName)) {
-        if (relatedEntity === entity) continue
+        if (relatedEntity === entity) {
+          continue
+        }
         graph.addEdge(entityId, entityNodeByName.get(relatedEntity), 'domain-relation', {
           label: property.name,
           confidence: 'medium'
@@ -532,8 +659,7 @@ function extractEntityRelationships(graph, entityNodeByName, entityPropertiesByN
 }
 
 function extractEntityUsage(graph, files, entityNodeByName, dbSetByEntity, tableNodeByEntity) {
-  const projectMap = getProjectMap()
-  const usageFiles = files.filter(file =>
+  const usageFiles = files.filter((file) =>
     ['handler', 'repository', 'service', 'data-context'].includes(graph.getNode(`file:${toRepoPath(file)}`)?.type)
   )
   for (const file of usageFiles) {
@@ -542,12 +668,17 @@ function extractEntityUsage(graph, files, entityNodeByName, dbSetByEntity, table
     for (const [entity, entityId] of entityNodeByName) {
       const dbSet = dbSetByEntity.get(entity)
       const usage = detectEntityUsage(content, entity, dbSet)
-      if (!usage) continue
+      if (!usage) {
+        continue
+      }
       const sourceId = `file:${repoPath}`
       graph.addEdge(sourceId, entityId, 'uses-entity', { confidence: usage.confidence, label: usage.reason })
       const tableId = tableNodeByEntity.get(entity)
       if (tableId && usage.persistence) {
-        graph.addEdge(sourceId, tableId, 'queries-table', { confidence: usage.confidence, label: `ORM ${usage.reason}` })
+        graph.addEdge(sourceId, tableId, 'queries-table', {
+          confidence: usage.confidence,
+          label: `ORM ${usage.reason}`
+        })
       }
     }
   }
@@ -555,18 +686,23 @@ function extractEntityUsage(graph, files, entityNodeByName, dbSetByEntity, table
   for (const node of graph.allNodes()) {
     const entity = node.meta?.backendDependency?.entity
     const entityId = entityNodeByName.get(entity)
-    if (!entityId || node.type !== 'repository') continue
+    if (!entityId || node.type !== 'repository') {
+      continue
+    }
     graph.addEdge(node.id, entityId, 'uses-entity', { confidence: 'high', label: `generic repository ${entity}` })
     const tableId = tableNodeByEntity.get(entity)
-    if (tableId) graph.addEdge(node.id, tableId, 'queries-table', { confidence: 'high', label: `ORM repository ${entity}` })
+    if (tableId) {
+      graph.addEdge(node.id, tableId, 'queries-table', { confidence: 'high', label: `ORM repository ${entity}` })
+    }
   }
 }
 
 function findDbContextFiles(files) {
-  return files.filter(file => {
+  return files.filter((file) => {
     const content = readText(file)
-    return /\bclass\s+\w+\s*(?:\([^)]*\))?\s*:\s*DbContext\b/.test(content)
-      || /\bDbSet<\w+>\s+\w+\s*(?:\{|=>)/.test(content)
+    return (
+      /\bclass\s+\w+\s*(?:\([^)]*\))?\s*:\s*DbContext\b/.test(content) || /\bDbSet<\w+>\s+\w+\s*(?:\{|=>)/.test(content)
+    )
   })
 }
 
@@ -574,13 +710,38 @@ function detectEntityUsage(content, entity, dbSet) {
   const escapedEntity = escapeRegExp(entity)
   const escapedDbSet = dbSet ? escapeRegExp(dbSet) : null
   const checks = [
-    { pattern: new RegExp(`\\bSet\\s*<\\s*${escapedEntity}\\s*>\\s*\\(`), reason: `ORM Set<${entity}>`, confidence: 'high', persistence: true },
-    { pattern: new RegExp(`\\b(?:IRepository|IReadRepository|Repository)\\s*<\\s*${escapedEntity}\\s*>`), reason: `repository ${entity}`, confidence: 'high', persistence: true },
-    { pattern: escapedDbSet ? new RegExp(`\\.[\\s\\r\\n]*${escapedDbSet}\\b|\\b${escapedDbSet}\\s*\\.`) : null, reason: `DbSet ${dbSet}`, confidence: 'high', persistence: true },
-    { pattern: new RegExp(`\\bDomain\\.Entities\\.[A-Za-z0-9_.]+\\.${escapedEntity}\\b`), reason: `qualified entity ${entity}`, confidence: 'medium', persistence: false },
-    { pattern: new RegExp(`\\b${escapedEntity}\\b`), reason: `entity ${entity}`, confidence: 'medium', persistence: false }
+    {
+      pattern: new RegExp(`\\bSet\\s*<\\s*${escapedEntity}\\s*>\\s*\\(`),
+      reason: `ORM Set<${entity}>`,
+      confidence: 'high',
+      persistence: true
+    },
+    {
+      pattern: new RegExp(`\\b(?:IRepository|IReadRepository|Repository)\\s*<\\s*${escapedEntity}\\s*>`),
+      reason: `repository ${entity}`,
+      confidence: 'high',
+      persistence: true
+    },
+    {
+      pattern: escapedDbSet ? new RegExp(`\\.[\\s\\r\\n]*${escapedDbSet}\\b|\\b${escapedDbSet}\\s*\\.`) : null,
+      reason: `DbSet ${dbSet}`,
+      confidence: 'high',
+      persistence: true
+    },
+    {
+      pattern: new RegExp(`\\bDomain\\.Entities\\.[A-Za-z0-9_.]+\\.${escapedEntity}\\b`),
+      reason: `qualified entity ${entity}`,
+      confidence: 'medium',
+      persistence: false
+    },
+    {
+      pattern: new RegExp(`\\b${escapedEntity}\\b`),
+      reason: `entity ${entity}`,
+      confidence: 'medium',
+      persistence: false
+    }
   ]
-  return checks.find(check => check.pattern?.test(content)) ?? null
+  return checks.find((check) => check.pattern?.test(content)) ?? null
 }
 
 function parseEntityProperties(content) {
@@ -589,7 +750,9 @@ function parseEntityProperties(content) {
   for (const match of content.matchAll(/public\s+([A-Za-z0-9_<>,.?[\]\s]+?)\s+(\w+)\s*(?:\{|=>)/g)) {
     const type = match[1].replace(/\s+/g, ' ').trim()
     const name = match[2]
-    if (name === 'class' || seen.has(name)) continue
+    if (name === 'class' || seen.has(name)) {
+      continue
+    }
     seen.add(name)
     properties.push({ name, type })
   }
@@ -599,15 +762,21 @@ function parseEntityProperties(content) {
 function entityTypesFromProperty(type, entityNodeByName) {
   const candidates = new Set()
   const compactType = type.replace(/\?/g, '')
-  for (const match of compactType.matchAll(/<\s*([A-Za-z_]\w*)\s*>/g)) candidates.add(match[1])
+  for (const match of compactType.matchAll(/<\s*([A-Za-z_]\w*)\s*>/g)) {
+    candidates.add(match[1])
+  }
   const directMatch = compactType.match(/\b([A-Z]\w*)\b$/)
-  if (directMatch) candidates.add(directMatch[1])
-  return [...candidates].filter(candidate => entityNodeByName.has(candidate))
+  if (directMatch) {
+    candidates.add(directMatch[1])
+  }
+  return [...candidates].filter((candidate) => entityNodeByName.has(candidate))
 }
 
 function findEntityFile(entityName) {
   const exact = findBackFileByName(`${entityName}.cs`)
-  if (exact && toRepoPath(exact).includes(getProjectMap().backend.entityPathFragment)) return exact
+  if (exact && toRepoPath(exact).includes(getProjectMap().backend.entityPathFragment)) {
+    return exact
+  }
   return exact
 }
 

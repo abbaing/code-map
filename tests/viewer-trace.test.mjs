@@ -29,25 +29,67 @@ const relations = [
   ['backend-repository', 'entity', 'uses-entity', 'high'],
   ['entity', 'table', 'maps-to-table', 'high']
 ]
-const edges = relations.map(([from, to, type, confidence]) => ({ id: `${from}:${type}:${to}`, from, to, type, confidence }))
+const edges = relations.map(([from, to, type, confidence]) => ({
+  id: `${from}:${type}:${to}`,
+  from,
+  to,
+  type,
+  confidence
+}))
 const context = vm.createContext({ state: { graph: { nodes, edges } } })
 const source = `${fs.readFileSync(new URL('../viewer/viewer-trace.js', import.meta.url), 'utf8')}\nglobalThis.traceApi = { buildTraceContext, buildModuleTraceContext, buildSystemModuleGraph };`
 vm.runInContext(source, context)
 
 const forward = context.traceApi.buildTraceContext('component', false)
 assert.equal(forward.complete, true)
-assert.deepEqual([...forward.primaryNodeIds], ['route', 'component', 'hook', 'front-repository', 'endpoint', 'query', 'handler', 'backend-repository', 'entity', 'table'])
-assert.equal(forward.nodeIds.has('controller'), false, 'controller implementation detail should not interrupt the execution trace')
+assert.deepEqual(
+  [...forward.primaryNodeIds],
+  [
+    'route',
+    'component',
+    'hook',
+    'front-repository',
+    'endpoint',
+    'query',
+    'handler',
+    'backend-repository',
+    'entity',
+    'table'
+  ]
+)
+assert.equal(
+  forward.nodeIds.has('controller'),
+  false,
+  'controller implementation detail should not interrupt the execution trace'
+)
 
 const reverse = context.traceApi.buildTraceContext('table', false)
 assert.equal(reverse.complete, true)
-assert.deepEqual([...reverse.primaryNodeIds], ['route', 'component', 'hook', 'front-repository', 'endpoint', 'query', 'handler', 'backend-repository', 'entity', 'table'])
+assert.deepEqual(
+  [...reverse.primaryNodeIds],
+  [
+    'route',
+    'component',
+    'hook',
+    'front-repository',
+    'endpoint',
+    'query',
+    'handler',
+    'backend-repository',
+    'entity',
+    'table'
+  ]
+)
 
 const moduleOverview = context.traceApi.buildModuleTraceContext('feature')
 assert.equal(moduleOverview.moduleOverview, true)
 assert.equal(moduleOverview.nodeIds.has('route'), true)
 assert.equal(moduleOverview.nodeIds.has('table'), true)
-assert.equal(moduleOverview.nodeIds.has('controller'), false, 'module execution lanes should omit controller implementation detail')
+assert.equal(
+  moduleOverview.nodeIds.has('controller'),
+  false,
+  'module execution lanes should omit controller implementation detail'
+)
 
 const fallbackNodes = [
   { id: 'app-routes', label: 'AppRoutes', layer: 'Routes', type: 'route', module: 'app', path: 'front/AppRoutes.tsx' },
@@ -64,7 +106,13 @@ const fallbackRelations = [
   ['app-routes', 'other-route', 'imports'],
   ['other-route', 'other-table', 'queries-table']
 ]
-const fallbackEdges = fallbackRelations.map(([from, to, type]) => ({ id: `${from}:${type}:${to}`, from, to, type, confidence: 'high' }))
+const fallbackEdges = fallbackRelations.map(([from, to, type]) => ({
+  id: `${from}:${type}:${to}`,
+  from,
+  to,
+  type,
+  confidence: 'high'
+}))
 const fallbackContext = vm.createContext({
   state: {
     graph: {
@@ -87,8 +135,20 @@ const intentNodes = [
   { id: 'intent-route', label: 'UsersRoutes', type: 'route', module: 'users' },
   { id: 'create-page', label: 'UserCreatePage', type: 'page', module: 'users' },
   { id: 'users-repository', label: 'UsersRepository', type: 'repository', layer: 'front-repository', module: 'users' },
-  { id: 'get-users', label: 'GET /api/users', type: 'endpoint', module: 'users', meta: { method: 'GET', backend: { action: 'GetUsers' } } },
-  { id: 'create-user', label: 'POST /api/users', type: 'endpoint', module: 'users', meta: { method: 'POST', backend: { action: 'CreateUser' } } },
+  {
+    id: 'get-users',
+    label: 'GET /api/users',
+    type: 'endpoint',
+    module: 'users',
+    meta: { method: 'GET', backend: { action: 'GetUsers' } }
+  },
+  {
+    id: 'create-user',
+    label: 'POST /api/users',
+    type: 'endpoint',
+    module: 'users',
+    meta: { method: 'POST', backend: { action: 'CreateUser' } }
+  },
   { id: 'get-query', label: 'GetUsersQuery', type: 'query', module: 'users' },
   { id: 'create-command', label: 'CreateUserCommand', type: 'command', module: 'users' },
   { id: 'get-handler', label: 'GetUsersQueryHandler', type: 'handler', module: 'users' },
@@ -107,11 +167,25 @@ const intentRelations = [
   ['get-handler', 'users-table', 'queries-table'],
   ['create-handler', 'users-table', 'queries-table']
 ]
-const intentEdges = intentRelations.map(([from, to, type]) => ({ id: `${from}:${type}:${to}`, from, to, type, confidence: 'high' }))
+const intentEdges = intentRelations.map(([from, to, type]) => ({
+  id: `${from}:${type}:${to}`,
+  from,
+  to,
+  type,
+  confidence: 'high'
+}))
 const intentContext = vm.createContext({ state: { graph: { nodes: intentNodes, edges: intentEdges } } })
 vm.runInContext(source, intentContext)
 const createTrace = intentContext.traceApi.buildTraceContext('create-page', false)
-assert.equal(createTrace.primaryNodeIds.includes('create-user'), true, 'a create page should prefer its create endpoint')
-assert.equal(createTrace.primaryNodeIds.includes('get-users'), false, 'a shorter read path must not replace the selected create flow')
+assert.equal(
+  createTrace.primaryNodeIds.includes('create-user'),
+  true,
+  'a create page should prefer its create endpoint'
+)
+assert.equal(
+  createTrace.primaryNodeIds.includes('get-users'),
+  false,
+  'a shorter read path must not replace the selected create flow'
+)
 
 console.log('viewer trace tests passed')

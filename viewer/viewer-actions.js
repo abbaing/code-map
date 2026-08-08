@@ -17,7 +17,9 @@ async function refreshGraph() {
   try {
     const response = await fetch('/api/scan', { method: 'POST' })
     const result = await response.json()
-    if (!result.ok) throw new Error(result.error)
+    if (!result.ok) {
+      throw new Error(result.error)
+    }
     await loadGraph()
     els.status.textContent = 'Map updated'
     showToast(`Map updated: ${result.stats.nodes.toLocaleString()} nodes`, 'success')
@@ -55,7 +57,9 @@ function exportGraph() {
   } catch (error) {
     showToast(`Export failed: ${error.message}`, 'error')
   } finally {
-    window.setTimeout(() => { els.exportBtn.disabled = false }, 250)
+    window.setTimeout(() => {
+      els.exportBtn.disabled = false
+    }, 250)
   }
 }
 
@@ -68,8 +72,12 @@ async function createTraceSubmap() {
   }
   els.createTraceSubmapBtn.disabled = true
   try {
-    const selected = state.graph.nodes.find(node => node.id === trace.selectedId)
-    const base = (selected?.label ?? 'trace').replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
+    const selected = state.graph.nodes.find((node) => node.id === trace.selectedId)
+    const base = (selected?.label ?? 'trace')
+      .replace(/\.[^.]+$/, '')
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-|-$/g, '')
+      .toLowerCase()
     const response = await fetch('/api/submaps/from-trace', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -82,7 +90,9 @@ async function createTraceSubmap() {
       })
     })
     const result = await response.json()
-    if (!result.ok) throw new Error(result.error)
+    if (!result.ok) {
+      throw new Error(result.error)
+    }
     showToast(`Submap created: ${result.file}`)
   } catch (error) {
     showToast(`Submap failed: ${error.message}`, 'error')
@@ -94,7 +104,9 @@ async function createTraceSubmap() {
 function exportProjectMap() {
   els.settingsExportBtn.disabled = true
   try {
-    if (!state.graph.projectMap) throw new Error('No project map loaded')
+    if (!state.graph.projectMap) {
+      throw new Error('No project map loaded')
+    }
     const projectMap = { ...state.graph.projectMap }
     delete projectMap.configPath
     const blob = new Blob([JSON.stringify(projectMap, null, 2)], { type: 'application/json' })
@@ -108,7 +120,9 @@ function exportProjectMap() {
   } catch (error) {
     showToast(`Export failed: ${error.message}`, 'error')
   } finally {
-    window.setTimeout(() => { els.settingsExportBtn.disabled = false }, 250)
+    window.setTimeout(() => {
+      els.settingsExportBtn.disabled = false
+    }, 250)
   }
 }
 
@@ -149,7 +163,9 @@ function importProjectMap(file) {
         body: JSON.stringify(projectMap)
       })
       const result = await response.json()
-      if (!result.ok) throw new Error(result.error)
+      if (!result.ok) {
+        throw new Error(result.error)
+      }
       await loadGraph()
       populateSettingsTab()
       els.status.textContent = 'Config imported'
@@ -171,27 +187,33 @@ function importProjectMap(file) {
 
 function populateSettingsTab() {
   const pm = state.graph?.projectMap
-  if (!pm) return
+  if (!pm) {
+    return
+  }
 
   // Module Labels
   const labels = pm.modules?.labels ?? {}
   els.settingsModulesBody.innerHTML = Object.entries(labels)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([id, label]) => `
+    .map(
+      ([id, label]) => `
       <tr>
         <td class="px-3 py-2 text-gray-400 font-mono text-xs">${id}</td>
         <td class="px-3 py-2">
           <input data-module="${id}" type="text" value="${label.replace(/"/g, '&quot;')}"
             class="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-400" />
         </td>
-      </tr>`).join('')
+      </tr>`
+    )
+    .join('')
 
   // Type Colors
   const typeColors = pm.types?.colors ?? {}
   const typeLabelsMap = pm.types?.labels ?? {}
   els.settingsTypesBody.innerHTML = Object.entries(typeColors)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([id, color]) => `
+    .map(
+      ([id, color]) => `
       <tr>
         <td class="px-3 py-2 text-sm">
           <span class="inline-block w-3 h-3 rounded-sm mr-2 align-middle" style="background:${color}"></span>
@@ -205,33 +227,50 @@ function populateSettingsTab() {
               class="w-24 border border-gray-200 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-blue-400" />
           </div>
         </td>
-      </tr>`).join('')
+      </tr>`
+    )
+    .join('')
 
   // Rules
   const enabledRules = new Set(pm.rules?.enabled ?? [])
   const allRules = collectAllRuleIds(pm)
   els.settingsRulesBody.innerHTML = allRules
-    .map(id => `
+    .map(
+      (id) => `
       <label class="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-50">
         <input data-rule="${id}" type="checkbox" ${enabledRules.has(id) ? 'checked' : ''} class="accent-blue-600" />
         <span class="text-sm font-mono text-gray-700">${id}</span>
-      </label>`).join('')
+      </label>`
+    )
+    .join('')
 
   // Sync color picker <-> hex text input
-  els.settingsTypesBody.querySelectorAll('input[data-type-color]').forEach(picker => {
+  els.settingsTypesBody.querySelectorAll('input[data-type-color]').forEach((picker) => {
     const id = picker.dataset.typeColor
     const hex = els.settingsTypesBody.querySelector(`input[data-type-hex="${id}"]`)
-    picker.addEventListener('input', () => { if (hex) hex.value = picker.value })
-    if (hex) hex.addEventListener('input', () => {
-      if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) picker.value = hex.value
+    picker.addEventListener('input', () => {
+      if (hex) {
+        hex.value = picker.value
+      }
     })
+    if (hex) {
+      hex.addEventListener('input', () => {
+        if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) {
+          picker.value = hex.value
+        }
+      })
+    }
   })
 }
 
 function collectAllRuleIds(pm) {
   const ids = new Set(pm.rules?.enabled ?? [])
   // add any known rule ids from suppression list too
-  ;(pm.rules?.suppressions ?? []).forEach(s => { if (s.rule) ids.add(s.rule) })
+  ;(pm.rules?.suppressions ?? []).forEach((s) => {
+    if (s.rule) {
+      ids.add(s.rule)
+    }
+  })
   return [...ids].sort()
 }
 
@@ -242,27 +281,39 @@ async function saveConfig() {
     delete pm.configPath
 
     // Apply module label edits
-    els.settingsModulesBody.querySelectorAll('input[data-module]').forEach(input => {
-      if (!pm.modules) pm.modules = {}
-      if (!pm.modules.labels) pm.modules.labels = {}
+    els.settingsModulesBody.querySelectorAll('input[data-module]').forEach((input) => {
+      if (!pm.modules) {
+        pm.modules = {}
+      }
+      if (!pm.modules.labels) {
+        pm.modules.labels = {}
+      }
       pm.modules.labels[input.dataset.module] = input.value.trim() || input.dataset.module
     })
 
     // Apply type color edits (use hex text input as source of truth)
-    els.settingsTypesBody.querySelectorAll('input[data-type-hex]').forEach(input => {
+    els.settingsTypesBody.querySelectorAll('input[data-type-hex]').forEach((input) => {
       if (/^#[0-9a-fA-F]{6}$/.test(input.value)) {
-        if (!pm.types) pm.types = {}
-        if (!pm.types.colors) pm.types.colors = {}
+        if (!pm.types) {
+          pm.types = {}
+        }
+        if (!pm.types.colors) {
+          pm.types.colors = {}
+        }
         pm.types.colors[input.dataset.typeHex] = input.value
       }
     })
 
     // Apply rules edits
     const enabledRules = []
-    els.settingsRulesBody.querySelectorAll('input[data-rule]').forEach(input => {
-      if (input.checked) enabledRules.push(input.dataset.rule)
+    els.settingsRulesBody.querySelectorAll('input[data-rule]').forEach((input) => {
+      if (input.checked) {
+        enabledRules.push(input.dataset.rule)
+      }
     })
-    if (!pm.rules) pm.rules = {}
+    if (!pm.rules) {
+      pm.rules = {}
+    }
     pm.rules.enabled = enabledRules
 
     const response = await fetch('/api/project-map', {
@@ -271,7 +322,9 @@ async function saveConfig() {
       body: JSON.stringify(pm)
     })
     const result = await response.json()
-    if (!result.ok) throw new Error(result.error)
+    if (!result.ok) {
+      throw new Error(result.error)
+    }
     await loadGraph()
     populateSettingsTab()
     els.status.textContent = 'Config saved'
@@ -310,7 +363,9 @@ function zoomAt(nextZoom, clientX, clientY) {
   const svg = els.graph
   const previousZoom = state.zoom
   const boundedZoom = Math.min(2.5, Math.max(0.2, Number(nextZoom.toFixed(2))))
-  if (boundedZoom === previousZoom) return
+  if (boundedZoom === previousZoom) {
+    return
+  }
 
   const rect = svg.getBoundingClientRect()
   const mouseX = clientX - rect.left

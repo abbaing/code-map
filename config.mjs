@@ -74,11 +74,17 @@ function findLocalProjectMapPath(cwd = process.cwd()) {
   for (const directory of [cwd, path.join(cwd, '.code-map')]) {
     try {
       const files = fs.readdirSync(directory)
-      const exact = files.find(file => file === 'project-map.json')
-      if (exact) return path.join(directory, exact)
-      const named = files.find(file => file.endsWith('.project-map.json'))
-      if (named) return path.join(directory, named)
-    } catch { /* directory does not exist or is not readable */ }
+      const exact = files.find((file) => file === 'project-map.json')
+      if (exact) {
+        return path.join(directory, exact)
+      }
+      const named = files.find((file) => file.endsWith('.project-map.json'))
+      if (named) {
+        return path.join(directory, named)
+      }
+    } catch {
+      /* directory does not exist or is not readable */
+    }
   }
   return null
 }
@@ -91,7 +97,9 @@ export function resolveRepoPath(repoPath) {
 }
 
 export function resolveGraphOutputPath(outputPath = getProjectMap().project.graphOutput) {
-  if (path.isAbsolute(outputPath)) return outputPath
+  if (path.isAbsolute(outputPath)) {
+    return outputPath
+  }
   const configPath = getProjectMapPath()
   if (configPath && path.dirname(outputPath) === '.') {
     return path.resolve(path.dirname(configPath), outputPath)
@@ -232,24 +240,41 @@ export function validateProjectMap(projectMap, configPath = defaultProjectMapPat
   if (!isRecord(projectMap)) {
     errors.push('Project map must be a JSON object.')
   } else {
-    if (!Number.isInteger(projectMap.schemaVersion)) errors.push('schemaVersion must be an integer.')
-    else if (projectMap.schemaVersion < 1) errors.push('schemaVersion must be at least 1.')
-    if (projectMap.$schema !== undefined && typeof projectMap.$schema !== 'string') errors.push('$schema must be a string.')
+    if (!Number.isInteger(projectMap.schemaVersion)) {
+      errors.push('schemaVersion must be an integer.')
+    } else if (projectMap.schemaVersion < 1) {
+      errors.push('schemaVersion must be at least 1.')
+    }
+    if (projectMap.$schema !== undefined && typeof projectMap.$schema !== 'string') {
+      errors.push('$schema must be a string.')
+    }
 
     const project = projectMap.project
-    if (!isRecord(project)) errors.push('project must be an object.')
-    if (!project?.name) errors.push('project.name is required.')
-    else if (!isNonEmptyString(project.name)) errors.push('project.name must be a non-empty string.')
+    if (!isRecord(project)) {
+      errors.push('project must be an object.')
+    }
+    if (!project?.name) {
+      errors.push('project.name is required.')
+    } else if (!isNonEmptyString(project.name)) {
+      errors.push('project.name must be a non-empty string.')
+    }
     for (const key of ['graphOutput', 'runtimeLinks', 'submapsDirectory']) {
       validateOptionalNonEmptyString(errors, project?.[key], `project.${key}`)
     }
 
     const sourceRoots = projectMap.sourceRoots
-    if (!isRecord(sourceRoots)) errors.push('sourceRoots must be an object.')
-    if (!sourceRoots?.frontend) errors.push('sourceRoots.frontend is required.')
-    else if (!isNonEmptyString(sourceRoots.frontend)) errors.push('sourceRoots.frontend must be a non-empty string.')
+    if (!isRecord(sourceRoots)) {
+      errors.push('sourceRoots must be an object.')
+    }
+    if (!sourceRoots?.frontend) {
+      errors.push('sourceRoots.frontend is required.')
+    } else if (!isNonEmptyString(sourceRoots.frontend)) {
+      errors.push('sourceRoots.frontend must be a non-empty string.')
+    }
     validateOptionalNonEmptyString(errors, sourceRoots?.backend, 'sourceRoots.backend')
-    if (isRecord(sourceRoots)) validateKnownKeys(errors, sourceRoots, ['frontend', 'backend'], 'sourceRoots')
+    if (isRecord(sourceRoots)) {
+      validateKnownKeys(errors, sourceRoots, ['frontend', 'backend'], 'sourceRoots')
+    }
 
     validateTemplates(errors, projectMap.templates)
     validateStringArray(errors, projectMap.ignoredDirs, 'ignoredDirs', { optional: true, allowEmptyItems: true })
@@ -257,16 +282,20 @@ export function validateProjectMap(projectMap, configPath = defaultProjectMapPat
     validateLayers(errors, projectMap.layers)
     validateRules(errors, projectMap.rules)
     for (const key of ['modules', 'types', 'frontend', 'backend']) {
-      if (projectMap[key] !== undefined && !isRecord(projectMap[key])) errors.push(`${key} must be an object.`)
+      if (projectMap[key] !== undefined && !isRecord(projectMap[key])) {
+        errors.push(`${key} must be an object.`)
+      }
     }
   }
   if (errors.length > 0) {
-    throw new Error(`Invalid project map ${toRepoPath(configPath)}:\n${errors.map(error => `- ${error}`).join('\n')}`)
+    throw new Error(`Invalid project map ${toRepoPath(configPath)}:\n${errors.map((error) => `- ${error}`).join('\n')}`)
   }
 }
 
 function validateTemplates(errors, templates) {
-  if (templates === undefined) return
+  if (templates === undefined) {
+    return
+  }
   if (!isRecord(templates)) {
     errors.push('templates must be an object.')
     return
@@ -276,7 +305,9 @@ function validateTemplates(errors, templates) {
 }
 
 function validateImports(errors, imports) {
-  if (imports === undefined) return
+  if (imports === undefined) {
+    return
+  }
   if (!isRecord(imports)) {
     errors.push('imports must be an object.')
     return
@@ -298,7 +329,9 @@ function validateImports(errors, imports) {
 }
 
 function validateLayers(errors, layers) {
-  if (layers === undefined) return
+  if (layers === undefined) {
+    return
+  }
   if (!Array.isArray(layers) || layers.length === 0) {
     errors.push('layers must contain at least one layer when provided.')
     return
@@ -315,13 +348,17 @@ function validateLayers(errors, layers) {
 }
 
 function validateRules(errors, rules) {
-  if (rules === undefined) return
+  if (rules === undefined) {
+    return
+  }
   if (!isRecord(rules)) {
     errors.push('rules must be an object.')
     return
   }
   validateStringArray(errors, rules.enabled, 'rules.enabled', { optional: true, allowEmptyItems: true })
-  if (rules.options !== undefined && !isRecord(rules.options)) errors.push('rules.options must be an object.')
+  if (rules.options !== undefined && !isRecord(rules.options)) {
+    errors.push('rules.options must be an object.')
+  }
   if (rules.suppressions !== undefined && !Array.isArray(rules.suppressions)) {
     errors.push('rules.suppressions must be an array.')
     return
@@ -334,33 +371,43 @@ function validateRules(errors, rules) {
     }
     validateRequiredNonEmptyString(errors, suppression.reason, `${location}.reason`)
     for (const key of ['ruleId', 'pathPattern', 'expiresOn']) {
-      if (suppression[key] !== undefined && typeof suppression[key] !== 'string') errors.push(`${location}.${key} must be a string.`)
+      if (suppression[key] !== undefined && typeof suppression[key] !== 'string') {
+        errors.push(`${location}.${key} must be a string.`)
+      }
     }
   }
 }
 
 function validateStringArray(errors, value, location, { optional = false, allowEmptyItems = false } = {}) {
-  if (optional && value === undefined) return
+  if (optional && value === undefined) {
+    return
+  }
   if (!Array.isArray(value)) {
     errors.push(`${location} must be an array.`)
     return
   }
-  if (value.some(item => typeof item !== 'string' || (!allowEmptyItems && !item.trim()))) {
+  if (value.some((item) => typeof item !== 'string' || (!allowEmptyItems && !item.trim()))) {
     errors.push(`${location} must contain ${allowEmptyItems ? 'only strings' : 'only non-empty strings'}.`)
   }
 }
 
 function validateRequiredNonEmptyString(errors, value, location) {
-  if (!isNonEmptyString(value)) errors.push(`${location} must be a non-empty string.`)
+  if (!isNonEmptyString(value)) {
+    errors.push(`${location} must be a non-empty string.`)
+  }
 }
 
 function validateOptionalNonEmptyString(errors, value, location) {
-  if (value !== undefined) validateRequiredNonEmptyString(errors, value, location)
+  if (value !== undefined) {
+    validateRequiredNonEmptyString(errors, value, location)
+  }
 }
 
 function validateKnownKeys(errors, value, allowed, location) {
-  const unknown = Object.keys(value).filter(key => !allowed.includes(key))
-  if (unknown.length > 0) errors.push(`${location} contains unknown properties: ${unknown.sort().join(', ')}.`)
+  const unknown = Object.keys(value).filter((key) => !allowed.includes(key))
+  if (unknown.length > 0) {
+    errors.push(`${location} contains unknown properties: ${unknown.sort().join(', ')}.`)
+  }
 }
 
 function isNonEmptyString(value) {

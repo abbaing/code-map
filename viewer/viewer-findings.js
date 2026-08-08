@@ -1,9 +1,13 @@
 function initializeFindingsFilters() {
   const findings = state.graph?.findings ?? []
-  const modules = ['all', ...unique(findings.map(finding => nodeForFinding(finding)?.module))
-    .sort((a, b) => formatModule(a).localeCompare(formatModule(b), undefined, { sensitivity: 'base' }))]
-  const rules = ['all', ...unique(findings.map(finding => finding.ruleId)).sort()]
-  const severities = ['all', ...unique(findings.map(finding => finding.severity)).sort()]
+  const modules = [
+    'all',
+    ...unique(findings.map((finding) => nodeForFinding(finding)?.module)).sort((a, b) =>
+      formatModule(a).localeCompare(formatModule(b), undefined, { sensitivity: 'base' })
+    )
+  ]
+  const rules = ['all', ...unique(findings.map((finding) => finding.ruleId)).sort()]
+  const severities = ['all', ...unique(findings.map((finding) => finding.severity)).sort()]
 
   fillSelect(els.findingsModule, modules, 'All modules', formatModule)
   fillSelect(els.findingsRule, rules, 'All rules', formatRuleId)
@@ -21,12 +25,20 @@ function filteredFindings() {
   const rule = els.findingsRule.value
   const module = els.findingsModule.value
 
-  return (state.graph.findings ?? []).filter(finding => {
+  return (state.graph.findings ?? []).filter((finding) => {
     const node = nodeForFinding(finding)
-    if (severity !== 'all' && finding.severity !== severity) return false
-    if (rule !== 'all' && finding.ruleId !== rule) return false
-    if (module !== 'all' && node?.module !== module) return false
-    if (!query) return true
+    if (severity !== 'all' && finding.severity !== severity) {
+      return false
+    }
+    if (rule !== 'all' && finding.ruleId !== rule) {
+      return false
+    }
+    if (module !== 'all' && node?.module !== module) {
+      return false
+    }
+    if (!query) {
+      return true
+    }
     return [
       finding.ruleId,
       finding.severity,
@@ -36,7 +48,9 @@ function filteredFindings() {
       finding.evidence,
       node?.label,
       node?.module
-    ].filter(Boolean).some(value => String(value).toLowerCase().includes(query))
+    ]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(query))
   })
 }
 
@@ -46,14 +60,16 @@ function renderFindingsTable(findings) {
     return
   }
 
-  const rows = findings.map(finding => {
-    const node = nodeForFinding(finding)
-    const severityClass = finding.severity === 'error'
-      ? 'bg-red-50 text-red-700 border border-red-100'
-      : 'bg-amber-50 text-amber-700 border border-amber-100'
-    const path = finding.path ?? finding.nodeId ?? ''
-    const shortPath = path.split(/[\\/]/).slice(-2).join('/')
-    return `
+  const rows = findings
+    .map((finding) => {
+      const node = nodeForFinding(finding)
+      const severityClass =
+        finding.severity === 'error'
+          ? 'bg-red-50 text-red-700 border border-red-100'
+          : 'bg-amber-50 text-amber-700 border border-amber-100'
+      const path = finding.path ?? finding.nodeId ?? ''
+      const shortPath = path.split(/[\\/]/).slice(-2).join('/')
+      return `
       <div class="finding-row">
         <div class="finding-description">
           <strong>${escapeHtml(formatRuleId(finding.ruleId))}</strong>
@@ -66,7 +82,8 @@ function renderFindingsTable(findings) {
         </div>
       </div>
     `
-  }).join('')
+    })
+    .join('')
 
   els.findingsTable.innerHTML = `
     <div class="findings-table-head" aria-hidden="true">
@@ -77,5 +94,5 @@ function renderFindingsTable(findings) {
 }
 
 function nodeForFinding(finding) {
-  return state.graph.nodes.find(node => node.id === finding.nodeId)
+  return state.graph.nodes.find((node) => node.id === finding.nodeId)
 }

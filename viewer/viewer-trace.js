@@ -32,26 +32,44 @@ const TRACE_STAGE_DEFINITIONS = [
 ]
 
 function buildTraceContext(selectedId, showAll = false) {
-  if (!selectedId || !state.graph) return null
-  const nodeById = new Map(state.graph.nodes.map(node => [node.id, node]))
+  if (!selectedId || !state.graph) {
+    return null
+  }
+  const nodeById = new Map(state.graph.nodes.map((node) => [node.id, node]))
   const selected = nodeById.get(selectedId)
-  if (!selected) return null
+  if (!selected) {
+    return null
+  }
 
-  const edges = state.graph.edges.filter(edge => traceEdgeAllowed(edge, nodeById))
+  const edges = state.graph.edges.filter((edge) => traceEdgeAllowed(edge, nodeById))
   const outgoing = adjacencyFor(edges, 'outgoing')
   const incoming = adjacencyFor(edges, 'incoming')
   const leftPath = shortestTracePath(selectedId, incoming, nodeById, isFrontendOrigin)
   const preferredTokens = traceContextTokens(selected, leftPath.nodes, nodeById)
   let rightPath = shortestTracePath(selectedId, outgoing, nodeById, isPersistenceTarget, preferredTokens)
-  if (!rightPath.found) rightPath = shortestTracePath(selectedId, outgoing, nodeById, node => node?.type === 'entity', preferredTokens)
+  if (!rightPath.found) {
+    rightPath = shortestTracePath(selectedId, outgoing, nodeById, (node) => node?.type === 'entity', preferredTokens)
+  }
   let continuedFromAncestor = null
   if (!rightPath.found && ['component', 'subcomponent', 'hook'].includes(selected.type)) {
     for (const ancestorId of leftPath.nodes.slice(1)) {
       const ancestor = nodeById.get(ancestorId)
-      if (!isTraceContinuationContainer(selected, ancestor)) continue
+      if (!isTraceContinuationContainer(selected, ancestor)) {
+        continue
+      }
       let candidate = shortestTracePath(ancestorId, outgoing, nodeById, isPersistenceTarget, preferredTokens)
-      if (!candidate.found) candidate = shortestTracePath(ancestorId, outgoing, nodeById, node => node?.type === 'entity', preferredTokens)
-      if (!candidate.found) continue
+      if (!candidate.found) {
+        candidate = shortestTracePath(
+          ancestorId,
+          outgoing,
+          nodeById,
+          (node) => node?.type === 'entity',
+          preferredTokens
+        )
+      }
+      if (!candidate.found) {
+        continue
+      }
       rightPath = candidate
       continuedFromAncestor = ancestorId
       break
@@ -62,16 +80,18 @@ function buildTraceContext(selectedId, showAll = false) {
 
   const allNodeIds = allTraceNodeIds(continuedFromAncestor ?? selectedId, outgoing, incoming, nodeById)
   allNodeIds.add(selectedId)
-  for (const id of leftPath.nodes) allNodeIds.add(id)
-  const allEdgeIds = new Set(edges
-    .filter(edge => allNodeIds.has(edge.from) && allNodeIds.has(edge.to))
-    .map(edge => edge.id))
+  for (const id of leftPath.nodes) {
+    allNodeIds.add(id)
+  }
+  const allEdgeIds = new Set(
+    edges.filter((edge) => allNodeIds.has(edge.from) && allNodeIds.has(edge.to)).map((edge) => edge.id)
+  )
   const visibleNodeIds = showAll ? allNodeIds : new Set(primaryNodeIds)
   const visibleEdgeIds = showAll ? allEdgeIds : primaryEdgeIds
   visibleNodeIds.add(selectedId)
 
-  const tables = [...allNodeIds].map(id => nodeById.get(id)).filter(node => node?.type === 'table')
-  const endpoints = [...allNodeIds].map(id => nodeById.get(id)).filter(node => node?.type === 'endpoint')
+  const tables = [...allNodeIds].map((id) => nodeById.get(id)).filter((node) => node?.type === 'table')
+  const endpoints = [...allNodeIds].map((id) => nodeById.get(id)).filter((node) => node?.type === 'endpoint')
   return {
     selectedId,
     nodeIds: visibleNodeIds,
@@ -94,40 +114,60 @@ function traceContextTokens(selected, ancestorIds, nodeById) {
   const tokens = [...traceSearchTokens(selected)]
   for (const id of ancestorIds.slice(1)) {
     const ancestor = nodeById.get(id)
-    if (!isTraceContinuationContainer(selected, ancestor)) continue
+    if (!isTraceContinuationContainer(selected, ancestor)) {
+      continue
+    }
     tokens.push(...traceSearchTokens(ancestor))
   }
   return [...new Set(tokens)]
 }
 
 function isTraceContinuationContainer(selected, ancestor) {
-  if (!selected || !ancestor) return false
-  if (ancestor.module !== selected.module) return false
-  if (isFrontendOrigin(ancestor)) return false
+  if (!selected || !ancestor) {
+    return false
+  }
+  if (ancestor.module !== selected.module) {
+    return false
+  }
+  if (isFrontendOrigin(ancestor)) {
+    return false
+  }
   return ['route', 'page', 'main-component', 'component', 'subcomponent'].includes(ancestor.type)
 }
 
 function buildModuleTraceContext(module) {
-  if (!module || !state.graph) return null
-  const nodeById = new Map(state.graph.nodes.map(node => [node.id, node]))
-  const moduleNodeIds = new Set(state.graph.nodes.filter(node => node.module === module && node.type !== 'controller').map(node => node.id))
-  const edges = state.graph.edges.filter(edge => traceEdgeAllowed(edge, nodeById))
+  if (!module || !state.graph) {
+    return null
+  }
+  const nodeById = new Map(state.graph.nodes.map((node) => [node.id, node]))
+  const moduleNodeIds = new Set(
+    state.graph.nodes.filter((node) => node.module === module && node.type !== 'controller').map((node) => node.id)
+  )
+  const edges = state.graph.edges.filter((edge) => traceEdgeAllowed(edge, nodeById))
   const outgoing = adjacencyFor(edges, 'outgoing')
   const incoming = adjacencyFor(edges, 'incoming')
   const nodeIds = new Set(moduleNodeIds)
 
-  const frontendSeeds = [...moduleNodeIds].filter(id => nodeById.get(id)?.path?.startsWith('front/'))
+  const frontendSeeds = [...moduleNodeIds].filter((id) => nodeById.get(id)?.path?.startsWith('front/'))
   for (const id of reachableFromMany(frontendSeeds, incoming, 20)) {
-    if (nodeById.get(id)?.path?.startsWith('front/')) nodeIds.add(id)
+    if (nodeById.get(id)?.path?.startsWith('front/')) {
+      nodeIds.add(id)
+    }
   }
 
   const forward = reachableFromMany(moduleNodeIds, outgoing, 24)
-  let persistence = new Set([...forward].filter(id => nodeById.get(id)?.type === 'table'))
-  if (persistence.size === 0) persistence = new Set([...forward].filter(id => nodeById.get(id)?.type === 'entity'))
+  let persistence = new Set([...forward].filter((id) => nodeById.get(id)?.type === 'table'))
+  if (persistence.size === 0) {
+    persistence = new Set([...forward].filter((id) => nodeById.get(id)?.type === 'entity'))
+  }
   const canReachPersistence = reverseReachableFrom(persistence, incoming)
-  for (const id of forward) if (canReachPersistence.has(id)) nodeIds.add(id)
+  for (const id of forward) {
+    if (canReachPersistence.has(id)) {
+      nodeIds.add(id)
+    }
+  }
 
-  const edgeIds = new Set(edges.filter(edge => nodeIds.has(edge.from) && nodeIds.has(edge.to)).map(edge => edge.id))
+  const edgeIds = new Set(edges.filter((edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to)).map((edge) => edge.id))
   return {
     moduleOverview: true,
     nodeIds,
@@ -141,9 +181,11 @@ function buildModuleTraceContext(module) {
 }
 
 function buildSystemModuleGraph() {
-  if (!state.graph) return { nodes: [], edges: [] }
+  if (!state.graph) {
+    return { nodes: [], edges: [] }
+  }
   const sourceNodes = state.filteredNodes ?? state.graph.nodes
-  const sourceIds = new Set(sourceNodes.map(node => node.id))
+  const sourceIds = new Set(sourceNodes.map((node) => node.id))
   const modules = new Map()
   for (const node of sourceNodes) {
     const module = node.module || 'shared'
@@ -156,20 +198,35 @@ function buildSystemModuleGraph() {
       meta: { nodeCount: 0, frontendCount: 0, backendCount: 0, findingCount: 0, externalRelations: 0 }
     }
     summary.meta.nodeCount++
-    if (node.path?.startsWith('front/')) summary.meta.frontendCount++
-    if (node.path?.startsWith('back/')) summary.meta.backendCount++
+    if (node.path?.startsWith('front/')) {
+      summary.meta.frontendCount++
+    }
+    if (node.path?.startsWith('back/')) {
+      summary.meta.backendCount++
+    }
     summary.meta.findingCount += node.meta?.findings?.length ?? 0
     modules.set(module, summary)
   }
 
-  const nodeById = new Map(state.graph.nodes.map(node => [node.id, node]))
+  const nodeById = new Map(state.graph.nodes.map((node) => [node.id, node]))
   const aggregated = new Map()
   for (const edge of state.graph.edges) {
-    if (!sourceIds.has(edge.from) || !sourceIds.has(edge.to) || !SYSTEM_MODULE_EDGE_TYPES.has(edge.type) || !traceEdgeAllowed(edge, nodeById)) continue
+    if (
+      !sourceIds.has(edge.from) ||
+      !sourceIds.has(edge.to) ||
+      !SYSTEM_MODULE_EDGE_TYPES.has(edge.type) ||
+      !traceEdgeAllowed(edge, nodeById)
+    ) {
+      continue
+    }
     const fromModule = nodeById.get(edge.from)?.module || 'shared'
     const toModule = nodeById.get(edge.to)?.module || 'shared'
-    if (fromModule === toModule || !modules.has(fromModule) || !modules.has(toModule)) continue
-    if ((fromModule === 'shared' || toModule === 'shared') && ['imports', 'depends-on'].includes(edge.type)) continue
+    if (fromModule === toModule || !modules.has(fromModule) || !modules.has(toModule)) {
+      continue
+    }
+    if ((fromModule === 'shared' || toModule === 'shared') && ['imports', 'depends-on'].includes(edge.type)) {
+      continue
+    }
     const key = `${fromModule}::${toModule}`
     const item = aggregated.get(key) ?? {
       id: `module-edge:${key}`,
@@ -184,7 +241,7 @@ function buildSystemModuleGraph() {
     aggregated.set(key, item)
   }
 
-  const edges = [...aggregated.values()].map(edge => ({ ...edge, relationTypes: [...edge.relationTypes].sort() }))
+  const edges = [...aggregated.values()].map((edge) => ({ ...edge, relationTypes: [...edge.relationTypes].sort() }))
   for (const edge of edges) {
     modules.get(edge.from.slice('module:'.length)).meta.externalRelations++
     modules.get(edge.to.slice('module:'.length)).meta.externalRelations++
@@ -197,14 +254,22 @@ function moduleTraceNodeIds(module) {
 }
 
 function traceEdgeAllowed(edge, nodeById) {
-  if (!TRACE_EDGE_TYPES.has(edge.type)) return false
+  if (!TRACE_EDGE_TYPES.has(edge.type)) {
+    return false
+  }
   const from = nodeById.get(edge.from)
   const to = nodeById.get(edge.to)
-  if (!from || !to) return false
-  if (edge.type === 'handled-by' && from.type === 'endpoint' && to.type === 'controller') return false
-  if (from.type === 'controller' || to.type === 'controller') return false
+  if (!from || !to) {
+    return false
+  }
+  if (edge.type === 'handled-by' && from.type === 'endpoint' && to.type === 'controller') {
+    return false
+  }
+  if (from.type === 'controller' || to.type === 'controller') {
+    return false
+  }
   if (edge.type === 'queries-table' && ['handler', 'service'].includes(from.type)) {
-    return !state.graph.edges.some(candidate => candidate.from === from.id && candidate.type === 'depends-on')
+    return !state.graph.edges.some((candidate) => candidate.from === from.id && candidate.type === 'depends-on')
   }
   return true
 }
@@ -230,29 +295,38 @@ function shortestTracePath(startId, adjacency, nodeById, isTarget, preferredToke
   while (queue.length) {
     queue.sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id))
     const current = queue.shift()
-    if (current.cost !== costs.get(current.id)) continue
+    if (current.cost !== costs.get(current.id)) {
+      continue
+    }
     if (isTarget(nodeById.get(current.id))) {
       targetId = current.id
       break
     }
     for (const step of adjacency.get(current.id) ?? []) {
       const nextNode = nodeById.get(step.nodeId)
-      const nextCost = current.cost
-        + Math.max(0.25, traceEdgeWeight(step.edge, nodeById) - traceSemanticBoost(nextNode, preferredTokens))
-        + traceIntentPenalty(nextNode, preferredTokens)
-      if (nextCost >= (costs.get(step.nodeId) ?? Infinity)) continue
+      const nextCost =
+        current.cost +
+        Math.max(0.25, traceEdgeWeight(step.edge, nodeById) - traceSemanticBoost(nextNode, preferredTokens)) +
+        traceIntentPenalty(nextNode, preferredTokens)
+      if (nextCost >= (costs.get(step.nodeId) ?? Infinity)) {
+        continue
+      }
       costs.set(step.nodeId, nextCost)
       previous.set(step.nodeId, { nodeId: current.id, edgeId: step.edge.id })
       queue.push({ id: step.nodeId, cost: nextCost })
     }
   }
 
-  if (!targetId) return { nodes: [startId], edges: [], found: false }
+  if (!targetId) {
+    return { nodes: [startId], edges: [], found: false }
+  }
   const nodes = [targetId]
   const edges = []
   while (nodes.at(-1) !== startId) {
     const step = previous.get(nodes.at(-1))
-    if (!step) break
+    if (!step) {
+      break
+    }
     edges.push(step.edgeId)
     nodes.push(step.nodeId)
   }
@@ -264,11 +338,17 @@ function traceSearchTokens(node) {
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter(token => (token.length >= 4 || token === 'new') && !['index', 'component', 'components', 'feature', 'main'].includes(token))
+    .filter(
+      (token) =>
+        (token.length >= 4 || token === 'new') &&
+        !['index', 'component', 'components', 'feature', 'main'].includes(token)
+    )
 }
 
 function traceIntentPenalty(node, tokens) {
-  if (node?.type !== 'endpoint' || !node.meta?.backend?.action) return 0
+  if (node?.type !== 'endpoint' || !node.meta?.backend?.action) {
+    return 0
+  }
   const tokenSet = new Set(tokens)
   const action = node.meta.backend.action.toLowerCase()
   const method = node.meta.method
@@ -288,47 +368,70 @@ function traceIntentPenalty(node, tokens) {
 }
 
 function traceSemanticBoost(node, tokens) {
-  if (!node || tokens.length === 0) return 0
-  if (!['endpoint', 'query', 'command', 'handler', 'repository', 'entity', 'table'].includes(node.type)) return 0
-  const semanticLabel = node.type === 'endpoint' && node.meta?.backend?.action
-    ? node.meta.backend.action
-    : node.label ?? ''
+  if (!node || tokens.length === 0) {
+    return 0
+  }
+  if (!['endpoint', 'query', 'command', 'handler', 'repository', 'entity', 'table'].includes(node.type)) {
+    return 0
+  }
+  const semanticLabel =
+    node.type === 'endpoint' && node.meta?.backend?.action ? node.meta.backend.action : (node.label ?? '')
   const words = semanticLabel
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .map(word => word.length > 4 && word.endsWith('s') ? word.slice(0, -1) : word)
-    .filter(word => word.length >= 4 && !['command', 'query', 'handler', 'repository', 'controller', 'endpoint'].includes(word))
-  const normalizedTokens = new Set(tokens.map(token => token.length > 4 && token.endsWith('s') ? token.slice(0, -1) : token))
-  const matchedWords = words.filter(word => normalizedTokens.has(word))
-  if (words.length > 0 && matchedWords.length === words.length) return 1.75
+    .map((word) => (word.length > 4 && word.endsWith('s') ? word.slice(0, -1) : word))
+    .filter(
+      (word) =>
+        word.length >= 4 && !['command', 'query', 'handler', 'repository', 'controller', 'endpoint'].includes(word)
+    )
+  const normalizedTokens = new Set(
+    tokens.map((token) => (token.length > 4 && token.endsWith('s') ? token.slice(0, -1) : token))
+  )
+  const matchedWords = words.filter((word) => normalizedTokens.has(word))
+  if (words.length > 0 && matchedWords.length === words.length) {
+    return 1.75
+  }
   const haystack = `${semanticLabel} ${node.path ?? ''}`.toLowerCase()
-  return tokens.some(token => haystack.includes(token)) ? 0.75 : 0
+  return tokens.some((token) => haystack.includes(token)) ? 0.75 : 0
 }
 
 function traceEdgeWeight(edge, nodeById) {
   const confidencePenalty = edge.confidence === 'high' ? 0 : edge.confidence === 'medium' ? 1 : 3
   const from = nodeById.get(edge.from)
   const isPersistenceAdapter = from?.type === 'repository'
-  const shortcutPenalty = edge.type === 'queries-table'
-    ? isPersistenceAdapter ? 2 : 8
-    : edge.type === 'uses-entity' && !isPersistenceAdapter
-      ? 4
-      : 0
+  const shortcutPenalty =
+    edge.type === 'queries-table'
+      ? isPersistenceAdapter
+        ? 2
+        : 8
+      : edge.type === 'uses-entity' && !isPersistenceAdapter
+        ? 4
+        : 0
   return 1 + confidencePenalty + shortcutPenalty
 }
 
 function allTraceNodeIds(selectedId, outgoing, incoming, nodeById) {
   const forward = boundedReachable(selectedId, outgoing)
   const backward = boundedReachable(selectedId, incoming)
-  let persistence = new Set([...forward].filter(id => isPersistenceTarget(nodeById.get(id))))
-  if (persistence.size === 0) persistence = new Set([...forward].filter(id => nodeById.get(id)?.type === 'entity'))
-  const origins = new Set([...backward].filter(id => isFrontendOrigin(nodeById.get(id))))
+  let persistence = new Set([...forward].filter((id) => isPersistenceTarget(nodeById.get(id))))
+  if (persistence.size === 0) {
+    persistence = new Set([...forward].filter((id) => nodeById.get(id)?.type === 'entity'))
+  }
+  const origins = new Set([...backward].filter((id) => isFrontendOrigin(nodeById.get(id))))
   const canReachPersistence = reverseReachableFrom(persistence, incoming)
   const reachableFromOrigin = reverseReachableFrom(origins, outgoing)
   const result = new Set([selectedId])
-  for (const id of forward) if (canReachPersistence.has(id)) result.add(id)
-  for (const id of backward) if (reachableFromOrigin.has(id)) result.add(id)
+  for (const id of forward) {
+    if (canReachPersistence.has(id)) {
+      result.add(id)
+    }
+  }
+  for (const id of backward) {
+    if (reachableFromOrigin.has(id)) {
+      result.add(id)
+    }
+  }
   return result
 }
 
@@ -337,9 +440,13 @@ function boundedReachable(startId, adjacency, maxDepth = 28) {
   const queue = [{ id: startId, depth: 0 }]
   while (queue.length) {
     const current = queue.shift()
-    if (current.depth >= maxDepth) continue
+    if (current.depth >= maxDepth) {
+      continue
+    }
     for (const step of adjacency.get(current.id) ?? []) {
-      if (seen.has(step.nodeId)) continue
+      if (seen.has(step.nodeId)) {
+        continue
+      }
       seen.add(step.nodeId)
       queue.push({ id: step.nodeId, depth: current.depth + 1 })
     }
@@ -350,7 +457,9 @@ function boundedReachable(startId, adjacency, maxDepth = 28) {
 function reachableFromMany(seeds, adjacency, maxDepth) {
   const result = new Set()
   for (const seed of seeds) {
-    for (const id of boundedReachable(seed, adjacency, maxDepth)) result.add(id)
+    for (const id of boundedReachable(seed, adjacency, maxDepth)) {
+      result.add(id)
+    }
   }
   return result
 }
@@ -358,13 +467,17 @@ function reachableFromMany(seeds, adjacency, maxDepth) {
 function reverseReachableFrom(seeds, reverseAdjacency) {
   const result = new Set()
   for (const seed of seeds) {
-    for (const id of boundedReachable(seed, reverseAdjacency)) result.add(id)
+    for (const id of boundedReachable(seed, reverseAdjacency)) {
+      result.add(id)
+    }
   }
   return result
 }
 
 function isFrontendOrigin(node) {
-  if (node?.type !== 'route') return false
+  if (node?.type !== 'route') {
+    return false
+  }
   const entryPoints = state.graph.projectMap?.frontend?.entryPoints ?? []
   return entryPoints.length === 0 || entryPoints.includes(node.path)
 }
@@ -375,32 +488,66 @@ function isPersistenceTarget(node) {
 
 function mergePaths(left, right) {
   const result = []
-  for (const id of [...left, ...right]) if (!result.includes(id)) result.push(id)
+  for (const id of [...left, ...right]) {
+    if (!result.includes(id)) {
+      result.push(id)
+    }
+  }
   return result
 }
 
 function traceStage(node) {
-  if (node.type === 'route') return isFrontendOrigin(node) ? 'route-root' : 'route'
-  if (node.type === 'page') return 'page'
-  if (node.type === 'main-component') return 'main'
-  if (node.type === 'component') return 'component'
-  if (node.type === 'subcomponent') return 'subcomponent'
-  if (node.type === 'hook' || node.layer === 'auxiliary') return 'support'
-  if (node.type === 'endpoint') return 'endpoint'
-  if (['command', 'query'].includes(node.type)) return 'request'
-  if (node.type === 'handler') return 'handler'
-  if (node.type === 'entity') return 'entity'
-  if (node.type === 'table') return 'table'
-  if (node.type === 'data-context') return 'back-repository'
-  if (node.type === 'service') return node.layer === 'backend-service' ? 'back-service' : 'front-service'
-  if (node.type === 'repository') return node.layer === 'backend-repository' ? 'back-repository' : 'front-repository'
+  if (node.type === 'route') {
+    return isFrontendOrigin(node) ? 'route-root' : 'route'
+  }
+  if (node.type === 'page') {
+    return 'page'
+  }
+  if (node.type === 'main-component') {
+    return 'main'
+  }
+  if (node.type === 'component') {
+    return 'component'
+  }
+  if (node.type === 'subcomponent') {
+    return 'subcomponent'
+  }
+  if (node.type === 'hook' || node.layer === 'auxiliary') {
+    return 'support'
+  }
+  if (node.type === 'endpoint') {
+    return 'endpoint'
+  }
+  if (['command', 'query'].includes(node.type)) {
+    return 'request'
+  }
+  if (node.type === 'handler') {
+    return 'handler'
+  }
+  if (node.type === 'entity') {
+    return 'entity'
+  }
+  if (node.type === 'table') {
+    return 'table'
+  }
+  if (node.type === 'data-context') {
+    return 'back-repository'
+  }
+  if (node.type === 'service') {
+    return node.layer === 'backend-service' ? 'back-service' : 'front-service'
+  }
+  if (node.type === 'repository') {
+    return node.layer === 'backend-repository' ? 'back-repository' : 'front-repository'
+  }
   return node.path?.startsWith('back/') ? 'back-service' : 'support'
 }
 
 function applyTraceFocusLayout(layout, trace, width, height) {
-  if (!trace) return layout
+  if (!trace) {
+    return layout
+  }
   const stageIndex = new Map(TRACE_STAGE_DEFINITIONS.map((stage, index) => [stage.id, index]))
-  const focused = layout.nodes.filter(node => trace.nodeIds.has(node.id))
+  const focused = layout.nodes.filter((node) => trace.nodeIds.has(node.id))
   const primaryOrder = new Map(trace.primaryNodeIds.map((id, index) => [id, index]))
   const byStage = new Map()
   for (const node of focused) {
@@ -415,10 +562,15 @@ function applyTraceFocusLayout(layout, trace, width, height) {
   const columnWidth = 198
   const stageGap = 22
   const rowHeight = 88
-  const traceHeight = Math.max(330, top + Math.max(1, ...[...byStage.values()].map(items => items.length)) * rowHeight + 70)
+  const traceHeight = Math.max(
+    330,
+    top + Math.max(1, ...[...byStage.values()].map((items) => items.length)) * rowHeight + 70
+  )
   const tracePositions = new Map()
   for (const [stage, items] of byStage) {
-    items.sort((a, b) => (primaryOrder.get(a.id) ?? 9999) - (primaryOrder.get(b.id) ?? 9999) || a.label.localeCompare(b.label))
+    items.sort(
+      (a, b) => (primaryOrder.get(a.id) ?? 9999) - (primaryOrder.get(b.id) ?? 9999) || a.label.localeCompare(b.label)
+    )
     const column = stageIndex.get(stage) ?? 0
     items.forEach((node, row) => {
       const supportOffset = stage === 'support' ? 34 : 0
@@ -431,23 +583,21 @@ function applyTraceFocusLayout(layout, trace, width, height) {
     })
   }
 
-  const nodes = layout.nodes.map(node => tracePositions.has(node.id)
-    ? { ...node, ...tracePositions.get(node.id) }
-    : { ...node, y: node.y + traceHeight })
-  const stageLabels = TRACE_STAGE_DEFINITIONS
-    .filter(stage => byStage.has(stage.id))
-    .map(stage => ({
-      layer: stage.id,
-      label: stage.label,
-      x: left + stageIndex.get(stage.id) * (columnWidth + stageGap),
-      width: columnWidth - 18
-    }))
+  const nodes = layout.nodes.map((node) =>
+    tracePositions.has(node.id) ? { ...node, ...tracePositions.get(node.id) } : { ...node, y: node.y + traceHeight }
+  )
+  const stageLabels = TRACE_STAGE_DEFINITIONS.filter((stage) => byStage.has(stage.id)).map((stage) => ({
+    layer: stage.id,
+    label: stage.label,
+    x: left + stageIndex.get(stage.id) * (columnWidth + stageGap),
+    width: columnWidth - 18
+  }))
 
   return {
     ...layout,
     nodes,
     layerLabels: stageLabels,
-    moduleLabels: trace.moduleOverview ? [] : layout.moduleLabels.map(item => ({ ...item, y: item.y + traceHeight })),
+    moduleLabels: trace.moduleOverview ? [] : layout.moduleLabels.map((item) => ({ ...item, y: item.y + traceHeight })),
     traceBoundaryX: left + stageIndex.get('endpoint') * (columnWidth + stageGap) - stageGap / 2,
     traceHeight,
     width: Math.max(layout.width, left + TRACE_STAGE_DEFINITIONS.length * (columnWidth + stageGap), width),

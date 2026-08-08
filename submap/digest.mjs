@@ -15,7 +15,10 @@ export function calculateGraphDigest(graph) {
     edges: sortedById(graph.edges),
     findings: sortedById(graph.findings),
     suppressedFindings: sortedById(graph.suppressedFindings),
-    orphanNodeIds: (graph.orphans ?? []).map(item => typeof item === 'string' ? item : item.id).filter(Boolean).sort(),
+    orphanNodeIds: (graph.orphans ?? [])
+      .map((item) => (typeof item === 'string' ? item : item.id))
+      .filter(Boolean)
+      .sort(),
     templates: [...(graph.templates ?? [])].sort(),
     architecture: sortedById(graph.architecture),
     ruleMetadata: graph.ruleMetadata ?? {},
@@ -53,13 +56,17 @@ export function calculateSubmapUid(submap) {
 }
 
 function canonicalize(value) {
-  if (Array.isArray(value)) return value.map(canonicalize)
-  if (!value || typeof value !== 'object') return value
+  if (Array.isArray(value)) {
+    return value.map(canonicalize)
+  }
+  if (!value || typeof value !== 'object') {
+    return value
+  }
   return Object.fromEntries(
     Object.keys(value)
-      .filter(key => value[key] !== undefined)
+      .filter((key) => value[key] !== undefined)
       .sort()
-      .map(key => [key, canonicalize(value[key])])
+      .map((key) => [key, canonicalize(value[key])])
   )
 }
 

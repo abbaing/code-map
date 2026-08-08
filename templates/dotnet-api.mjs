@@ -1,4 +1,11 @@
-import { scanBackDependencies, scanBackFiles, scanControllers, scanRequestDispatches, scanRequestHandlers, initBackFileIndex } from '../scan-back.mjs'
+import {
+  scanBackDependencies,
+  scanBackFiles,
+  scanControllers,
+  scanRequestDispatches,
+  scanRequestHandlers,
+  initBackFileIndex
+} from '../scan-back.mjs'
 import { isBackTestFile } from '../scan-utils.mjs'
 
 export const dotnetApiTemplate = {
@@ -36,17 +43,21 @@ export const dotnetApiTemplate = {
         id: 'backend-source',
         rootKey: 'backend',
         extensions: ['.cs'],
-        test: file => isBackTestFile(file),
+        test: (file) => isBackTestFile(file),
         includeTests: false
       }
     ],
     scanners: [
-      { id: 'dotnet.index', run: context => initBackFileIndex(context.files.allBackFiles) },
-      { id: 'dotnet.files', run: context => scanBackFiles(context.graph, context.files.backFiles) },
-      { id: 'dotnet.controllers', assign: 'controllerEndpoints', run: context => scanControllers(context.graph, context.controllerFiles()) },
-      { id: 'dotnet.dispatches', run: context => scanRequestDispatches(context.graph, context.files.backFiles) },
-      { id: 'dotnet.handlers', run: context => scanRequestHandlers(context.graph, context.files.backFiles) },
-      { id: 'dotnet.dependencies', run: context => scanBackDependencies(context.graph, context.files.backFiles) }
+      { id: 'dotnet.index', run: (context) => initBackFileIndex(context.files.allBackFiles) },
+      { id: 'dotnet.files', run: (context) => scanBackFiles(context.graph, context.files.backFiles) },
+      {
+        id: 'dotnet.controllers',
+        assign: 'controllerEndpoints',
+        run: (context) => scanControllers(context.graph, context.controllerFiles())
+      },
+      { id: 'dotnet.dispatches', run: (context) => scanRequestDispatches(context.graph, context.files.backFiles) },
+      { id: 'dotnet.handlers', run: (context) => scanRequestHandlers(context.graph, context.files.backFiles) },
+      { id: 'dotnet.dependencies', run: (context) => scanBackDependencies(context.graph, context.files.backFiles) }
     ]
   }
 }

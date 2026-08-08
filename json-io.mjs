@@ -23,9 +23,13 @@ export function writeFileAtomic(filePath, contents) {
     fs.renameSync(tempPath, resolved)
   } finally {
     try {
-      if (descriptor !== undefined) fs.closeSync(descriptor)
+      if (descriptor !== undefined) {
+        fs.closeSync(descriptor)
+      }
     } finally {
-      if (fs.existsSync(tempPath)) fs.rmSync(tempPath, { force: true })
+      if (fs.existsSync(tempPath)) {
+        fs.rmSync(tempPath, { force: true })
+      }
     }
   }
 

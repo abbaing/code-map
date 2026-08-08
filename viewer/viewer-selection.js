@@ -2,7 +2,9 @@ function selectNode(id) {
   state.selectedId = id
   state.showAllTrace = false
   hidePopover()
-  if (state.view === 'graph' || state.view === 'domain') render()
+  if (state.view === 'graph' || state.view === 'domain') {
+    render()
+  }
   renderModuleDetail()
 }
 
@@ -12,8 +14,12 @@ function clearSelectedNode() {
   state.showAllTrace = false
   state.trace = null
   hidePopover()
-  if (hadSelection && (state.view === 'graph' || state.view === 'domain')) render()
-  if (hadSelection) renderModuleDetail()
+  if (hadSelection && (state.view === 'graph' || state.view === 'domain')) {
+    render()
+  }
+  if (hadSelection) {
+    renderModuleDetail()
+  }
 }
 
 function coverageDetail(node) {
@@ -24,14 +30,16 @@ function coverageDetail(node) {
   return `
     <div>
       <strong>Coverage</strong><br />
-      ${coverage.tests.map(test => escapeHtml(test)).join('<br />')}
+      ${coverage.tests.map((test) => escapeHtml(test)).join('<br />')}
     </div>
   `
 }
 
 function reviewDetail(node) {
   const review = node.meta?.review
-  if (!review) return ''
+  if (!review) {
+    return ''
+  }
   return `
     <div>
       <strong>Needs review</strong><br />
@@ -42,12 +50,16 @@ function reviewDetail(node) {
 
 function findingsDetail(node) {
   const findings = node.meta?.findings
-  if (!findings?.length) return ''
+  if (!findings?.length) {
+    return ''
+  }
   return `
     <div>
       <strong>Findings</strong>
       <div class="mt-1 space-y-1">
-        ${findings.map(finding => `
+        ${findings
+          .map(
+            (finding) => `
           <div class="border border-red-100 bg-red-50 rounded px-2 py-1.5">
             <div class="font-semibold text-red-800">${escapeHtml(formatRuleId(finding.ruleId))}${finding.line ? `:${finding.line}` : ''}</div>
             <div class="text-xs text-red-700 mb-1">${escapeHtml([finding.severity, finding.category, finding.confidence ? `${finding.confidence} confidence` : null, finding.effort ? `${finding.effort} effort` : null].filter(Boolean).join(' · '))}</div>
@@ -57,7 +69,9 @@ function findingsDetail(node) {
             ${finding.evidence ? `<div class="text-xs text-red-700 mt-1">${escapeHtml(finding.evidence)}</div>` : ''}
             ${finding.docsPath ? `<div class="text-xs text-red-700 mt-1">${escapeHtml(finding.docsPath)}</div>` : ''}
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
     </div>
   `
@@ -65,7 +79,9 @@ function findingsDetail(node) {
 
 function qualityDetail(node) {
   const quality = node.meta?.quality
-  if (!quality) return ''
+  if (!quality) {
+    return ''
+  }
   const internalComponents = internalComponentQualityDetail(quality)
   return `
     <div>
@@ -79,47 +95,69 @@ function qualityDetail(node) {
 }
 
 function internalComponentQualityDetail(quality) {
-  if (!quality.internalComponents?.length) return ''
+  if (!quality.internalComponents?.length) {
+    return ''
+  }
   return `
     <div class="mt-2">
       <strong>Internal components</strong><br />
-      ${quality.internalComponents.map(component => `
+      ${quality.internalComponents
+        .map(
+          (component) => `
         <div class="mt-1">
           ${escapeHtml(component.label)}: ${component.score}/10<br />
           <span class="text-gray-500">${escapeHtml(component.summary ?? 'Supporting component score')}</span>
         </div>
-      `).join('')}
+      `
+        )
+        .join('')}
     </div>
   `
 }
 
 function showPopover(event, id) {
-  const node = state.graph.nodes.find(item => item.id === id)
+  const node = state.graph.nodes.find((item) => item.id === id)
   const quality = node?.meta?.quality
-  if (!node) return
+  if (!node) {
+    return
+  }
   const coverage = node.meta?.coverage
   const review = node.meta?.review
   const findings = node.meta?.findings ?? []
-  if (!quality && !coverage?.hasCoverage && !review && findings.length === 0) return
+  if (!quality && !coverage?.hasCoverage && !review && findings.length === 0) {
+    return
+  }
   const related = quality?.related?.length
-    ? quality.related.map(item => `${escapeHtml(item.label)} (${escapeHtml(formatType(item.type))}, ${escapeHtml(formatModule(item.module))})`).join('<br />')
+    ? quality.related
+        .map(
+          (item) =>
+            `${escapeHtml(item.label)} (${escapeHtml(formatType(item.type))}, ${escapeHtml(formatModule(item.module))})`
+        )
+        .join('<br />')
     : 'No notable relations'
   const internalComponents = quality?.internalComponents?.length
     ? quality.internalComponents
-      .map(component => `${escapeHtml(component.label)}: ${component.score}/10 - ${escapeHtml(component.summary ?? 'Supporting component score')}`)
-      .join('<br />')
+        .map(
+          (component) =>
+            `${escapeHtml(component.label)}: ${component.score}/10 - ${escapeHtml(component.summary ?? 'Supporting component score')}`
+        )
+        .join('<br />')
     : ''
 
   els.popover.innerHTML = `
     <strong>${escapeHtml(node.label)}</strong>
-    ${findings.length ? `<div class="metric-line"><b>Findings</b>: ${findings.map(finding => `${escapeHtml(formatRuleId(finding.ruleId))} (${escapeHtml(finding.severity)})`).join(', ')}</div>` : ''}
+    ${findings.length ? `<div class="metric-line"><b>Findings</b>: ${findings.map((finding) => `${escapeHtml(formatRuleId(finding.ruleId))} (${escapeHtml(finding.severity)})`).join(', ')}</div>` : ''}
     ${review ? `<div class="metric-line"><b>Needs review</b>: ${escapeHtml(review.reason)}</div>` : ''}
-    ${coverage?.hasCoverage ? `<div class="metric-line"><b>Coverage</b>: ${coverage.tests.map(test => escapeHtml(test)).join(', ')}</div>` : ''}
-    ${quality ? `<div class="metric-line"><b>Score ${quality.score}/10</b>: ${escapeHtml(quality.summary ?? 'Combined cohesion and coupling score')}</div>
+    ${coverage?.hasCoverage ? `<div class="metric-line"><b>Coverage</b>: ${coverage.tests.map((test) => escapeHtml(test)).join(', ')}</div>` : ''}
+    ${
+      quality
+        ? `<div class="metric-line"><b>Score ${quality.score}/10</b>: ${escapeHtml(quality.summary ?? 'Combined cohesion and coupling score')}</div>
     <div class="metric-line"><b>Cohesion ${quality.cohesion.score}/10</b>: ${escapeHtml(quality.cohesion.reason)}</div>
     <div class="metric-line"><b>Coupling ${quality.coupling.score}/10</b>: ${escapeHtml(quality.coupling.reason)}</div>
     ${internalComponents ? `<div class="related"><b>Internal components</b><br />${internalComponents}</div>` : ''}
-    <div class="related"><b>Related</b><br />${related}</div>` : ''}
+    <div class="related"><b>Related</b><br />${related}</div>`
+        : ''
+    }
   `
   els.popover.style.display = 'block'
   movePopover(event)
@@ -151,9 +189,8 @@ function selectedNodeDetailHtml(node) {
   const coverageTitle = coverageTests.length
     ? `Covered by ${coverageTests.length} test file${coverageTests.length === 1 ? '' : 's'}: ${coverageTests.join(', ')}`
     : 'Linked test found'
-  const coverageLabel = testCaseCount === null
-    ? 'Has tests'
-    : `${testCaseCount} test case${testCaseCount === 1 ? '' : 's'}`
+  const coverageLabel =
+    testCaseCount === null ? 'Has tests' : `${testCaseCount} test case${testCaseCount === 1 ? '' : 's'}`
 
   return `
     <div class="space-y-2.5">
@@ -168,25 +205,31 @@ function selectedNodeDetailHtml(node) {
         ${review ? pillHtml('bg-red-50 text-red-700 border border-red-100 whitespace-nowrap shrink-0', 'Needs review') : ''}
         ${findings.length ? pillHtml('bg-red-50 text-red-700 border border-red-100 whitespace-nowrap shrink-0', `${findings.length} finding${findings.length === 1 ? '' : 's'}`) : ''}
       </div>
-      ${node.path ? `
+      ${
+        node.path
+          ? `
         <div>
           <div class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Path</div>
           <div class="rounded border border-gray-200 bg-gray-50 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-gray-700 break-all">${escapeHtml(node.path)}</div>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
     ${traceSummaryHtml(state.trace)}
     <div class="mt-3 space-y-2 text-[11px]">
       ${quality ? qualitySummaryHtml(quality) : ''}
       ${review ? `<div class="bg-red-50 border border-red-100 rounded px-2 py-1.5 text-red-800"><div class="font-semibold">Needs review</div>${escapeHtml(review.reason)}</div>` : ''}
-      ${findings.length ? `<div><div class="font-semibold text-gray-700 mb-1">Findings</div>${findings.map(finding => `<div class="bg-red-50 border border-red-100 rounded px-2 py-1.5 mb-1 text-red-800">${escapeHtml(formatRuleId(finding.ruleId))}${finding.line ? `:${finding.line}` : ''}<div class="text-red-700">${escapeHtml(finding.message)}</div></div>`).join('')}</div>` : ''}
+      ${findings.length ? `<div><div class="font-semibold text-gray-700 mb-1">Findings</div>${findings.map((finding) => `<div class="bg-red-50 border border-red-100 rounded px-2 py-1.5 mb-1 text-red-800">${escapeHtml(formatRuleId(finding.ruleId))}${finding.line ? `:${finding.line}` : ''}<div class="text-red-700">${escapeHtml(finding.message)}</div></div>`).join('')}</div>` : ''}
       ${coverage?.hasCoverage ? coverageSummaryHtml(testCaseCount) : ''}
     </div>
   `
 }
 
 function traceSummaryHtml(trace) {
-  if (!trace) return ''
+  if (!trace) {
+    return ''
+  }
   const status = trace.complete
     ? `${trace.endpointCount} endpoint${trace.endpointCount === 1 ? '' : 's'} · ${trace.tableCount} table${trace.tableCount === 1 ? '' : 's'}${trace.continuedFromAncestor ? ' · continued through owning component' : ''}`
     : trace.missingPersistence
@@ -241,13 +284,17 @@ function qualitySummaryHtml(quality) {
         <summary class="cursor-pointer font-semibold text-gray-600">How this score is calculated</summary>
         <p class="mt-1 leading-4">Q is an architecture maintainability heuristic, not correctness or test coverage. It combines cohesion and coupling, with the lower score weighted twice: round((cohesion + coupling + min) / 3).</p>
         <p class="mt-1 leading-4">Cohesion considers relations inside vs. outside the module, feature placement, dependency count, and detected usages. Coupling penalizes outgoing dependencies and external modules.</p>
-        ${inputs ? `<dl class="mt-2 grid grid-cols-2 gap-x-2 gap-y-1">
+        ${
+          inputs
+            ? `<dl class="mt-2 grid grid-cols-2 gap-x-2 gap-y-1">
           <dt>Inside module</dt><dd class="text-right font-semibold text-gray-700">${escapeHtml(inputs.internalRelations)}</dd>
           <dt>Outside module</dt><dd class="text-right font-semibold text-gray-700">${escapeHtml(inputs.externalRelations)}</dd>
           <dt>Outgoing</dt><dd class="text-right font-semibold text-gray-700">${escapeHtml(inputs.outgoingDependencies)}</dd>
           <dt>Incoming</dt><dd class="text-right font-semibold text-gray-700">${escapeHtml(inputs.incomingUsages)}</dd>
           <dt>External modules</dt><dd class="text-right font-semibold text-gray-700">${escapeHtml(inputs.externalModules.length)}</dd>
-        </dl>` : ''}
+        </dl>`
+            : ''
+        }
       </details>
     </div>
   `
@@ -268,14 +315,15 @@ function qualityMetricHtml(label, score, title, barClassName) {
   `
 }
 
-
 function edgeLine(edge) {
   const otherId = edge.from === state.selectedId ? edge.to : edge.from
-  const other = state.graph.nodes.find(node => node.id === otherId)
+  const other = state.graph.nodes.find((node) => node.id === otherId)
   return `<div class="border border-gray-200 rounded px-2 py-1.5 cursor-pointer hover:border-blue-400 text-sm" data-pick="${escapeHtml(otherId)}"><strong class="block">${escapeHtml(edge.label)}</strong><span class="text-gray-500 text-xs">${escapeHtml(other?.label ?? otherId)}</span></div>`
 }
 
 function connectedEdgeIds(nodeId) {
-  if (!nodeId) return new Set()
-  return new Set(state.graph.edges.filter(edge => edge.from === nodeId || edge.to === nodeId).map(edge => edge.id))
+  if (!nodeId) {
+    return new Set()
+  }
+  return new Set(state.graph.edges.filter((edge) => edge.from === nodeId || edge.to === nodeId).map((edge) => edge.id))
 }

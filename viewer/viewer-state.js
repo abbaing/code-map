@@ -96,5 +96,5 @@ const els = {
   settingsSaveBtn: document.getElementById('settingsSaveBtn'),
   settingsImportBtn: document.getElementById('settingsImportBtn'),
   settingsExportBtn: document.getElementById('settingsExportBtn'),
-  settingsImportFile: document.getElementById('settingsImportFile'),
+  settingsImportFile: document.getElementById('settingsImportFile')
 }

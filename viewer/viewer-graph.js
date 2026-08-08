@@ -11,14 +11,15 @@ function render() {
   }
 
   const renderLimit = state.view === 'domain' ? DOMAIN_RENDER_LIMIT : NODE_RENDER_LIMIT
-  state.trace = state.view === 'graph'
-    ? state.selectedId
-      ? buildTraceContext(state.selectedId, state.showAllTrace)
-      : buildModuleTraceContext(state.activeModule)
-    : null
+  state.trace =
+    state.view === 'graph'
+      ? state.selectedId
+        ? buildTraceContext(state.selectedId, state.showAllTrace)
+        : buildModuleTraceContext(state.activeModule)
+      : null
   const nodesToRender = nodesForRender(state.filteredNodes, renderLimit, state.trace)
-  const renderedIds = new Set(nodesToRender.map(node => node.id))
-  const truncated = state.filteredNodes.some(node => !renderedIds.has(node.id))
+  const renderedIds = new Set(nodesToRender.map((node) => node.id))
+  const truncated = state.filteredNodes.some((node) => !renderedIds.has(node.id))
 
   if (truncated) {
     els.nodeLimitBanner.textContent = `Showing ${renderLimit} of ${state.filteredNodes.length} nodes. Use filters or drill into a module to see fewer.`
@@ -28,7 +29,9 @@ function render() {
   }
 
   let layout = layoutNodes(nodesToRender, width, height)
-  if (state.trace) layout = applyTraceFocusLayout(layout, state.trace, width, height)
+  if (state.trace) {
+    layout = applyTraceFocusLayout(layout, state.trace, width, height)
+  }
 
   svg.style.width = '100%'
   svg.style.height = '100%'
@@ -47,13 +50,16 @@ function render() {
 function renderSystemModuleGraph(svg, width, height, viewportWidth, viewportHeight) {
   const systemGraph = buildSystemModuleGraph()
   const layout = layoutSystemModules(systemGraph.nodes, width, height)
-  const nodeById = new Map(layout.nodes.map(node => [node.id, node]))
-  const visibleEdges = systemGraph.edges.filter(edge => nodeById.has(edge.from) && nodeById.has(edge.to))
+  const nodeById = new Map(layout.nodes.map((node) => [node.id, node]))
+  const visibleEdges = systemGraph.edges.filter((edge) => nodeById.has(edge.from) && nodeById.has(edge.to))
   els.nodeLimitBanner.textContent = `System map · ${layout.nodes.length} modules · ${visibleEdges.length} module flows · Select a module for complete paths.`
   els.nodeLimitBanner.classList.remove('hidden')
   svg.style.width = '100%'
   svg.style.height = '100%'
-  svg.setAttribute('viewBox', `${state.panX} ${state.panY} ${viewportWidth / state.zoom} ${viewportHeight / state.zoom}`)
+  svg.setAttribute(
+    'viewBox',
+    `${state.panX} ${state.panY} ${viewportWidth / state.zoom} ${viewportHeight / state.zoom}`
+  )
   els.zoomValue.textContent = `${Math.round(state.zoom * 100)}%`
   svg.innerHTML = `
     <defs>
@@ -62,7 +68,7 @@ function renderSystemModuleGraph(svg, width, height, viewportWidth, viewportHeig
       </marker>
     </defs>
     <g class="module-overview-edges">
-      ${visibleEdges.map(edge => systemModuleEdgeSvg(edge, nodeById)).join('')}
+      ${visibleEdges.map((edge) => systemModuleEdgeSvg(edge, nodeById)).join('')}
     </g>
     <g class="module-overview-nodes">
       ${layout.nodes.map(systemModuleNodeSvg).join('')}
@@ -72,8 +78,12 @@ function renderSystemModuleGraph(svg, width, height, viewportWidth, viewportHeig
 
 function layoutSystemModules(nodes, width, height) {
   const sorted = [...nodes].sort((a, b) => {
-    if (a.module === 'shared') return -1
-    if (b.module === 'shared') return 1
+    if (a.module === 'shared') {
+      return -1
+    }
+    if (b.module === 'shared') {
+      return 1
+    }
     return b.meta.externalRelations - a.meta.externalRelations || a.label.localeCompare(b.label)
   })
   const columns = Math.min(5, Math.max(2, Math.ceil(Math.sqrt(sorted.length * 1.4))))
@@ -112,8 +122,22 @@ function systemModuleEdgeSvg(edge, nodeById) {
 
 function systemModuleNodeSvg(node) {
   const meta = node.meta
-  const accent = meta.frontendCount && meta.backendCount ? '#2563eb' : meta.frontendCount ? '#0f766e' : meta.backendCount ? '#7c3aed' : '#64748b'
-  const scope = meta.frontendCount && meta.backendCount ? 'Frontend + backend' : meta.frontendCount ? 'Frontend' : meta.backendCount ? 'Backend' : 'Shared support'
+  const accent =
+    meta.frontendCount && meta.backendCount
+      ? '#2563eb'
+      : meta.frontendCount
+        ? '#0f766e'
+        : meta.backendCount
+          ? '#7c3aed'
+          : '#64748b'
+  const scope =
+    meta.frontendCount && meta.backendCount
+      ? 'Frontend + backend'
+      : meta.frontendCount
+        ? 'Frontend'
+        : meta.backendCount
+          ? 'Backend'
+          : 'Shared support'
   return `
     <g class="node system-module-node" data-id="${escapeHtml(node.id)}" data-module="${escapeHtml(node.module)}" transform="translate(${node.x}, ${node.y})">
       <rect width="${node.width}" height="${node.height}" rx="6"></rect>
@@ -127,28 +151,32 @@ function systemModuleNodeSvg(node) {
 
 function nodesForRender(filteredNodes, renderLimit, trace) {
   const nodes = filteredNodes.slice(0, renderLimit)
-  if (!trace) return nodes
-  const included = new Set(nodes.map(node => node.id))
-  const nodeById = new Map(state.graph.nodes.map(node => [node.id, node]))
+  if (!trace) {
+    return nodes
+  }
+  const included = new Set(nodes.map((node) => node.id))
+  const nodeById = new Map(state.graph.nodes.map((node) => [node.id, node]))
   for (const id of trace.nodeIds) {
-    if (included.has(id)) continue
+    if (included.has(id)) {
+      continue
+    }
     const node = nodeById.get(id)
-    if (node) nodes.push(node)
+    if (node) {
+      nodes.push(node)
+    }
   }
   return nodes
 }
 
 function renderGraphView(svg, layout) {
   const nodes = layout.nodes
-  const nodeById = new Map(nodes.map(node => [node.id, node]))
-  const visibleIds = new Set(nodes.map(node => node.id))
-  const orphanIds = new Set(state.graph.orphans.map(orphan => orphan.id))
+  const nodeById = new Map(nodes.map((node) => [node.id, node]))
+  const visibleIds = new Set(nodes.map((node) => node.id))
+  const orphanIds = new Set(state.graph.orphans.map((orphan) => orphan.id))
   const moduleOverview = Boolean(state.trace?.moduleOverview)
-  const selectedEdges = moduleOverview ? new Set() : state.trace?.edgeIds ?? connectedEdgeIds(state.selectedId)
-  const edges = state.graph.edges.filter(edge =>
-    visibleIds.has(edge.from) && visibleIds.has(edge.to)
-  )
-  const focusedIds = moduleOverview ? null : state.trace?.nodeIds ?? focusedNodeIds(state.selectedId, edges)
+  const selectedEdges = moduleOverview ? new Set() : (state.trace?.edgeIds ?? connectedEdgeIds(state.selectedId))
+  const edges = state.graph.edges.filter((edge) => visibleIds.has(edge.from) && visibleIds.has(edge.to))
+  const focusedIds = moduleOverview ? null : (state.trace?.nodeIds ?? focusedNodeIds(state.selectedId, edges))
 
   svg.innerHTML = `
     <defs>
@@ -156,29 +184,37 @@ function renderGraphView(svg, layout) {
         <path d="M0,0 L0,6 L7,3 z" fill="#9aa4b2"></path>
       </marker>
     </defs>
-    ${layout.moduleLabels.map(item => graphModuleBandSvg(item, Boolean(state.trace))).join('')}
-    ${layout.traceBoundaryX ? `<line class="trace-boundary" x1="${layout.traceBoundaryX}" y1="34" x2="${layout.traceBoundaryX}" y2="${layout.traceHeight - 18}"></line>
-      <text class="trace-boundary-label" x="${layout.traceBoundaryX + 9}" y="51">BACKEND STARTS</text>` : ''}
-    ${layout.layerLabels.map(item => `
+    ${layout.moduleLabels.map((item) => graphModuleBandSvg(item, Boolean(state.trace))).join('')}
+    ${
+      layout.traceBoundaryX
+        ? `<line class="trace-boundary" x1="${layout.traceBoundaryX}" y1="34" x2="${layout.traceBoundaryX}" y2="${layout.traceHeight - 18}"></line>
+      <text class="trace-boundary-label" x="${layout.traceBoundaryX + 9}" y="51">BACKEND STARTS</text>`
+        : ''
+    }
+    ${layout.layerLabels
+      .map(
+        (item) => `
       <text class="lane-label" x="${item.x + (item.width ?? 0) / 2}" y="20">${escapeHtml(item.label ?? formatLayer(item.layer))}</text>
-    `).join('')}
+    `
+      )
+      .join('')}
     <g class="edges">
-      ${edges.map(edge => edgeSvg(edge, nodeById, selectedEdges.has(edge.id), isDimmedEdge(edge, focusedIds), isFocusedEdge(edge, focusedIds))).join('')}
+      ${edges.map((edge) => edgeSvg(edge, nodeById, selectedEdges.has(edge.id), isDimmedEdge(edge, focusedIds), isFocusedEdge(edge, focusedIds))).join('')}
     </g>
     <g class="nodes">
-      ${nodes.map(node => nodeGraphSvg(node, orphanIds.has(node.id), isDimmedNode(node, focusedIds), isFocusedNode(node, focusedIds))).join('')}
+      ${nodes.map((node) => nodeGraphSvg(node, orphanIds.has(node.id), isDimmedNode(node, focusedIds), isFocusedNode(node, focusedIds))).join('')}
     </g>
   `
 }
 
 function renderDomainView(svg, layout) {
   const nodes = layout.nodes
-  const nodeById = new Map(nodes.map(node => [node.id, node]))
-  const visibleIds = new Set(nodes.map(node => node.id))
-  const orphanIds = new Set(state.graph.orphans.map(orphan => orphan.id))
+  const nodeById = new Map(nodes.map((node) => [node.id, node]))
+  const visibleIds = new Set(nodes.map((node) => node.id))
+  const orphanIds = new Set(state.graph.orphans.map((orphan) => orphan.id))
   const selectedEdges = connectedEdgeIds(state.selectedId)
-  const edges = state.graph.edges.filter(edge =>
-    visibleIds.has(edge.from) && visibleIds.has(edge.to) && edge.type === 'domain-relation'
+  const edges = state.graph.edges.filter(
+    (edge) => visibleIds.has(edge.from) && visibleIds.has(edge.to) && edge.type === 'domain-relation'
   )
   const focusedIds = focusedNodeIds(state.selectedId, edges)
 
@@ -188,15 +224,19 @@ function renderDomainView(svg, layout) {
         <path d="M0,0 L0,6 L7,3 z" fill="#9aa4b2"></path>
       </marker>
     </defs>
-    ${layout.moduleLabels.map(item => `
+    ${layout.moduleLabels
+      .map(
+        (item) => `
       <rect class="domain-cluster-band" x="${item.x ?? 0}" y="${item.y}" width="${item.width ?? layout.width}" height="${item.height}"></rect>
       <text class="domain-cluster-label" x="${item.labelX ?? 12}" y="${item.y + 18}">${escapeHtml(item.label ?? formatModule(item.module))}</text>
-    `).join('')}
+    `
+      )
+      .join('')}
     <g class="edges">
-      ${edges.map(edge => edgeSvg(edge, nodeById, selectedEdges.has(edge.id), isDimmedEdge(edge, focusedIds), isFocusedEdge(edge, focusedIds))).join('')}
+      ${edges.map((edge) => edgeSvg(edge, nodeById, selectedEdges.has(edge.id), isDimmedEdge(edge, focusedIds), isFocusedEdge(edge, focusedIds))).join('')}
     </g>
     <g class="nodes">
-      ${nodes.map(node => nodeDomainSvg(node, orphanIds.has(node.id), isDimmedNode(node, focusedIds), isFocusedNode(node, focusedIds))).join('')}
+      ${nodes.map((node) => nodeDomainSvg(node, orphanIds.has(node.id), isDimmedNode(node, focusedIds), isFocusedNode(node, focusedIds))).join('')}
     </g>
   `
 }
@@ -224,11 +264,17 @@ function graphModuleBandSvg(item, dimmed = false) {
 }
 
 function focusedNodeIds(selectedId, edges) {
-  if (!selectedId) return null
+  if (!selectedId) {
+    return null
+  }
   const ids = new Set([selectedId])
   for (const edge of edges) {
-    if (edge.from === selectedId) ids.add(edge.to)
-    if (edge.to === selectedId) ids.add(edge.from)
+    if (edge.from === selectedId) {
+      ids.add(edge.to)
+    }
+    if (edge.to === selectedId) {
+      ids.add(edge.from)
+    }
   }
   return ids
 }
@@ -259,19 +305,24 @@ function layoutNodes(nodes, width, height) {
   const layoutLayerByNode = new Map()
   for (const node of nodes) {
     const module = state.view === 'domain' ? domainEntityModule(node) : node.module || 'shared'
-    const layer = node.layer === 'auxiliary'
-      ? connectedLayerByNode.get(node.id) ?? 'ui-component-logic'
-      : node.layer || 'unknown'
+    const layer =
+      node.layer === 'auxiliary' ? (connectedLayerByNode.get(node.id) ?? 'ui-component-logic') : node.layer || 'unknown'
     layoutLayerByNode.set(node.id, layer)
-    if (!grouped.has(module)) grouped.set(module, new Map())
+    if (!grouped.has(module)) {
+      grouped.set(module, new Map())
+    }
     const moduleGroup = grouped.get(module)
-    if (!moduleGroup.has(layer)) moduleGroup.set(layer, [])
+    if (!moduleGroup.has(layer)) {
+      moduleGroup.set(layer, [])
+    }
     moduleGroup.get(layer).push(node)
   }
 
-  const layers = unique(nodes.map(node => node.layer === 'auxiliary'
-    ? connectedLayerByNode.get(node.id) ?? 'ui-component-logic'
-    : node.layer || 'unknown')).sort((a, b) => {
+  const layers = unique(
+    nodes.map((node) =>
+      node.layer === 'auxiliary' ? (connectedLayerByNode.get(node.id) ?? 'ui-component-logic') : node.layer || 'unknown'
+    )
+  ).sort((a, b) => {
     const ia = layerOrder.indexOf(a)
     const ib = layerOrder.indexOf(b)
     return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib) || a.localeCompare(b)
@@ -285,7 +336,7 @@ function layoutNodes(nodes, width, height) {
   const levelGap = 10
   const rowHeight = 76
   const layerLevels = computeLayerLevels(nodes, layers, layoutLayerByNode)
-  const layerColumns = layers.map(layer => ({
+  const layerColumns = layers.map((layer) => ({
     layer,
     levels: layerLevels.get(layer) ?? 1
   }))
@@ -318,20 +369,25 @@ function layoutNodes(nodes, width, height) {
   const padY = 16
   const moduleGap = 20
 
-  modules.forEach(module => {
+  modules.forEach((module) => {
     const moduleGroup = grouped.get(module)
     const levelByNode = computeModuleLevelByNode(moduleGroup, layoutLayerByNode)
-    const maxRows = Math.max(1, ...layers.flatMap(layer => {
-      const items = moduleGroup.get(layer) ?? []
-      const levels = layerLevels.get(layer) ?? 1
-      return Array.from({ length: levels }, (_, level) => items.filter(node => (levelByNode.get(node.id) ?? 0) === level).length)
-    }))
+    const maxRows = Math.max(
+      1,
+      ...layers.flatMap((layer) => {
+        const items = moduleGroup.get(layer) ?? []
+        const levels = layerLevels.get(layer) ?? 1
+        return Array.from(
+          { length: levels },
+          (_, level) => items.filter((node) => (levelByNode.get(node.id) ?? 0) === level).length
+        )
+      })
+    )
 
     // x extents from the layers this module actually uses
-    const usedLayers = layers.filter(layer => (moduleGroup.get(layer) ?? []).length > 0)
-    const xMin = usedLayers.length > 0
-      ? Math.min(...usedLayers.map(layer => layerStart.get(layer) ?? leftGutter))
-      : leftGutter
+    const usedLayers = layers.filter((layer) => (moduleGroup.get(layer) ?? []).length > 0)
+    const xMin =
+      usedLayers.length > 0 ? Math.min(...usedLayers.map((layer) => layerStart.get(layer) ?? leftGutter)) : leftGutter
     const lastLayer = usedLayers.length > 0 ? usedLayers[usedLayers.length - 1] : layers[layers.length - 1]
     const lastLevels = layerLevels.get(lastLayer) ?? 1
     const xMax = (layerStart.get(lastLayer) ?? leftGutter) + lastLevels * columnWidth
@@ -347,10 +403,10 @@ function layoutNodes(nodes, width, height) {
       height: bandHeight
     })
 
-    layers.forEach(layer => {
+    layers.forEach((layer) => {
       const items = (moduleGroup.get(layer) ?? []).sort((a, b) => compareNodes(a, b, domainOrder))
       const rowsByLevel = new Map()
-      items.forEach(node => {
+      items.forEach((node) => {
         const level = levelByNode.get(node.id) ?? 0
         const rowIndex = rowsByLevel.get(level) ?? 0
         rowsByLevel.set(level, rowIndex + 1)
@@ -391,9 +447,10 @@ function layoutDomainNodes(nodes, width, height, domainOrder) {
   let contentRight = leftGutter
 
   for (const cluster of clusters) {
-    const placement = cluster.degree > 0
-      ? forcePlaceDomainCluster(cluster, cardWidth)
-      : gridPlaceDomainCluster(cluster, cardWidth, columnGap, rowGap)
+    const placement =
+      cluster.degree > 0
+        ? forcePlaceDomainCluster(cluster, cardWidth)
+        : gridPlaceDomainCluster(cluster, cardWidth, columnGap, rowGap)
     const clusterWidth = placement.width + 32
     const clusterHeight = placement.height + 70
 
@@ -412,7 +469,7 @@ function layoutDomainNodes(nodes, width, height, domainOrder) {
       height: clusterHeight
     })
 
-    cluster.nodes.forEach(node => {
+    cluster.nodes.forEach((node) => {
       const position = placement.positions.get(node.id)
       result.push({
         ...node,
@@ -434,7 +491,9 @@ function layoutDomainNodes(nodes, width, height, domainOrder) {
     nodes: result,
     width: Math.max(width, contentRight + 40),
     height: Math.max(height, rowBottom + 50),
-    layerLabels: [{ layer: 'domain', x: leftGutter, width: Math.max(width, contentRight + 40) - leftGutter, levels: [] }],
+    layerLabels: [
+      { layer: 'domain', x: leftGutter, width: Math.max(width, contentRight + 40) - leftGutter, levels: [] }
+    ],
     moduleLabels
   }
 }
@@ -473,9 +532,10 @@ function gridPlaceDomainCluster(cluster, cardWidth, columnGap, rowGap) {
 
 function forcePlaceDomainCluster(cluster, cardWidth) {
   const nodes = orderDomainClusterForEdges(cluster.nodes)
-  const byId = new Map(nodes.map(node => [node.id, node]))
-  const edges = state.graph.edges
-    .filter(edge => edge.type === 'domain-relation' && byId.has(edge.from) && byId.has(edge.to))
+  const byId = new Map(nodes.map((node) => [node.id, node]))
+  const edges = state.graph.edges.filter(
+    (edge) => edge.type === 'domain-relation' && byId.has(edge.from) && byId.has(edge.to)
+  )
   const positions = new Map()
   const velocities = new Map()
   const anchors = new Map()
@@ -484,7 +544,7 @@ function forcePlaceDomainCluster(cluster, cardWidth) {
 
   nodes.forEach((node, index) => {
     const angle = (Math.PI * 2 * index) / Math.max(nodes.length, 1)
-    const ring = radius * (0.9 + (seededUnit(`${node.id}:ring`) * 0.14))
+    const ring = radius * (0.9 + seededUnit(`${node.id}:ring`) * 0.14)
     const anchor = {
       x: center + Math.cos(angle) * ring,
       y: center + Math.sin(angle) * ring
@@ -504,11 +564,11 @@ function forcePlaceDomainCluster(cluster, cardWidth) {
         const pb = positions.get(b.id)
         let dx = pb.x - pa.x
         let dy = pb.y - pa.y
-        let distance = Math.hypot(dx, dy) || 1
+        const distance = Math.hypot(dx, dy) || 1
         dx /= distance
         dy /= distance
-      const minDistance = (cardWidth + Math.max(nodeHeight(a), nodeHeight(b))) * 0.7
-      const repulsion = Math.min(7, 90000 / (distance * distance)) * alpha
+        const minDistance = (cardWidth + Math.max(nodeHeight(a), nodeHeight(b))) * 0.7
+        const repulsion = Math.min(7, 90000 / (distance * distance)) * alpha
         const collision = distance < minDistance ? (minDistance - distance) * 0.04 : 0
         const force = repulsion + collision
         applyForce(velocities.get(a.id), -dx * force, -dy * force)
@@ -545,7 +605,7 @@ function forcePlaceDomainCluster(cluster, cardWidth) {
     }
   }
 
-  const boxes = nodes.map(node => ({
+  const boxes = nodes.map((node) => ({
     node,
     x: positions.get(node.id).x,
     y: positions.get(node.id).y,
@@ -555,10 +615,10 @@ function forcePlaceDomainCluster(cluster, cardWidth) {
 
   resolveDomainCollisions(boxes)
 
-  const minX = Math.min(...boxes.map(box => box.x))
-  const minY = Math.min(...boxes.map(box => box.y))
-  const maxX = Math.max(...boxes.map(box => box.x + box.width))
-  const maxY = Math.max(...boxes.map(box => box.y + box.height))
+  const minX = Math.min(...boxes.map((box) => box.x))
+  const minY = Math.min(...boxes.map((box) => box.y))
+  const maxX = Math.max(...boxes.map((box) => box.x + box.width))
+  const maxY = Math.max(...boxes.map((box) => box.y + box.height))
   const normalized = new Map()
 
   for (const box of boxes) {
@@ -576,12 +636,16 @@ function forcePlaceDomainCluster(cluster, cardWidth) {
 }
 
 function orderDomainClusterForEdges(nodes) {
-  if (nodes.length < 4) return nodes
-  const ids = new Set(nodes.map(node => node.id))
+  if (nodes.length < 4) {
+    return nodes
+  }
+  const ids = new Set(nodes.map((node) => node.id))
   const edges = state.graph.edges
-    .filter(edge => edge.type === 'domain-relation' && ids.has(edge.from) && ids.has(edge.to))
-    .map(edge => [edge.from, edge.to])
-  if (edges.length < 2) return nodes
+    .filter((edge) => edge.type === 'domain-relation' && ids.has(edge.from) && ids.has(edge.to))
+    .map((edge) => [edge.from, edge.to])
+  if (edges.length < 2) {
+    return nodes
+  }
 
   let ordered = [...nodes]
   let bestScore = circularCrossingScore(ordered, edges)
@@ -595,14 +659,19 @@ function orderDomainClusterForEdges(nodes) {
         candidate[i] = candidate[j]
         candidate[j] = tmp
         const score = circularCrossingScore(candidate, edges)
-        if (score < bestScore || (score === bestScore && seededUnit(`${candidate[i].id}:${candidate[j].id}:${pass}`) < 0.08)) {
+        if (
+          score < bestScore ||
+          (score === bestScore && seededUnit(`${candidate[i].id}:${candidate[j].id}:${pass}`) < 0.08)
+        ) {
           ordered = candidate
           bestScore = score
           improved = true
         }
       }
     }
-    if (!improved) break
+    if (!improved) {
+      break
+    }
   }
 
   return ordered
@@ -617,15 +686,23 @@ function circularCrossingScore(nodes, edges) {
     const [a, b] = edges[i]
     const ai = indexById.get(a)
     const bi = indexById.get(b)
-    if (ai === undefined || bi === undefined) continue
+    if (ai === undefined || bi === undefined) {
+      continue
+    }
     span += circularSpan(ai, bi, nodes.length)
     for (let j = i + 1; j < edges.length; j += 1) {
       const [c, d] = edges[j]
-      if (a === c || a === d || b === c || b === d) continue
+      if (a === c || a === d || b === c || b === d) {
+        continue
+      }
       const ci = indexById.get(c)
       const di = indexById.get(d)
-      if (ci === undefined || di === undefined) continue
-      if (chordsCross(ai, bi, ci, di, nodes.length)) crossings += 1
+      if (ci === undefined || di === undefined) {
+        continue
+      }
+      if (chordsCross(ai, bi, ci, di, nodes.length)) {
+        crossings += 1
+      }
     }
   }
 
@@ -638,13 +715,18 @@ function circularSpan(a, b, length) {
 }
 
 function chordsCross(a, b, c, d, length) {
-  if (a > b) [a, b] = [b, a]
-  if (c > d) [c, d] = [d, c]
-  const crossesDirect = a < c && c < b && (d < a || b < d)
-    || c < a && a < d && (b < c || d < b)
+  if (a > b) {
+    ;[a, b] = [b, a]
+  }
+  if (c > d) {
+    ;[c, d] = [d, c]
+  }
+  const crossesDirect = (a < c && c < b && (d < a || b < d)) || (c < a && a < d && (b < c || d < b))
   const wrappedA = circularSpan(a, b, length) !== Math.abs(a - b)
   const wrappedC = circularSpan(c, d, length) !== Math.abs(c - d)
-  if (!wrappedA && !wrappedC) return (a < c && c < b && b < d) || (c < a && a < d && d < b)
+  if (!wrappedA && !wrappedC) {
+    return (a < c && c < b && b < d) || (c < a && a < d && d < b)
+  }
   return crossesDirect
 }
 
@@ -661,7 +743,9 @@ function resolveDomainCollisions(boxes) {
         const by = b.y + b.height / 2
         const overlapX = (a.width + b.width) / 2 + 34 - Math.abs(bx - ax)
         const overlapY = (a.height + b.height) / 2 + 34 - Math.abs(by - ay)
-        if (overlapX <= 0 || overlapY <= 0) continue
+        if (overlapX <= 0 || overlapY <= 0) {
+          continue
+        }
         const pushX = bx >= ax ? overlapX / 2 : -overlapX / 2
         const pushY = by >= ay ? overlapY / 2 : -overlapY / 2
         if (overlapX < overlapY) {
@@ -674,7 +758,9 @@ function resolveDomainCollisions(boxes) {
         moved = true
       }
     }
-    if (!moved) return
+    if (!moved) {
+      return
+    }
   }
 }
 
@@ -693,12 +779,16 @@ function seededUnit(value) {
 }
 
 function buildDomainClusters(nodes, domainOrder) {
-  const byId = new Map(nodes.map(node => [node.id, node]))
-  const adjacency = new Map(nodes.map(node => [node.id, new Set()]))
+  const byId = new Map(nodes.map((node) => [node.id, node]))
+  const adjacency = new Map(nodes.map((node) => [node.id, new Set()]))
 
   for (const edge of state.graph.edges) {
-    if (edge.type !== 'domain-relation') continue
-    if (!byId.has(edge.from) || !byId.has(edge.to)) continue
+    if (edge.type !== 'domain-relation') {
+      continue
+    }
+    if (!byId.has(edge.from) || !byId.has(edge.to)) {
+      continue
+    }
     adjacency.get(edge.from)?.add(edge.to)
     adjacency.get(edge.to)?.add(edge.from)
   }
@@ -708,7 +798,9 @@ function buildDomainClusters(nodes, domainOrder) {
   const isolatedByModule = new Map()
 
   for (const node of nodes) {
-    if (seen.has(node.id)) continue
+    if (seen.has(node.id)) {
+      continue
+    }
     const stack = [node.id]
     const ids = []
     seen.add(node.id)
@@ -717,14 +809,16 @@ function buildDomainClusters(nodes, domainOrder) {
       const id = stack.pop()
       ids.push(id)
       for (const next of adjacency.get(id) ?? []) {
-        if (seen.has(next)) continue
+        if (seen.has(next)) {
+          continue
+        }
         seen.add(next)
         stack.push(next)
       }
     }
 
     const clusterNodes = ids
-      .map(id => byId.get(id))
+      .map((id) => byId.get(id))
       .filter(Boolean)
       .sort((a, b) => compareNodes(a, b, domainOrder))
 
@@ -738,7 +832,9 @@ function buildDomainClusters(nodes, domainOrder) {
       })
     } else {
       const module = domainEntityModule(clusterNodes[0])
-      if (!isolatedByModule.has(module)) isolatedByModule.set(module, [])
+      if (!isolatedByModule.has(module)) {
+        isolatedByModule.set(module, [])
+      }
       isolatedByModule.get(module).push(clusterNodes[0])
     }
   }
@@ -746,50 +842,51 @@ function buildDomainClusters(nodes, domainOrder) {
   const isolatedClusters = [...isolatedByModule.entries()].map(([module, clusterNodes]) => ({
     key: `isolated-${module}`,
     label: `${formatModule(module)} standalone`,
-    nodes: clusterNodes
-      .filter(Boolean)
-      .sort((a, b) => compareNodes(a, b, domainOrder)),
+    nodes: clusterNodes.filter(Boolean).sort((a, b) => compareNodes(a, b, domainOrder)),
     degree: 0
   }))
 
   return [...relationClusters, ...isolatedClusters]
-    .filter(cluster => cluster.nodes.length > 0)
+    .filter((cluster) => cluster.nodes.length > 0)
     .sort((a, b) => b.degree - a.degree || b.nodes.length - a.nodes.length || a.label.localeCompare(b.label))
 }
 
 function domainClusterLabel(nodes, modules) {
-  const names = nodes.slice(0, 2).map(node => node.label)
+  const names = nodes.slice(0, 2).map((node) => node.label)
   const suffix = nodes.length > names.length ? ` +${nodes.length - names.length}` : ''
-  const moduleLabel = modules.length > 1
-    ? `${modules.length} modules`
-    : formatModule(modules[0] ?? 'shared')
+  const moduleLabel = modules.length > 1 ? `${modules.length} modules` : formatModule(modules[0] ?? 'shared')
   return `${names.join(' / ')}${suffix} (${moduleLabel})`
 }
 
 function domainEntityModule(node) {
   const pattern = state.graph.projectMap?.modules?.backendEntityDomainPattern
   const pathModule = pattern ? node?.path?.match(new RegExp(pattern))?.[1] : null
-  if (pathModule) return pathModule.toLowerCase().replace(/[\s._]+/g, '-')
+  if (pathModule) {
+    return pathModule.toLowerCase().replace(/[\s._]+/g, '-')
+  }
   return node?.module ?? sharedModule()
 }
 
 function compareNodes(a, b, domainOrder) {
   if (state.view === 'domain') {
-    return (domainOrder.get(a.id) ?? 9999) - (domainOrder.get(b.id) ?? 9999)
-      || a.label.localeCompare(b.label)
+    return (domainOrder.get(a.id) ?? 9999) - (domainOrder.get(b.id) ?? 9999) || a.label.localeCompare(b.label)
   }
   return nodeSortWeight(a) - nodeSortWeight(b) || a.label.localeCompare(b.label)
 }
 
 function computeDomainOrder(nodes) {
-  const visible = new Set(nodes.map(node => node.id))
-  const adjacency = new Map(nodes.map(node => [node.id, new Set()]))
-  const incoming = new Map(nodes.map(node => [node.id, 0]))
-  const outgoing = new Map(nodes.map(node => [node.id, 0]))
+  const visible = new Set(nodes.map((node) => node.id))
+  const adjacency = new Map(nodes.map((node) => [node.id, new Set()]))
+  const incoming = new Map(nodes.map((node) => [node.id, 0]))
+  const outgoing = new Map(nodes.map((node) => [node.id, 0]))
 
   for (const edge of state.graph.edges) {
-    if (edge.type !== 'domain-relation') continue
-    if (!visible.has(edge.from) || !visible.has(edge.to)) continue
+    if (edge.type !== 'domain-relation') {
+      continue
+    }
+    if (!visible.has(edge.from) || !visible.has(edge.to)) {
+      continue
+    }
     adjacency.get(edge.from)?.add(edge.to)
     adjacency.get(edge.to)?.add(edge.from)
     outgoing.set(edge.from, (outgoing.get(edge.from) ?? 0) + 1)
@@ -798,10 +895,12 @@ function computeDomainOrder(nodes) {
 
   const components = []
   const seen = new Set()
-  const byId = new Map(nodes.map(node => [node.id, node]))
+  const byId = new Map(nodes.map((node) => [node.id, node]))
 
   for (const node of nodes) {
-    if (seen.has(node.id)) continue
+    if (seen.has(node.id)) {
+      continue
+    }
     const stack = [node.id]
     const component = []
     seen.add(node.id)
@@ -810,7 +909,9 @@ function computeDomainOrder(nodes) {
       const id = stack.pop()
       component.push(id)
       for (const next of adjacency.get(id) ?? []) {
-        if (seen.has(next)) continue
+        if (seen.has(next)) {
+          continue
+        }
         seen.add(next)
         stack.push(next)
       }
@@ -831,7 +932,7 @@ function computeDomainOrder(nodes) {
   let index = 0
   for (const component of components) {
     const sorted = component
-      .map(id => byId.get(id))
+      .map((id) => byId.get(id))
       .filter(Boolean)
       .sort((a, b) => {
         const aDegree = adjacency.get(a.id)?.size ?? 0
@@ -840,10 +941,7 @@ function computeDomainOrder(nodes) {
         const bOutgoing = outgoing.get(b.id) ?? 0
         const aIncoming = incoming.get(a.id) ?? 0
         const bIncoming = incoming.get(b.id) ?? 0
-        return bDegree - aDegree
-          || bOutgoing - aOutgoing
-          || aIncoming - bIncoming
-          || a.label.localeCompare(b.label)
+        return bDegree - aDegree || bOutgoing - aOutgoing || aIncoming - bIncoming || a.label.localeCompare(b.label)
       })
 
     for (const node of sorted) {
@@ -856,10 +954,12 @@ function computeDomainOrder(nodes) {
 }
 
 function componentLabel(component, byId) {
-  return component
-    .map(id => byId.get(id)?.label)
-    .filter(Boolean)
-    .sort()[0] ?? ''
+  return (
+    component
+      .map((id) => byId.get(id)?.label)
+      .filter(Boolean)
+      .sort()[0] ?? ''
+  )
 }
 
 function nodeHeight(node) {
@@ -872,12 +972,14 @@ function nodeHeight(node) {
 }
 
 function computeLayerLevels(nodes, layers, layoutLayerByNode) {
-  const levels = new Map(layers.map(layer => [layer, 1]))
+  const levels = new Map(layers.map((layer) => [layer, 1]))
   const moduleGroups = new Map()
 
   for (const node of nodes) {
     const key = `${node.module || 'shared'}::${layoutLayerByNode.get(node.id) ?? node.layer ?? 'unknown'}`
-    if (!moduleGroups.has(key)) moduleGroups.set(key, [])
+    if (!moduleGroups.has(key)) {
+      moduleGroups.set(key, [])
+    }
     moduleGroups.get(key).push(node)
   }
 
@@ -898,23 +1000,31 @@ function computeModuleLevelByNode(moduleGroup, layoutLayerByNode) {
 }
 
 function computeLevelByNode(nodes, layoutLayerByNode) {
-  const visible = new Set(nodes.map(node => node.id))
-  const predecessors = new Map(nodes.map(node => [node.id, []]))
+  const visible = new Set(nodes.map((node) => node.id))
+  const predecessors = new Map(nodes.map((node) => [node.id, []]))
 
   for (const edge of state.graph.edges) {
-    if (!visible.has(edge.from) || !visible.has(edge.to)) continue
-    if (layoutLayerByNode.get(edge.from) !== layoutLayerByNode.get(edge.to)) continue
+    if (!visible.has(edge.from) || !visible.has(edge.to)) {
+      continue
+    }
+    if (layoutLayerByNode.get(edge.from) !== layoutLayerByNode.get(edge.to)) {
+      continue
+    }
     predecessors.get(edge.to)?.push(edge.from)
   }
 
   const memo = new Map()
   const visiting = new Set()
 
-  const depth = id => {
-    if (memo.has(id)) return memo.get(id)
-    if (visiting.has(id)) return 0
+  const depth = (id) => {
+    if (memo.has(id)) {
+      return memo.get(id)
+    }
+    if (visiting.has(id)) {
+      return 0
+    }
     visiting.add(id)
-    const value = Math.max(0, ...((predecessors.get(id) ?? []).map(parent => depth(parent) + 1)))
+    const value = Math.max(0, ...(predecessors.get(id) ?? []).map((parent) => depth(parent) + 1))
     visiting.delete(id)
     memo.set(id, value)
     return value
@@ -928,17 +1038,23 @@ function computeLevelByNode(nodes, layoutLayerByNode) {
 }
 
 function inferAuxiliaryLayers(nodes) {
-  const visible = new Map(nodes.map(node => [node.id, node]))
+  const visible = new Map(nodes.map((node) => [node.id, node]))
   const inferred = new Map()
   for (const node of nodes) {
-    if (node.layer !== 'auxiliary') continue
-    const edge = state.graph.edges.find(candidate => {
-      if (candidate.from !== node.id && candidate.to !== node.id) return false
+    if (node.layer !== 'auxiliary') {
+      continue
+    }
+    const edge = state.graph.edges.find((candidate) => {
+      if (candidate.from !== node.id && candidate.to !== node.id) {
+        return false
+      }
       const otherId = candidate.from === node.id ? candidate.to : candidate.from
       const other = visible.get(otherId)
       return other && other.layer !== 'auxiliary'
     })
-    if (!edge) continue
+    if (!edge) {
+      continue
+    }
     const otherId = edge.from === node.id ? edge.to : edge.from
     inferred.set(node.id, visible.get(otherId).layer)
   }
@@ -946,7 +1062,9 @@ function inferAuxiliaryLayers(nodes) {
 }
 
 function moduleWeight(module) {
-  if (module === sharedModule()) return 999
+  if (module === sharedModule()) {
+    return 999
+  }
   return 0
 }
 
@@ -956,21 +1074,39 @@ function sharedModule() {
 
 function nodeSortWeight(node) {
   const name = `${node.label} ${node.path ?? ''}`.toLowerCase()
-  if (name.includes('routes')) return 0
-  if (name.includes('page')) return 1
-  if (name.includes('main')) return 2
-  if (name.includes('index')) return 3
-  if (name.includes('repository')) return 8
-  if (name.includes('controller')) return 9
-  if (name.includes('handler')) return 10
+  if (name.includes('routes')) {
+    return 0
+  }
+  if (name.includes('page')) {
+    return 1
+  }
+  if (name.includes('main')) {
+    return 2
+  }
+  if (name.includes('index')) {
+    return 3
+  }
+  if (name.includes('repository')) {
+    return 8
+  }
+  if (name.includes('controller')) {
+    return 9
+  }
+  if (name.includes('handler')) {
+    return 10
+  }
   return 5
 }
 
 function edgeSvg(edge, nodeById, highlighted, dimmed = false, focused = false) {
   const from = nodeById.get(edge.from)
   const to = nodeById.get(edge.to)
-  if (!from || !to) return ''
-  if (state.view === 'domain') return domainEdgeSvg(edge, from, to, highlighted, dimmed, focused)
+  if (!from || !to) {
+    return ''
+  }
+  if (state.view === 'domain') {
+    return domainEdgeSvg(edge, from, to, highlighted, dimmed, focused)
+  }
 
   const source = from.x <= to.x ? from : to
   const target = source === from ? to : from
@@ -1027,27 +1163,34 @@ function nodeGraphSvg(node, orphan, dimmed = false, focused = false) {
   const quality = node.meta?.quality
   const coverage = node.meta?.coverage
   const review = node.meta?.review
-  const metrics = quality ? `
+  const metrics = quality
+    ? `
     <rect class="metric-box" x="12" y="47" width="64" height="13" style="fill: ${scoreColor(quality.score)}" rx="3"></rect>
     <text class="metric-label" x="18" y="57">Q ${quality.score}/10</text>
-  ` : ''
-  const testIndicator = coverage?.hasCoverage ? `
+  `
+    : ''
+  const testIndicator = coverage?.hasCoverage
+    ? `
     <g class="test-indicator" transform="translate(${node.width - 43}, 8)" aria-label="Related test detected">
       <title>Related test detected</title>
       <rect width="35" height="16" rx="4"></rect>
       <text x="17.5" y="11.5" text-anchor="middle">TEST</text>
     </g>
-  ` : ''
-  const reviewBadge = review ? `
+  `
+    : ''
+  const reviewBadge = review
+    ? `
     <g transform="translate(${node.width - 46}, 8)" aria-label="A revisar">
       <circle class="review-badge" cx="8" cy="8" r="8"></circle>
       <text class="review-label" x="5" y="12">!</text>
     </g>
-  ` : ''
+  `
+    : ''
   const support = state.trace && focused && (node.type === 'hook' || node.layer === 'auxiliary')
-  const secondary = node.type === 'endpoint' && node.meta?.backend?.action
-    ? node.meta.backend.action
-    : `${formatType(node.type)} - ${formatModule(node.module)}`
+  const secondary =
+    node.type === 'endpoint' && node.meta?.backend?.action
+      ? node.meta.backend.action
+      : `${formatType(node.type)} - ${formatModule(node.module)}`
   return `
     <g class="node ${selected ? 'selected' : ''} ${focused ? 'focused' : ''} ${support ? 'trace-support' : ''} ${orphan ? 'orphan' : ''} ${dimmed ? 'dimmed' : ''} ${node.layer === 'auxiliary' ? 'auxiliary' : ''}" data-id="${escapeHtml(node.id)}" transform="translate(${node.x}, ${node.y})">
       <rect width="${node.width}" height="${node.height}"></rect>
@@ -1062,7 +1205,9 @@ function nodeGraphSvg(node, orphan, dimmed = false, focused = false) {
 }
 
 function nodeDomainSvg(node, orphan, dimmed = false, focused = false) {
-  if (node.type === 'entity') return umlEntitySvg(node, orphan, dimmed, focused)
+  if (node.type === 'entity') {
+    return umlEntitySvg(node, orphan, dimmed, focused)
+  }
   return nodeGraphSvg(node, orphan, dimmed, focused)
 }
 
@@ -1071,14 +1216,19 @@ function umlEntitySvg(node, orphan, dimmed = false, focused = false) {
   const properties = node.meta?.domain?.properties ?? []
   const visibleProperties = properties.slice(0, 10)
   const remainingCount = Math.max(0, properties.length - visibleProperties.length)
-  const rows = visibleProperties.map((property, index) => `
+  const rows = visibleProperties
+    .map(
+      (property, index) => `
     <text class="uml-property" x="12" y="${58 + index * 16}">
       ${escapeHtml(truncate(`${property.name}: ${property.type}`, 34))}
     </text>
-  `).join('')
-  const more = remainingCount > 0
-    ? `<text class="uml-property muted" x="12" y="${58 + visibleProperties.length * 16}">+ ${remainingCount} more</text>`
-    : ''
+  `
+    )
+    .join('')
+  const more =
+    remainingCount > 0
+      ? `<text class="uml-property muted" x="12" y="${58 + visibleProperties.length * 16}">+ ${remainingCount} more</text>`
+      : ''
 
   return `
     <g class="node uml-entity ${selected ? 'selected' : ''} ${focused ? 'focused' : ''} ${orphan ? 'orphan' : ''} ${dimmed ? 'dimmed' : ''}" data-id="${escapeHtml(node.id)}" transform="translate(${node.x}, ${node.y})">

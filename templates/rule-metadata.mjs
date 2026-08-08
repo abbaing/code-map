@@ -7,5 +7,5 @@ export function pickRuleMetadata(ids, extraMetadata = {}) {
     ...getArchitectureGuardrailMetadata(),
     ...extraMetadata
   }
-  return Object.fromEntries(ids.map(id => [id, all[id]]).filter(([, value]) => value))
+  return Object.fromEntries(ids.map((id) => [id, all[id]]).filter(([, value]) => value))
 }

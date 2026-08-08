@@ -20,7 +20,9 @@ const baseTemplate = {
 const templates = new Map()
 
 export function registerTemplate(template) {
-  if (!template?.id) throw new Error('Template id is required.')
+  if (!template?.id) {
+    throw new Error('Template id is required.')
+  }
   templates.set(template.id, normalizeTemplate(template))
 }
 
@@ -29,7 +31,7 @@ export function getTemplate(id) {
 }
 
 export function listTemplates() {
-  return [...templates.values()].map(template => ({
+  return [...templates.values()].map((template) => ({
     id: template.id,
     description: template.description,
     stage: template.stage ?? 'custom'
@@ -38,7 +40,9 @@ export function listTemplates() {
 
 export function resolveTemplateIds(projectMap) {
   const configured = projectMap.templates?.enabled
-  if (Array.isArray(configured) && configured.length > 0) return ['base', ...configured.filter(id => id !== 'base')]
+  if (Array.isArray(configured) && configured.length > 0) {
+    return ['base', ...configured.filter((id) => id !== 'base')]
+  }
   return [
     'base',
     'filesystem',
@@ -59,25 +63,33 @@ export function resolveTemplateIds(projectMap) {
 
 export async function loadTemplatePlugins(projectMap, configPath, { allow = false } = {}) {
   const plugins = projectMap.templates?.plugins
-  if (!Array.isArray(plugins) || plugins.length === 0) return
+  if (!Array.isArray(plugins) || plugins.length === 0) {
+    return
+  }
   if (!allow) {
-    throw new Error('Custom template plugins are disabled by default. Review the configured modules and re-run with --allow-plugins to trust them.')
+    throw new Error(
+      'Custom template plugins are disabled by default. Review the configured modules and re-run with --allow-plugins to trust them.'
+    )
   }
   const configDir = path.dirname(path.resolve(configPath))
   for (const pluginPath of plugins) {
     const resolved = path.isAbsolute(pluginPath) ? pluginPath : path.resolve(configDir, pluginPath)
     const mod = await import(pathToFileURL(resolved).href)
     for (const exported of Object.values(mod)) {
-      if (exported?.id) registerTemplate(exported)
+      if (exported?.id) {
+        registerTemplate(exported)
+      }
     }
   }
 }
 
 export function buildTemplateRegistry(projectMap) {
   const templateIds = resolveTemplateIds(projectMap)
-  const selected = templateIds.map(id => {
+  const selected = templateIds.map((id) => {
     const template = templates.get(id)
-    if (!template) throw new Error(`Unknown code map template: ${id}`)
+    if (!template) {
+      throw new Error(`Unknown code map template: ${id}`)
+    }
     return template
   })
 
@@ -131,8 +143,10 @@ function mergeRegistry(registry, template) {
 }
 
 function mergeById(left = [], right = []) {
-  const byId = new Map(left.map(item => [item.id, item]))
-  for (const item of right) byId.set(item.id, { ...(byId.get(item.id) ?? {}), ...item })
+  const byId = new Map(left.map((item) => [item.id, item]))
+  for (const item of right) {
+    byId.set(item.id, { ...(byId.get(item.id) ?? {}), ...item })
+  }
   return [...byId.values()]
 }
 
@@ -161,4 +175,6 @@ function isPlainObject(value) {
 }
 
 registerTemplate(baseTemplate)
-for (const template of templateCatalog) registerTemplate(template)
+for (const template of templateCatalog) {
+  registerTemplate(template)
+}

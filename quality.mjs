@@ -1,12 +1,27 @@
 import { getProjectMap } from './config.mjs'
 
-const METRIC_TYPES = new Set(['component', 'main-component', 'subcomponent', 'page', 'route', 'hook', 'service', 'repository', 'controller', 'query', 'command', 'handler'])
+const METRIC_TYPES = new Set([
+  'component',
+  'main-component',
+  'subcomponent',
+  'page',
+  'route',
+  'hook',
+  'service',
+  'repository',
+  'controller',
+  'query',
+  'command',
+  'handler'
+])
 
 export function isEntryPoint(node) {
   const projectMap = getProjectMap()
-  return projectMap.frontend.entryPoints.includes(node.path)
-    || projectMap.backend?.entryPointSuffixes?.some(suffix => node.path?.endsWith(suffix))
-    || node.type === 'table'
+  return (
+    projectMap.frontend.entryPoints.includes(node.path) ||
+    projectMap.backend?.entryPointSuffixes?.some((suffix) => node.path?.endsWith(suffix)) ||
+    node.type === 'table'
+  )
 }
 
 function clampScore(value) {
@@ -33,7 +48,12 @@ function buildCouplingReason(outgoingCount, externalModules, outgoingExternal) {
     `${externalList.length} external modules: ${externalList.length ? externalList.join(', ') : 'none'}`
   ]
   if (outgoingExternal.length > 0) {
-    parts.push(`external deps: ${outgoingExternal.slice(0, 6).map(node => node.label).join(', ')}`)
+    parts.push(
+      `external deps: ${outgoingExternal
+        .slice(0, 6)
+        .map((node) => node.label)
+        .join(', ')}`
+    )
   }
   return parts.join('; ')
 }
@@ -53,35 +73,39 @@ export function applyQualityMetrics(graph) {
   }
 
   for (const node of graph.allNodes()) {
-    if (!METRIC_TYPES.has(node.type)) continue
+    if (!METRIC_TYPES.has(node.type)) {
+      continue
+    }
 
     const incoming = incomingByNode.get(node.id) ?? []
     const outgoing = outgoingByNode.get(node.id) ?? []
-    const scoredIncoming = incoming.filter(edge => isQualityEdge(graph, edge))
-    const scoredOutgoing = outgoing.filter(edge => isQualityEdge(graph, edge))
+    const scoredIncoming = incoming.filter((edge) => isQualityEdge(graph, edge))
+    const scoredOutgoing = outgoing.filter((edge) => isQualityEdge(graph, edge))
     const relatedEdges = [...scoredIncoming, ...scoredOutgoing]
     const relatedNodes = relatedEdges
-      .map(edge => edge.from === node.id ? graph.getNode(edge.to) : graph.getNode(edge.from))
+      .map((edge) => (edge.from === node.id ? graph.getNode(edge.to) : graph.getNode(edge.from)))
       .filter(Boolean)
 
-    const internalRelations = relatedNodes.filter(related => related.module === node.module).length
-    const externalRelations = relatedNodes.filter(related => related.module !== node.module).length
+    const internalRelations = relatedNodes.filter((related) => related.module === node.module).length
+    const externalRelations = relatedNodes.filter((related) => related.module !== node.module).length
     const outgoingExternal = scoredOutgoing
-      .map(edge => graph.getNode(edge.to))
-      .filter(related => related && related.module !== node.module && related.module !== getProjectMap().modules.shared)
-    const externalModules = new Set(outgoingExternal.map(related => related.module))
+      .map((edge) => graph.getNode(edge.to))
+      .filter(
+        (related) => related && related.module !== node.module && related.module !== getProjectMap().modules.shared
+      )
+    const externalModules = new Set(outgoingExternal.map((related) => related.module))
     const outgoingCount = scoredOutgoing.length
     const incomingCount = scoredIncoming.length
     const insideFeatureFolder = isInsideFeatureFolder(node)
-    const internalRatioBonus = relatedNodes.length > 0
-      ? Math.round((internalRelations / relatedNodes.length) * 3)
-      : 0
+    const internalRatioBonus = relatedNodes.length > 0 ? Math.round((internalRelations / relatedNodes.length) * 3) : 0
     const cohesionDependencyPenalty = outgoingCount > 12 ? 2 : outgoingCount > 8 ? 1 : 0
     const unusedPenalty = incomingCount === 0 && !isEntryPoint(node) ? 1 : 0
 
     let cohesion = 6
     cohesion += internalRatioBonus
-    if (insideFeatureFolder) cohesion += 1
+    if (insideFeatureFolder) {
+      cohesion += 1
+    }
     cohesion -= cohesionDependencyPenalty
     cohesion -= unusedPenalty
 
@@ -93,19 +117,19 @@ export function applyQualityMetrics(graph) {
     coupling -= outgoingCouplingPenalty
     coupling -= externalModulePenalty
     coupling -= externalDominancePenalty
-    if (noDependencyBonus) coupling = Math.min(10, coupling + noDependencyBonus)
+    if (noDependencyBonus) {
+      coupling = Math.min(10, coupling + noDependencyBonus)
+    }
 
     const cohesionScore = clampScore(cohesion)
     const couplingScore = clampScore(coupling)
     const score = Math.round((cohesionScore + couplingScore + Math.min(cohesionScore, couplingScore)) / 3)
-    const topRelated = relatedNodes
-      .slice(0, 8)
-      .map(related => ({
-        id: related.id,
-        label: related.label,
-        type: related.type,
-        module: related.module
-      }))
+    const topRelated = relatedNodes.slice(0, 8).map((related) => ({
+      id: related.id,
+      label: related.label,
+      type: related.type,
+      module: related.module
+    }))
 
     graph.addNode(node.id, {
       meta: {

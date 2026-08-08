@@ -8,13 +8,18 @@ function pillHtml(className, text, title = '') {
 }
 
 function capitalize(value) {
-  if (!value) return ''
+  if (!value) {
+    return ''
+  }
   return value[0].toUpperCase() + value.slice(1)
 }
 
-function fillSelect(select, values, allLabel, format = value => value) {
+function fillSelect(select, values, allLabel, format = (value) => value) {
   select.innerHTML = values
-    .map(value => `<option value="${escapeHtml(value)}">${value === 'all' ? allLabel : escapeHtml(format(value))}</option>`)
+    .map(
+      (value) =>
+        `<option value="${escapeHtml(value)}">${value === 'all' ? allLabel : escapeHtml(format(value))}</option>`
+    )
     .join('')
 }
 
@@ -23,49 +28,68 @@ function truncate(value, max) {
 }
 
 function formatType(type) {
-  if (!type) return ''
-  return typeLabels[type] ?? String(type)
-    .split('-')
-    .map(part => part ? `${part[0].toUpperCase()}${part.slice(1)}` : part)
-    .join(' ')
+  if (!type) {
+    return ''
+  }
+  return (
+    typeLabels[type] ??
+    String(type)
+      .split('-')
+      .map((part) => (part ? `${part[0].toUpperCase()}${part.slice(1)}` : part))
+      .join(' ')
+  )
 }
 
 function formatModule(mod) {
-  if (!mod) return ''
-  return moduleLabels[mod] ?? String(mod)
-    .split('-')
-    .map(part => part ? `${part[0].toUpperCase()}${part.slice(1)}` : part)
-    .join(' ')
+  if (!mod) {
+    return ''
+  }
+  return (
+    moduleLabels[mod] ??
+    String(mod)
+      .split('-')
+      .map((part) => (part ? `${part[0].toUpperCase()}${part.slice(1)}` : part))
+      .join(' ')
+  )
 }
 
 function formatLayer(layer) {
-  if (!layer) return ''
-  return layerLabels[layer] ?? String(layer)
-    .split('-')
-    .map(part => part ? `${part[0].toUpperCase()}${part.slice(1)}` : part)
-    .join(' ')
+  if (!layer) {
+    return ''
+  }
+  return (
+    layerLabels[layer] ??
+    String(layer)
+      .split('-')
+      .map((part) => (part ? `${part[0].toUpperCase()}${part.slice(1)}` : part))
+      .join(' ')
+  )
 }
 
 const ruleLabels = {
-  'frontend.relative-imports':      'Relative imports',
-  'frontend.component-max-lines':   'Component too long',
-  'frontend.no-any':                'No any type',
-  'frontend.component-folder-entry':'Folder entry missing',
+  'frontend.relative-imports': 'Relative imports',
+  'frontend.component-max-lines': 'Component too long',
+  'frontend.no-any': 'No any type',
+  'frontend.component-folder-entry': 'Folder entry missing',
   'frontend.main-no-orchestration': 'Main component too complex',
-  'frontend.route-file-shape':      'Route file shape',
+  'frontend.route-file-shape': 'Route file shape',
   'technology.typescript.relative-imports': 'Relative imports',
   'technology.typescript.no-any': 'No any type',
   'framework.react.component-max-lines': 'Component too long',
-  'framework.react.route-file-shape': 'Route file shape',
+  'framework.react.route-file-shape': 'Route file shape'
 }
 
 function formatRuleId(ruleId) {
-  if (!ruleId) return ''
-  if (ruleLabels[ruleId]) return ruleLabels[ruleId]
+  if (!ruleId) {
+    return ''
+  }
+  if (ruleLabels[ruleId]) {
+    return ruleLabels[ruleId]
+  }
   return ruleId
     .replace(/^[a-z]+\./, '')
     .split(/[-.]/)
-    .map(part => part ? `${part[0].toUpperCase()}${part.slice(1)}` : part)
+    .map((part) => (part ? `${part[0].toUpperCase()}${part.slice(1)}` : part))
     .join(' ')
 }
 
@@ -87,22 +111,72 @@ function debounce(fn, ms) {
 }
 
 function scoreToHealthKey(score) {
-  if (score >= 9.5) return 'excellent'
-  if (score >= 8.5) return 'very-good'
-  if (score >= 7.5) return 'good'
-  if (score >= 6.5) return 'fair'
-  if (score >= 5)   return 'low'
+  if (score >= 9.5) {
+    return 'excellent'
+  }
+  if (score >= 8.5) {
+    return 'very-good'
+  }
+  if (score >= 7.5) {
+    return 'good'
+  }
+  if (score >= 6.5) {
+    return 'fair'
+  }
+  if (score >= 5) {
+    return 'low'
+  }
   return 'critical'
 }
 
 function healthPill(score) {
-  if (!score) return { label: 'N/A', className: 'bg-gray-50 text-gray-600 border border-gray-100', description: healthDescription('n/a') }
-  if (score >= 9.5) return { label: 'Excellent', className: 'bg-emerald-50 text-emerald-700 border border-emerald-100', description: healthDescription('excellent') }
-  if (score >= 8.5) return { label: 'Very good', className: 'bg-emerald-50 text-emerald-700 border border-emerald-100', description: healthDescription('very-good') }
-  if (score >= 7.5) return { label: 'Good', className: 'bg-blue-50 text-blue-700 border border-blue-100', description: healthDescription('good') }
-  if (score >= 6.5) return { label: 'Fair', className: 'bg-amber-50 text-amber-700 border border-amber-100', description: healthDescription('fair') }
-  if (score >= 5) return { label: 'Low', className: 'bg-orange-50 text-orange-700 border border-orange-100', description: healthDescription('low') }
-  return { label: 'Critical', className: 'bg-red-50 text-red-700 border border-red-100', description: healthDescription('critical') }
+  if (!score) {
+    return {
+      label: 'N/A',
+      className: 'bg-gray-50 text-gray-600 border border-gray-100',
+      description: healthDescription('n/a')
+    }
+  }
+  if (score >= 9.5) {
+    return {
+      label: 'Excellent',
+      className: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
+      description: healthDescription('excellent')
+    }
+  }
+  if (score >= 8.5) {
+    return {
+      label: 'Very good',
+      className: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
+      description: healthDescription('very-good')
+    }
+  }
+  if (score >= 7.5) {
+    return {
+      label: 'Good',
+      className: 'bg-blue-50 text-blue-700 border border-blue-100',
+      description: healthDescription('good')
+    }
+  }
+  if (score >= 6.5) {
+    return {
+      label: 'Fair',
+      className: 'bg-amber-50 text-amber-700 border border-amber-100',
+      description: healthDescription('fair')
+    }
+  }
+  if (score >= 5) {
+    return {
+      label: 'Low',
+      className: 'bg-orange-50 text-orange-700 border border-orange-100',
+      description: healthDescription('low')
+    }
+  }
+  return {
+    label: 'Critical',
+    className: 'bg-red-50 text-red-700 border border-red-100',
+    description: healthDescription('critical')
+  }
 }
 
 function healthDescription(key) {

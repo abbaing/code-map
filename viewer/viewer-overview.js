@@ -1,14 +1,16 @@
 function buildModuleStats() {
   const modules = new Map()
-  const orphanIds = new Set(state.graph.orphans.map(o => o.id))
+  const orphanIds = new Set(state.graph.orphans.map((o) => o.id))
 
   // Determine which modules are visible after filtering
-  const visibleModules = new Set(state.filteredNodes.map(n => n.module || 'shared'))
+  const visibleModules = new Set(state.filteredNodes.map((n) => n.module || 'shared'))
 
   // Compute stats using all nodes so scores are stable regardless of active filters
   for (const node of state.graph.nodes) {
     const m = node.module || 'shared'
-    if (!visibleModules.has(m)) continue
+    if (!visibleModules.has(m)) {
+      continue
+    }
     if (!modules.has(m)) {
       modules.set(m, {
         nodes: 0,
@@ -23,9 +25,15 @@ function buildModuleStats() {
     }
     const s = modules.get(m)
     s.nodes++
-    if (orphanIds.has(node.id)) s.orphans++
-    if (isCoverable(node) && !node.meta?.coverage?.hasCoverage) s.uncovered++
-    if (node.meta?.review) s.review++
+    if (orphanIds.has(node.id)) {
+      s.orphans++
+    }
+    if (isCoverable(node) && !node.meta?.coverage?.hasCoverage) {
+      s.uncovered++
+    }
+    if (node.meta?.review) {
+      s.review++
+    }
     for (const finding of node.meta?.findings ?? []) {
       s.findings++
       s.findingRules.set(finding.ruleId, (s.findingRules.get(finding.ruleId) ?? 0) + 1)
@@ -39,17 +47,18 @@ function buildModuleStats() {
 }
 
 function moduleHealthKey(s) {
-  if (s.qualityCount === 0) return 'n/a'
+  if (s.qualityCount === 0) {
+    return 'n/a'
+  }
   return scoreToHealthKey(s.qualitySum / s.qualityCount)
 }
 
 function filterAndSortModuleStats(stats) {
   const healthFilterActive = state.selectedHealth.size < 6
   const query = els.search.value.trim().toLowerCase()
-  const matchesQuery = name => !query
-    || name.toLowerCase().includes(query)
-    || formatModule(name).toLowerCase().includes(query)
-  const matchesHealth = s => !healthFilterActive || state.selectedHealth.has(moduleHealthKey(s))
+  const matchesQuery = (name) =>
+    !query || name.toLowerCase().includes(query) || formatModule(name).toLowerCase().includes(query)
+  const matchesHealth = (s) => !healthFilterActive || state.selectedHealth.has(moduleHealthKey(s))
 
   return [...stats.entries()]
     .filter(([name, s]) => matchesQuery(name) && matchesHealth(s))
@@ -81,12 +90,11 @@ function renderOverview() {
     : '<div class="px-4 py-10 text-center text-sm text-gray-500">No modules match the current filters.</div>'
 }
 
-
 function renderModuleDetail() {
-  if (!els.moduleDetail) return
-  const selectedNode = state.selectedId
-    ? state.graph?.nodes.find(node => node.id === state.selectedId)
-    : null
+  if (!els.moduleDetail) {
+    return
+  }
+  const selectedNode = state.selectedId ? state.graph?.nodes.find((node) => node.id === state.selectedId) : null
   if (selectedNode) {
     els.moduleDetail.classList.remove('hidden')
     els.moduleDetail.innerHTML = selectedNodeDetailHtml(selectedNode)
@@ -106,22 +114,22 @@ function renderModuleDetail() {
     return
   }
 
-  const moduleNodes = state.graph.nodes.filter(node => node.module === moduleName)
-  const moduleNodeIds = new Set(moduleNodes.map(node => node.id))
-  const moduleEdges = state.graph.edges.filter(edge => moduleNodeIds.has(edge.from) || moduleNodeIds.has(edge.to))
-  const orphanIds = new Set(state.graph.orphans.map(orphan => orphan.id))
+  const moduleNodes = state.graph.nodes.filter((node) => node.module === moduleName)
+  const moduleNodeIds = new Set(moduleNodes.map((node) => node.id))
+  const moduleEdges = state.graph.edges.filter((edge) => moduleNodeIds.has(edge.from) || moduleNodeIds.has(edge.to))
+  const orphanIds = new Set(state.graph.orphans.map((orphan) => orphan.id))
   const coverable = moduleNodes.filter(isCoverable)
-  const covered = coverable.filter(node => node.meta?.coverage?.hasCoverage)
-  const qualityNodes = moduleNodes.filter(node => node.meta?.quality)
+  const covered = coverable.filter((node) => node.meta?.coverage?.hasCoverage)
+  const qualityNodes = moduleNodes.filter((node) => node.meta?.quality)
   const avgQuality = qualityNodes.length
     ? qualityNodes.reduce((sum, node) => sum + node.meta.quality.score, 0) / qualityNodes.length
     : null
-  const orphans = moduleNodes.filter(node => orphanIds.has(node.id))
-  const review = moduleNodes.filter(node => node.meta?.review)
-  const findings = moduleNodes.flatMap(node => node.meta?.findings ?? [])
-  const externalEdges = moduleEdges.filter(edge => {
-    const from = state.graph.nodes.find(node => node.id === edge.from)
-    const to = state.graph.nodes.find(node => node.id === edge.to)
+  const orphans = moduleNodes.filter((node) => orphanIds.has(node.id))
+  const review = moduleNodes.filter((node) => node.meta?.review)
+  const findings = moduleNodes.flatMap((node) => node.meta?.findings ?? [])
+  const externalEdges = moduleEdges.filter((edge) => {
+    const from = state.graph.nodes.find((node) => node.id === edge.from)
+    const to = state.graph.nodes.find((node) => node.id === edge.to)
     return from && to && from.module !== to.module
   })
 
@@ -179,7 +187,12 @@ function updateViewUI() {
 
   const viewCopy = {
     overview: ['Overview', 'Repository health and module inventory'],
-    graph: ['Graph', state.activeModule ? `Exploring ${formatModule(state.activeModule)}` : 'Dependencies between repository components'],
+    graph: [
+      'Graph',
+      state.activeModule
+        ? `Exploring ${formatModule(state.activeModule)}`
+        : 'Dependencies between repository components'
+    ],
     domain: ['Domain model', 'Entities and their structural relationships'],
     findings: ['Findings', 'Architecture violations and maintainability risks'],
     settings: ['Settings', 'Project labels, colors and active rules']

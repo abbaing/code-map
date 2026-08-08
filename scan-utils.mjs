@@ -8,7 +8,7 @@ export const maxSourceFileBytes = 2 * 1024 * 1024
 export const componentContainerDirs = ['components', 'pages']
 
 export function findComponentDirIndex(segments) {
-  return Math.max(...componentContainerDirs.map(dir => segments.indexOf(dir)))
+  return Math.max(...componentContainerDirs.map((dir) => segments.indexOf(dir)))
 }
 
 export function isTestFile(filePath) {
@@ -33,7 +33,9 @@ export function normalizePath(input) {
 
 export function readText(filePath, maxBytes = maxSourceFileBytes) {
   const size = fs.statSync(filePath).size
-  if (size > maxBytes) throw new SourceFileTooLargeError(filePath, size, maxBytes)
+  if (size > maxBytes) {
+    throw new SourceFileTooLargeError(filePath, size, maxBytes)
+  }
   return fs.readFileSync(filePath, 'utf8')
 }
 
@@ -60,20 +62,17 @@ export function stripCSharpStringLiterals(content) {
 }
 
 export function stripCSharpComments(content) {
-  return content
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/(^|[^:])\/\/[^\n]*/g, '$1')
+  return content.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
 }
 
 export function stripTsComments(content) {
-  return content
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/(^|[^:])\/\/[^\n]*/g, '$1')
+  return content.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
 }
 
 export function importsOf(content) {
-  return [...stripTsComments(content).matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]/g)]
-    .map(match => ({ specifier: match[1], index: match.index ?? 0 }))
+  return [...stripTsComments(content).matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]/g)].map(
+    (match) => ({ specifier: match[1], index: match.index ?? 0 })
+  )
 }
 
 export function kebab(value) {
@@ -84,7 +83,9 @@ export function kebab(value) {
 }
 
 export function walk(dir, predicate = () => true, options = {}) {
-  if (!fs.existsSync(dir)) return []
+  if (!fs.existsSync(dir)) {
+    return []
+  }
   const ignoredDirs = new Set(getProjectMap().ignoredDirs)
   const maxFileBytes = options.maxFileBytes ?? maxSourceFileBytes
   const result = []
@@ -94,13 +95,19 @@ export function walk(dir, predicate = () => true, options = {}) {
     const current = stack.pop()
     for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
       if (entry.isDirectory()) {
-        if (!ignoredDirs.has(entry.name)) stack.push(path.join(current, entry.name))
+        if (!ignoredDirs.has(entry.name)) {
+          stack.push(path.join(current, entry.name))
+        }
         continue
       }
-      if (!entry.isFile()) continue
+      if (!entry.isFile()) {
+        continue
+      }
 
       const fullPath = path.join(current, entry.name)
-      if (!predicate(fullPath)) continue
+      if (!predicate(fullPath)) {
+        continue
+      }
       const size = fs.statSync(fullPath).size
       if (size > maxFileBytes) {
         options.onSkippedFile?.({ filePath: fullPath, size, limit: maxFileBytes })
@@ -114,7 +121,9 @@ export function walk(dir, predicate = () => true, options = {}) {
 }
 
 function formatBytes(bytes) {
-  if (bytes % (1024 * 1024) === 0) return `${bytes / (1024 * 1024)} MiB`
+  if (bytes % (1024 * 1024) === 0) {
+    return `${bytes / (1024 * 1024)} MiB`
+  }
   return `${bytes} bytes`
 }
 

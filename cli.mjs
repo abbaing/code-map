@@ -1,18 +1,16 @@
 #!/usr/bin/env node
 import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { getConfigPathFromArgs, loadProjectMap, getProjectMap, resolveGraphOutputPath } from './config.mjs'
 import { detect, detectSummary } from './detect.mjs'
 import { writeGraph } from './scan.mjs'
 import { listTemplates, loadTemplatePlugins } from './templates/registry.mjs'
 import { writeJsonFileAtomic } from './json-io.mjs'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = process.cwd()
 
 const args = process.argv.slice(2)
-const hasFlag = flag => args.includes(flag)
+const hasFlag = (flag) => args.includes(flag)
 
 if (args[0] === 'submap') {
   const { runSubmapCli } = await import('./submap/cli.mjs')
@@ -20,7 +18,8 @@ if (args[0] === 'submap') {
 }
 
 if (hasFlag('--help') || hasFlag('-h')) {
-  console.log(`
+  console.log(
+    `
 code-map - architectural graph generator
 
 Usage:
@@ -43,7 +42,8 @@ Environment variables:
 Config:
   --config may point anywhere in the repo. Plugin paths are resolved relative
   to that project-map.json; a bare graphOutput filename is written beside the config.
-`.trim())
+`.trim()
+  )
   process.exit(0)
 }
 
@@ -58,7 +58,9 @@ if (hasFlag('--templates')) {
 
 if (hasFlag('--init')) {
   const summary = detectSummary(repoRoot)
-  console.log(`Detected: ${summary.frontendFramework ?? 'unknown'} frontend, ${summary.backendStack ?? 'none'} backend, ${summary.moduleCount} modules`)
+  console.log(
+    `Detected: ${summary.frontendFramework ?? 'unknown'} frontend, ${summary.backendStack ?? 'none'} backend, ${summary.moduleCount} modules`
+  )
 
   const config = detect(repoRoot)
 
@@ -77,8 +79,12 @@ if (hasFlag('--init')) {
 
 const explicitConfigPath = (() => {
   const configIndex = args.indexOf('--config')
-  if (configIndex >= 0 && args[configIndex + 1]) return path.resolve(args[configIndex + 1])
-  if (process.env.CODE_MAP_CONFIG) return path.resolve(process.env.CODE_MAP_CONFIG)
+  if (configIndex >= 0 && args[configIndex + 1]) {
+    return path.resolve(args[configIndex + 1])
+  }
+  if (process.env.CODE_MAP_CONFIG) {
+    return path.resolve(process.env.CODE_MAP_CONFIG)
+  }
   return null
 })()
 
@@ -94,18 +100,18 @@ if (configPath) {
   console.log(`Using config: ${path.relative(repoRoot, configPath)}`)
 } else {
   const summary = detectSummary(repoRoot)
-  console.log(`Auto-detected: ${summary.frontendFramework ?? 'unknown'} + ${summary.backendStack ?? 'none'}, ${summary.moduleCount} modules`)
+  console.log(
+    `Auto-detected: ${summary.frontendFramework ?? 'unknown'} + ${summary.backendStack ?? 'none'}, ${summary.moduleCount} modules`
+  )
   console.log('Tip: run with --init to generate a project-map.json you can customize.')
   loadProjectMap(detect(repoRoot))
   pluginBasePath = path.join(repoRoot, 'project-map.json')
 }
 
 try {
-  await loadTemplatePlugins(
-    getProjectMap(),
-    pluginBasePath ?? path.join(repoRoot, 'project-map.json'),
-    { allow: hasFlag('--allow-plugins') }
-  )
+  await loadTemplatePlugins(getProjectMap(), pluginBasePath ?? path.join(repoRoot, 'project-map.json'), {
+    allow: hasFlag('--allow-plugins')
+  })
 } catch (error) {
   console.error(error.message)
   process.exit(1)
@@ -115,13 +121,13 @@ try {
 
 if (hasFlag('--scan')) {
   const outArgIndex = args.indexOf('--out')
-  const outputPath = outArgIndex >= 0
-    ? path.resolve(args[outArgIndex + 1])
-    : resolveGraphOutputPath()
+  const outputPath = outArgIndex >= 0 ? path.resolve(args[outArgIndex + 1]) : resolveGraphOutputPath()
 
   const result = writeGraph(outputPath)
   const displayOutput = path.relative(repoRoot, outputPath).replaceAll(path.sep, '/')
-  console.log(`Scan complete: ${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.findings} findings -> ${displayOutput}`)
+  console.log(
+    `Scan complete: ${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.findings} findings -> ${displayOutput}`
+  )
   process.exit(0)
 }
 
