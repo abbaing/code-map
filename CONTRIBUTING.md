@@ -17,6 +17,14 @@ npm run check
 
 This runs ESLint, verifies formatting with Prettier, and executes the test suite. Use `npm run format` to apply formatting before committing.
 
+Measure the production modules and enforce the repository coverage baseline:
+
+```bash
+npm run test:coverage
+```
+
+Coverage thresholds are enforced in a dedicated Linux/Node.js 24 CI job. New behavior should include regression tests instead of lowering the thresholds.
+
 Rebuild the local viewer utility stylesheet after changing classes in `viewer/`:
 
 ```bash

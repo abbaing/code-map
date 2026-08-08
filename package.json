@@ -35,12 +35,14 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "lint": "eslint .",
-    "test": "node tests/architecture.test.mjs && node tests/core-critical.test.mjs && node tests/generic-templates.test.mjs && node tests/cli-smoke.test.mjs && node tests/submap.test.mjs && node tests/submap-cli.test.mjs && node tests/viewer-trace.test.mjs && node tests/viewer-render.test.mjs",
+    "test": "node tests/architecture.test.mjs && node tests/core-critical.test.mjs && node tests/generic-templates.test.mjs && node tests/server-app.test.mjs && node tests/cli-smoke.test.mjs && node tests/submap.test.mjs && node tests/submap-cli.test.mjs && node tests/viewer-trace.test.mjs && node tests/viewer-render.test.mjs",
+    "test:coverage": "c8 --all --include=*.mjs --include=rules/**/*.mjs --include=submap/**/*.mjs --include=templates/**/*.mjs --check-coverage --lines=78 --statements=78 --branches=77 --functions=80 npm test",
     "pack:dry": "npm pack --dry-run"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
     "@tailwindcss/cli": "4.3.3",
+    "c8": "11.0.0",
     "eslint": "9.39.5",
     "globals": "17.9.0",
     "prettier": "3.9.6",

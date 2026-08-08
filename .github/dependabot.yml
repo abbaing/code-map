@@ -17,6 +17,7 @@ updates:
           - '@tailwindcss/*'
       quality-tooling:
         patterns:
+          - c8
           - eslint
           - '@eslint/*'
           - globals
