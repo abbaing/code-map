@@ -243,6 +243,8 @@ code-map --help                   Show help
 | `CODE_MAP_HOST`   | `127.0.0.1` | Viewer server host; override only when necessary |
 | `CODE_MAP_PORT`   | `1133`      | Viewer server port                               |
 
+The viewer is intended as a local development tool. Mutating HTTP requests require a same-origin browser session, and requests with an unexpected `Host` header are rejected. Setting `CODE_MAP_HOST` to a non-loopback address should only be done on a trusted network; it does not turn the viewer into a public multi-user service.
+
 ---
 
 ## project-map.json

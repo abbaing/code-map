@@ -137,15 +137,15 @@ async function withServer(args, cwd, callback) {
   })
 
   try {
-    await waitForServer(port)
-    await callback(port)
+    const session = await waitForServer(port)
+    await callback(port, session)
   } finally {
     child.kill('SIGTERM')
     await new Promise(resolve => child.once('exit', resolve))
   }
 }
 
-function request(port, method, pathname, body) {
+function request(port, method, pathname, body, headers = {}) {
   return new Promise((resolve, reject) => {
     const payload = body == null ? null : JSON.stringify(body)
     const req = http.request({
@@ -153,15 +153,17 @@ function request(port, method, pathname, body) {
       port,
       path: pathname,
       method,
-      headers: payload
-        ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
-        : {}
+      headers: {
+        ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {}),
+        ...headers
+      }
     }, response => {
       const chunks = []
       response.on('data', chunk => chunks.push(chunk))
       response.on('end', () => resolve({
         status: response.statusCode,
-        body: Buffer.concat(chunks).toString('utf8')
+        body: Buffer.concat(chunks).toString('utf8'),
+        headers: response.headers
       }))
     })
     req.on('error', reject)
@@ -170,20 +172,21 @@ function request(port, method, pathname, body) {
   })
 }
 
-function requestRaw(port, method, pathname, payload) {
+function requestRaw(port, method, pathname, payload, headers = {}) {
   return new Promise((resolve, reject) => {
     const req = http.request({
       hostname: 'localhost',
       port,
       path: pathname,
       method,
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), ...headers }
     }, response => {
       const chunks = []
       response.on('data', chunk => chunks.push(chunk))
       response.on('end', () => resolve({
         status: response.statusCode,
-        body: Buffer.concat(chunks).toString('utf8')
+        body: Buffer.concat(chunks).toString('utf8'),
+        headers: response.headers
       }))
     })
     req.on('error', reject)
@@ -196,7 +199,15 @@ async function waitForServer(port) {
   for (let attempt = 0; attempt < 50; attempt += 1) {
     try {
       const response = await request(port, 'GET', '/', null)
-      if (response.status === 200) return
+      if (response.status === 200) {
+        const setCookie = response.headers['set-cookie']?.[0]
+        if (!setCookie) throw new Error('server did not issue a viewer session cookie')
+        assert.match(setCookie, /; HttpOnly; SameSite=Strict; Path=\/$/u, 'the viewer session cookie must not be readable by JavaScript or sent cross-site')
+        return {
+          Cookie: setCookie.split(';')[0],
+          Origin: `http://localhost:${port}`
+        }
+      }
     } catch {
       await new Promise(resolve => setTimeout(resolve, 100))
     }
@@ -204,10 +215,19 @@ async function waitForServer(port) {
   throw new Error(`server did not start on port ${port}`)
 }
 
-await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async port => {
+await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async (port, session) => {
   const current = JSON.parse((await request(port, 'GET', '/project-map.json')).body)
 
-  const scanResponse = await request(port, 'POST', '/api/scan', {})
+  const missingSession = await request(port, 'POST', '/api/scan', {})
+  assert.equal(missingSession.status, 403, 'mutating endpoints must require a viewer session')
+  const crossOrigin = await request(port, 'POST', '/api/scan', {}, { ...session, Origin: 'http://attacker.invalid' })
+  assert.equal(crossOrigin.status, 403, 'mutating endpoints must reject cross-origin requests')
+  const invalidSession = await request(port, 'POST', '/api/scan', {}, { ...session, Cookie: 'code-map-session=invalid' })
+  assert.equal(invalidSession.status, 403, 'mutating endpoints must reject invalid session tokens')
+  const invalidHost = await request(port, 'GET', '/graph.json', null, { Host: `attacker.invalid:${port}` })
+  assert.equal(invalidHost.status, 400, 'requests with an untrusted Host header must be rejected')
+
+  const scanResponse = await request(port, 'POST', '/api/scan', {}, session)
   assert.equal(scanResponse.status, 200, 'the running viewer must be able to regenerate its graph')
   const scanResult = JSON.parse(scanResponse.body)
   assert.equal(scanResult.ok, true)
@@ -223,7 +243,7 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async port =>
     edgeIds: [],
     selectedNodeId: traceNodeId,
     complete: false
-  })
+  }, session)
   assert.equal(traceResponse.status, 200, 'a viewer trace must be persisted as a submap')
   const traceResult = JSON.parse(traceResponse.body)
   assert.equal(traceResult.ok, true)
@@ -233,17 +253,17 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async port =>
   assert.deepEqual(traceSubmap.nodes.map(node => node.id), [traceNodeId], 'trace node ids must be de-duplicated')
   assert.equal(traceSubmap.metadata.kind, 'execution-trace')
 
-  const emptyTrace = await request(port, 'POST', '/api/submaps/from-trace', { id: 'empty-trace', nodeIds: [] })
+  const emptyTrace = await request(port, 'POST', '/api/submaps/from-trace', { id: 'empty-trace', nodeIds: [] }, session)
   assert.equal(emptyTrace.status, 400)
   assert.match(JSON.parse(emptyTrace.body).error, /non-empty trace selection/u)
 
   current.project.name = 'Saved Arbitrary Config App'
-  const response = await request(port, 'POST', '/api/project-map', current)
+  const response = await request(port, 'POST', '/api/project-map', current, session)
   assert.equal(response.status, 200, 'settings save should work when started with --config')
   const saved = JSON.parse(fs.readFileSync(arbitraryConfigPath, 'utf8'))
   assert.equal(saved.project.name, 'Saved Arbitrary Config App', 'settings save should write back to the explicit config path')
 
-  const malformedResponse = await requestRaw(port, 'POST', '/api/project-map', '{ not json')
+  const malformedResponse = await requestRaw(port, 'POST', '/api/project-map', '{ not json', session)
   assert.equal(malformedResponse.status, 400, 'malformed project-map JSON must return a controlled client error')
   assert.equal(JSON.parse(malformedResponse.body).ok, false)
 
@@ -252,7 +272,7 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async port =>
     schemaVersion: 1,
     project: {},
     sourceRoots: {}
-  })
+  }, session)
   assert.equal(invalidConfigResponse.status, 400, 'invalid project-map documents must be rejected before persistence')
   assert.match(JSON.parse(invalidConfigResponse.body).error, /project\.name is required/u)
   assert.equal(fs.readFileSync(arbitraryConfigPath, 'utf8'), configBeforeInvalidSave, 'an invalid save must preserve the last valid config')
@@ -264,7 +284,7 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async port =>
   fs.rmSync(arbitraryGraphPath)
   fs.mkdirSync(arbitraryGraphPath)
   try {
-    const failedScan = await request(port, 'POST', '/api/scan', {})
+    const failedScan = await request(port, 'POST', '/api/scan', {}, session)
     assert.equal(failedScan.status, 500, 'graph write failures must be returned as controlled scan errors')
     assert.equal(JSON.parse(failedScan.body).ok, false)
   } finally {
@@ -276,7 +296,7 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async port =>
   fs.rmSync(arbitraryConfigPath)
   fs.mkdirSync(arbitraryConfigPath)
   try {
-    const failedSave = await request(port, 'POST', '/api/project-map', current)
+    const failedSave = await request(port, 'POST', '/api/project-map', current, session)
     assert.equal(failedSave.status, 500, 'config write failures must be returned as controlled save errors')
     assert.equal(JSON.parse(failedSave.body).ok, false)
   } finally {
@@ -285,9 +305,9 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async port =>
   }
 })
 
-await withServer([], appRoot, async port => {
+await withServer([], appRoot, async (port, session) => {
   const current = JSON.parse((await request(port, 'GET', '/project-map.json')).body)
-  const response = await request(port, 'POST', '/api/project-map', current)
+  const response = await request(port, 'POST', '/api/project-map', current, session)
   assert.equal(response.status, 400, 'settings save should be blocked for auto-detected configs')
   assert.match(response.body, /Cannot save an auto-detected project map/u)
 })
