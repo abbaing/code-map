@@ -1,5 +1,7 @@
 # >> c0de::map
 
+[![CI](https://github.com/abbaing/code-map/actions/workflows/ci.yml/badge.svg)](https://github.com/abbaing/code-map/actions/workflows/ci.yml)
+
 Codebases don't break all at once. They drift.
 
 A feature imports from another feature's internals. A repository pulls in a UI component. A domain layer references infrastructure. A controller grows business logic. Each violation is small. Together they compound into a codebase nobody wants to touch.

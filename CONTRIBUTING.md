@@ -23,6 +23,8 @@ npm run build:viewer-css
 
 Commit the generated `viewer/tailwind.css` together with the source change.
 
+Pull requests run the test suite on Node.js 20, 22, and 24 under Linux, plus Node.js 24 under Windows. CI also rejects stale generated viewer styles.
+
 Validate package contents:
 
 ```bash
