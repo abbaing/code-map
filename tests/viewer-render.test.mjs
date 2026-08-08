@@ -2,6 +2,13 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import vm from 'node:vm'
 
+const viewerHtml = fs.readFileSync(new URL('../viewer/viewer.html', import.meta.url), 'utf8')
+const tailwindCss = fs.readFileSync(new URL('../viewer/tailwind.css', import.meta.url), 'utf8')
+assert.match(viewerHtml, /<link rel="stylesheet" href="\/tailwind\.css" \/>/u, 'the viewer must load the compiled local utility stylesheet')
+assert.doesNotMatch(viewerHtml, /<(?:script|link)\b[^>]*(?:src|href)=["']https?:\/\//iu, 'the viewer must not load remote scripts or stylesheets')
+assert.match(tailwindCss, /tailwindcss v4\.3\.3/u, 'the committed utility stylesheet must identify its pinned compiler version')
+assert.match(tailwindCss, /\.text-\\\[11px\\\]/u, 'the compiled stylesheet must include utilities used by dynamic viewer markup')
+
 const classNames = new Set(['hidden'])
 const attributes = new Map()
 const svg = {

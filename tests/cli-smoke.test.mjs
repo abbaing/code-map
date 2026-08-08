@@ -224,6 +224,10 @@ async function waitForServer(port) {
 
 await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async (port, session) => {
   const current = JSON.parse((await request(port, 'GET', '/project-map.json')).body)
+  const localUtilityCss = await request(port, 'GET', '/tailwind.css', null)
+  assert.equal(localUtilityCss.status, 200, 'the viewer utility stylesheet must be served locally')
+  assert.match(localUtilityCss.headers['content-type'], /^text\/css/u)
+  assert.match(localUtilityCss.body, /tailwindcss v4\.3\.3/u)
 
   const missingSession = await request(port, 'POST', '/api/scan', {})
   assert.equal(missingSession.status, 403, 'mutating endpoints must require a viewer session')

@@ -30,8 +30,13 @@
     "./*": "./*"
   },
   "scripts": {
+    "build:viewer-css": "tailwindcss -i ./viewer/tailwind.input.css -o ./viewer/tailwind.css --minify",
     "test": "node tests/architecture.test.mjs && node tests/core-critical.test.mjs && node tests/generic-templates.test.mjs && node tests/cli-smoke.test.mjs && node tests/submap.test.mjs && node tests/submap-cli.test.mjs && node tests/viewer-trace.test.mjs && node tests/viewer-render.test.mjs",
     "pack:dry": "npm pack --dry-run"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "tailwindcss": "4.3.3"
   },
   "files": [
     "cli.mjs",

@@ -15,6 +15,14 @@ Run the test suite:
 npm test
 ```
 
+Rebuild the local viewer utility stylesheet after changing classes in `viewer/`:
+
+```bash
+npm run build:viewer-css
+```
+
+Commit the generated `viewer/tailwind.css` together with the source change.
+
 Validate package contents:
 
 ```bash

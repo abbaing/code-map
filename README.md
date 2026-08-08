@@ -52,7 +52,7 @@ Quality badges use `Q n/10`. Q is a maintainability heuristic derived from cohes
 
 ## Requirements
 
-Node.js 20 or later. No dependencies.
+Node.js 20 or later. No runtime dependencies.
 
 ---
 

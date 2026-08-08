@@ -153,7 +153,7 @@ function publicError(error) {
 }
 
 function isViewerAsset(pathname) {
-  return pathname === '/viewer.css' || (pathname.startsWith('/viewer-') && pathname.endsWith('.js'))
+  return pathname === '/tailwind.css' || pathname === '/viewer.css' || (pathname.startsWith('/viewer-') && pathname.endsWith('.js'))
 }
 
 function createRoutes(sessionToken) {
