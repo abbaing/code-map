@@ -30,10 +30,11 @@ export function createServerApplication({ repoRoot = process.cwd() } = {}) {
     }
     projectPath(projectMapPath, 'Project map')
 
-    const document = structuredClone(input)
-    delete document.configPath
+    let document
     try {
-      validateProjectMap(document, projectMapPath)
+      validateProjectMap(input, projectMapPath)
+      document = structuredClone(input)
+      delete document.configPath
     } catch (error) {
       throw new ApplicationInputError(error.message, { cause: error })
     }
@@ -57,9 +58,7 @@ export function createServerApplication({ repoRoot = process.cwd() } = {}) {
   }
 
   function createTraceSubmap(input) {
-    if (!Array.isArray(input.nodeIds) || input.nodeIds.length === 0) {
-      throw new ApplicationInputError('A non-empty trace selection is required.')
-    }
+    validateTraceInput(input)
     assertProjectMapPaths(getProjectMap(), getProjectMapPath())
     const graph = JSON.parse(fs.readFileSync(projectPath(resolveGraphOutputPath(), 'project.graphOutput'), 'utf8'))
     const request = {
@@ -128,6 +127,36 @@ export function createServerApplication({ repoRoot = process.cwd() } = {}) {
     if (escapesRoot) throw new ApplicationInputError(`${label} must resolve within the project root.`)
     return path.resolve(candidate)
   }
+}
+
+function validateTraceInput(input) {
+  if (!isRecord(input)) throw new ApplicationInputError('Trace request must be a JSON object.')
+  const unknown = Object.keys(input).filter(key => !['id', 'nodeIds', 'edgeIds', 'selectedNodeId', 'complete'].includes(key))
+  if (unknown.length > 0) throw new ApplicationInputError(`Unknown trace request properties: ${unknown.sort().join(', ')}.`)
+  if (!Array.isArray(input.nodeIds) || input.nodeIds.length === 0) {
+    throw new ApplicationInputError('A non-empty trace selection is required.')
+  }
+  assertNonEmptyStringArray(input.nodeIds, 'nodeIds')
+  if (input.edgeIds !== undefined) assertNonEmptyStringArray(input.edgeIds, 'edgeIds')
+  if (typeof input.id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(input.id)) {
+    throw new ApplicationInputError('Trace id must use letters, numbers, dots, underscores, or hyphens.')
+  }
+  if (input.selectedNodeId !== undefined && (typeof input.selectedNodeId !== 'string' || !input.selectedNodeId.trim())) {
+    throw new ApplicationInputError('selectedNodeId must be a non-empty string.')
+  }
+  if (input.complete !== undefined && typeof input.complete !== 'boolean') {
+    throw new ApplicationInputError('complete must be a boolean.')
+  }
+}
+
+function assertNonEmptyStringArray(value, location) {
+  if (!Array.isArray(value) || value.some(item => typeof item !== 'string' || !item.trim())) {
+    throw new ApplicationInputError(`${location} must be an array of non-empty strings.`)
+  }
+}
+
+function isRecord(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
 
 function assertPathValue(value, label) {

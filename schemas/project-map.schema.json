@@ -12,9 +12,9 @@
       "required": ["name"],
       "properties": {
         "name": { "type": "string", "minLength": 1 },
-        "graphOutput": { "type": "string" },
-        "runtimeLinks": { "type": "string" },
-        "submapsDirectory": { "type": "string" }
+        "graphOutput": { "type": "string", "minLength": 1 },
+        "runtimeLinks": { "type": "string", "minLength": 1 },
+        "submapsDirectory": { "type": "string", "minLength": 1 }
       },
       "additionalProperties": true
     },
@@ -31,6 +31,10 @@
       "type": "object",
       "properties": {
         "enabled": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "plugins": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 }
         }

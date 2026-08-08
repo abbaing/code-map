@@ -58,6 +58,46 @@ try {
     ].every(message => error.message.includes(message)),
     'config validation must report all independent schema errors together'
   )
+  assert.throws(
+    () => validateProjectMap({
+      schemaVersion: 0,
+      project: { name: 42, graphOutput: '' },
+      sourceRoots: { frontend: [], extra: 'outside-contract' },
+      templates: { enabled: [''], plugins: 'plugin.mjs' },
+      ignoredDirs: 'node_modules',
+      imports: { aliases: [null, { prefix: '', path: 1, extra: true }] },
+      layers: [null, { id: '', label: 2 }],
+      modules: [],
+      types: null,
+      frontend: 'frontend',
+      backend: [],
+      rules: { enabled: 'rule', options: [], suppressions: [null, { reason: '', ruleId: 1 }] }
+    }),
+    error => [
+      'schemaVersion must be at least 1',
+      'project.name must be a non-empty string',
+      'project.graphOutput must be a non-empty string',
+      'sourceRoots.frontend must be a non-empty string',
+      'sourceRoots contains unknown properties: extra',
+      'templates.enabled must contain only non-empty strings',
+      'templates.plugins must be an array',
+      'ignoredDirs must be an array',
+      'imports.aliases[0] must be an object',
+      'imports.aliases[1].prefix must be a non-empty string',
+      'imports.aliases[1].path must be a non-empty string',
+      'layers[0] must be an object',
+      'layers[1].id must be a non-empty string',
+      'rules.enabled must be an array',
+      'rules.options must be an object',
+      'rules.suppressions[0] must be an object',
+      'rules.suppressions[1].reason must be a non-empty string',
+      'modules must be an object',
+      'types must be an object',
+      'frontend must be an object',
+      'backend must be an object'
+    ].every(message => error.message.includes(message)),
+    'config validation must aggregate nested type and shape errors'
+  )
 
   assert.throws(
     () => buildTemplateRegistry({ templates: { enabled: ['does-not-exist'] } }),

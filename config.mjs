@@ -229,13 +229,144 @@ export function normalizeProjectMap(projectMap, configPath = null) {
 
 export function validateProjectMap(projectMap, configPath = defaultProjectMapPath) {
   const errors = []
-  if (!projectMap || typeof projectMap !== 'object') errors.push('Project map must be a JSON object.')
-  if (!Number.isInteger(projectMap?.schemaVersion)) errors.push('schemaVersion must be an integer.')
-  if (!projectMap?.project?.name) errors.push('project.name is required.')
-  if (!projectMap?.sourceRoots?.frontend) errors.push('sourceRoots.frontend is required.')
-  if (projectMap?.layers !== undefined && (!Array.isArray(projectMap.layers) || projectMap.layers.length === 0)) errors.push('layers must contain at least one layer when provided.')
-  if (projectMap?.imports?.aliases !== undefined && !Array.isArray(projectMap.imports.aliases)) errors.push('imports.aliases must be an array.')
+  if (!isRecord(projectMap)) {
+    errors.push('Project map must be a JSON object.')
+  } else {
+    if (!Number.isInteger(projectMap.schemaVersion)) errors.push('schemaVersion must be an integer.')
+    else if (projectMap.schemaVersion < 1) errors.push('schemaVersion must be at least 1.')
+    if (projectMap.$schema !== undefined && typeof projectMap.$schema !== 'string') errors.push('$schema must be a string.')
+
+    const project = projectMap.project
+    if (!isRecord(project)) errors.push('project must be an object.')
+    if (!project?.name) errors.push('project.name is required.')
+    else if (!isNonEmptyString(project.name)) errors.push('project.name must be a non-empty string.')
+    for (const key of ['graphOutput', 'runtimeLinks', 'submapsDirectory']) {
+      validateOptionalNonEmptyString(errors, project?.[key], `project.${key}`)
+    }
+
+    const sourceRoots = projectMap.sourceRoots
+    if (!isRecord(sourceRoots)) errors.push('sourceRoots must be an object.')
+    if (!sourceRoots?.frontend) errors.push('sourceRoots.frontend is required.')
+    else if (!isNonEmptyString(sourceRoots.frontend)) errors.push('sourceRoots.frontend must be a non-empty string.')
+    validateOptionalNonEmptyString(errors, sourceRoots?.backend, 'sourceRoots.backend')
+    if (isRecord(sourceRoots)) validateKnownKeys(errors, sourceRoots, ['frontend', 'backend'], 'sourceRoots')
+
+    validateTemplates(errors, projectMap.templates)
+    validateStringArray(errors, projectMap.ignoredDirs, 'ignoredDirs', { optional: true, allowEmptyItems: true })
+    validateImports(errors, projectMap.imports)
+    validateLayers(errors, projectMap.layers)
+    validateRules(errors, projectMap.rules)
+    for (const key of ['modules', 'types', 'frontend', 'backend']) {
+      if (projectMap[key] !== undefined && !isRecord(projectMap[key])) errors.push(`${key} must be an object.`)
+    }
+  }
   if (errors.length > 0) {
     throw new Error(`Invalid project map ${toRepoPath(configPath)}:\n${errors.map(error => `- ${error}`).join('\n')}`)
   }
+}
+
+function validateTemplates(errors, templates) {
+  if (templates === undefined) return
+  if (!isRecord(templates)) {
+    errors.push('templates must be an object.')
+    return
+  }
+  validateStringArray(errors, templates.enabled, 'templates.enabled', { optional: true })
+  validateStringArray(errors, templates.plugins, 'templates.plugins', { optional: true })
+}
+
+function validateImports(errors, imports) {
+  if (imports === undefined) return
+  if (!isRecord(imports)) {
+    errors.push('imports must be an object.')
+    return
+  }
+  if (imports.aliases !== undefined && !Array.isArray(imports.aliases)) {
+    errors.push('imports.aliases must be an array.')
+    return
+  }
+  for (const [index, alias] of (imports.aliases ?? []).entries()) {
+    const location = `imports.aliases[${index}]`
+    if (!isRecord(alias)) {
+      errors.push(`${location} must be an object.`)
+      continue
+    }
+    validateRequiredNonEmptyString(errors, alias.prefix, `${location}.prefix`)
+    validateRequiredNonEmptyString(errors, alias.path, `${location}.path`)
+    validateKnownKeys(errors, alias, ['prefix', 'path'], location)
+  }
+}
+
+function validateLayers(errors, layers) {
+  if (layers === undefined) return
+  if (!Array.isArray(layers) || layers.length === 0) {
+    errors.push('layers must contain at least one layer when provided.')
+    return
+  }
+  for (const [index, layer] of layers.entries()) {
+    const location = `layers[${index}]`
+    if (!isRecord(layer)) {
+      errors.push(`${location} must be an object.`)
+      continue
+    }
+    validateRequiredNonEmptyString(errors, layer.id, `${location}.id`)
+    validateRequiredNonEmptyString(errors, layer.label, `${location}.label`)
+  }
+}
+
+function validateRules(errors, rules) {
+  if (rules === undefined) return
+  if (!isRecord(rules)) {
+    errors.push('rules must be an object.')
+    return
+  }
+  validateStringArray(errors, rules.enabled, 'rules.enabled', { optional: true, allowEmptyItems: true })
+  if (rules.options !== undefined && !isRecord(rules.options)) errors.push('rules.options must be an object.')
+  if (rules.suppressions !== undefined && !Array.isArray(rules.suppressions)) {
+    errors.push('rules.suppressions must be an array.')
+    return
+  }
+  for (const [index, suppression] of (rules.suppressions ?? []).entries()) {
+    const location = `rules.suppressions[${index}]`
+    if (!isRecord(suppression)) {
+      errors.push(`${location} must be an object.`)
+      continue
+    }
+    validateRequiredNonEmptyString(errors, suppression.reason, `${location}.reason`)
+    for (const key of ['ruleId', 'pathPattern', 'expiresOn']) {
+      if (suppression[key] !== undefined && typeof suppression[key] !== 'string') errors.push(`${location}.${key} must be a string.`)
+    }
+  }
+}
+
+function validateStringArray(errors, value, location, { optional = false, allowEmptyItems = false } = {}) {
+  if (optional && value === undefined) return
+  if (!Array.isArray(value)) {
+    errors.push(`${location} must be an array.`)
+    return
+  }
+  if (value.some(item => typeof item !== 'string' || (!allowEmptyItems && !item.trim()))) {
+    errors.push(`${location} must contain ${allowEmptyItems ? 'only strings' : 'only non-empty strings'}.`)
+  }
+}
+
+function validateRequiredNonEmptyString(errors, value, location) {
+  if (!isNonEmptyString(value)) errors.push(`${location} must be a non-empty string.`)
+}
+
+function validateOptionalNonEmptyString(errors, value, location) {
+  if (value !== undefined) validateRequiredNonEmptyString(errors, value, location)
+}
+
+function validateKnownKeys(errors, value, allowed, location) {
+  const unknown = Object.keys(value).filter(key => !allowed.includes(key))
+  if (unknown.length > 0) errors.push(`${location} contains unknown properties: ${unknown.sort().join(', ')}.`)
+}
+
+function isNonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+function isRecord(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
