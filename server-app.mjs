@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { writeGraph } from './scan.mjs'
 import { getProjectMap, getProjectMapPath, loadProjectMap, resolveGraphOutputPath, validateProjectMap } from './config.mjs'
-import { writeJsonFileAtomic } from './json-io.mjs'
+import { writeFileAtomic, writeJsonFileAtomic } from './json-io.mjs'
 import { createSubmap, defaultSubmapFilename, writeSubmap } from './submap/index.mjs'
 
 export class ApplicationInputError extends Error {}
@@ -39,10 +39,21 @@ export function createServerApplication({ repoRoot = process.cwd() } = {}) {
     }
     assertProjectMapPaths(document, projectMapPath)
 
+    const previousDocument = fs.readFileSync(projectMapPath, 'utf8')
     writeJsonFileAtomic(projectMapPath, document)
-    loadProjectMap(projectMapPath)
-    const graph = scan()
-    return { projectMap: getProjectMap(), stats: graph.stats }
+    try {
+      loadProjectMap(projectMapPath)
+      const graph = scan()
+      return { projectMap: getProjectMap(), stats: graph.stats }
+    } catch (error) {
+      try {
+        writeFileAtomic(projectMapPath, previousDocument)
+        loadProjectMap(projectMapPath)
+      } catch (rollbackError) {
+        throw new AggregateError([error, rollbackError], 'Project map update and rollback both failed.')
+      }
+      throw error
+    }
   }
 
   function createTraceSubmap(input) {

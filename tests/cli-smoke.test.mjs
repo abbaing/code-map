@@ -300,6 +300,21 @@ await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async (port, 
   const saved = JSON.parse(fs.readFileSync(arbitraryConfigPath, 'utf8'))
   assert.equal(saved.project.name, 'Saved Arbitrary Config App', 'settings save should write back to the explicit config path')
 
+  const invalidSourceRoot = path.join(arbitraryRoot, 'not-a-directory.ts')
+  fs.writeFileSync(invalidSourceRoot, 'export const value = 1\n', 'utf8')
+  const configBeforeFailedUpdate = fs.readFileSync(arbitraryConfigPath, 'utf8')
+  const graphBeforeFailedUpdate = fs.readFileSync(arbitraryGraphPath, 'utf8')
+  const failedUpdate = structuredClone(current)
+  failedUpdate.project.name = 'Must Roll Back'
+  failedUpdate.sourceRoots.frontend = 'not-a-directory.ts'
+  const failedUpdateResponse = await request(port, 'POST', '/api/project-map', failedUpdate, session)
+  assert.equal(failedUpdateResponse.status, 500, 'a scan failure must reject the project-map update')
+  assert.equal(JSON.parse(failedUpdateResponse.body).error, 'Internal server error.')
+  assert.equal(fs.readFileSync(arbitraryConfigPath, 'utf8'), configBeforeFailedUpdate, 'a failed update must restore the exact previous project-map document')
+  assert.equal(fs.readFileSync(arbitraryGraphPath, 'utf8'), graphBeforeFailedUpdate, 'a failed update must preserve the previous graph')
+  const activeAfterRollback = JSON.parse((await request(port, 'GET', '/project-map.json')).body)
+  assert.equal(activeAfterRollback.project.name, 'Saved Arbitrary Config App', 'a failed update must restore the active project map')
+
   const malformedResponse = await requestRaw(port, 'POST', '/api/project-map', '{ not json', session)
   assert.equal(malformedResponse.status, 400, 'malformed project-map JSON must return a controlled client error')
   assert.equal(JSON.parse(malformedResponse.body).ok, false)
