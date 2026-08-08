@@ -25,6 +25,8 @@ Commit the generated `viewer/tailwind.css` together with the source change.
 
 Pull requests run the test suite on Node.js 20, 22, and 24 under Linux, plus Node.js 24 under Windows. CI also rejects stale generated viewer styles.
 
+Dependabot checks npm packages and GitHub Actions weekly. Related updates are grouped to keep review noise low. Before merging an automated update, review the upstream release notes and confirm that CI passes. Keep `tailwindcss` and `@tailwindcss/cli` on matching versions.
+
 Validate package contents:
 
 ```bash
