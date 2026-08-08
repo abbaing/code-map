@@ -38,13 +38,42 @@ const contentTypes = {
   '.svg': 'image/svg+xml'
 }
 
-function send(response, status, body, type = 'text/plain; charset=utf-8', headers = {}) {
-  response.writeHead(status, {
+const securityHeaders = {
+  'Content-Security-Policy': [
+    "default-src 'none'",
+    "script-src 'self'",
+    "script-src-attr 'none'",
+    "style-src 'self'",
+    "style-src-elem 'self'",
+    "style-src-attr 'unsafe-inline'",
+    "connect-src 'self'",
+    "img-src 'self' data:",
+    "font-src 'self'",
+    "object-src 'none'",
+    "frame-src 'none'",
+    "frame-ancestors 'none'",
+    "base-uri 'none'",
+    "form-action 'none'"
+  ].join('; '),
+  'Cross-Origin-Resource-Policy': 'same-origin',
+  'Permissions-Policy': 'camera=(), geolocation=(), microphone=()',
+  'Referrer-Policy': 'no-referrer',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY'
+}
+
+function responseHeaders(type, headers = {}) {
+  return {
     'Content-Type': type,
     'Cache-Control': 'no-store, max-age=0',
     'Pragma': 'no-cache',
-    ...headers
-  })
+    ...headers,
+    ...securityHeaders
+  }
+}
+
+function send(response, status, body, type = 'text/plain; charset=utf-8', headers = {}) {
+  response.writeHead(status, responseHeaders(type, headers))
   response.end(body)
 }
 
@@ -54,12 +83,7 @@ function sendJson(response, status, body) {
 
 function sendFile(response, filePath, headers = {}) {
   if (!fs.existsSync(filePath)) return send(response, 404, 'Not found')
-  response.writeHead(200, {
-    'Content-Type': contentTypes[path.extname(filePath)] ?? 'application/octet-stream',
-    'Cache-Control': 'no-store, max-age=0',
-    'Pragma': 'no-cache',
-    ...headers
-  })
+  response.writeHead(200, responseHeaders(contentTypes[path.extname(filePath)] ?? 'application/octet-stream', headers))
   response.end(fs.readFileSync(filePath))
 }
 

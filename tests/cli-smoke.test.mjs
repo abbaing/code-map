@@ -224,6 +224,19 @@ async function waitForServer(port) {
 
 await withServer(['--config', arbitraryConfigPath], arbitraryRoot, async (port, session) => {
   const current = JSON.parse((await request(port, 'GET', '/project-map.json')).body)
+  const securedViewer = await request(port, 'GET', '/', null)
+  const contentSecurityPolicy = securedViewer.headers['content-security-policy']
+  assert.match(contentSecurityPolicy, /default-src 'none'/u)
+  assert.match(contentSecurityPolicy, /script-src 'self'/u)
+  assert.match(contentSecurityPolicy, /script-src-attr 'none'/u, 'inline event handlers must be blocked by policy')
+  assert.doesNotMatch(contentSecurityPolicy, /script-src[^;]*'unsafe-inline'/u)
+  assert.match(contentSecurityPolicy, /style-src-attr 'unsafe-inline'/u, 'the graph layout must retain its constrained dynamic styles')
+  assert.match(contentSecurityPolicy, /frame-ancestors 'none'/u)
+  assert.equal(securedViewer.headers['x-content-type-options'], 'nosniff')
+  assert.equal(securedViewer.headers['x-frame-options'], 'DENY')
+  assert.equal(securedViewer.headers['referrer-policy'], 'no-referrer')
+  assert.equal(securedViewer.headers['cross-origin-resource-policy'], 'same-origin')
+  assert.equal(securedViewer.headers['permissions-policy'], 'camera=(), geolocation=(), microphone=()')
   const localUtilityCss = await request(port, 'GET', '/tailwind.css', null)
   assert.equal(localUtilityCss.status, 200, 'the viewer utility stylesheet must be served locally')
   assert.match(localUtilityCss.headers['content-type'], /^text\/css/u)

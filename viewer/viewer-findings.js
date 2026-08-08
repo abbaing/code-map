@@ -62,7 +62,7 @@ function renderFindingsTable(findings) {
         <div>${pillHtml(severityClass, capitalize(finding.severity))}</div>
         <div class="finding-module">${escapeHtml(formatModule(node?.module ?? 'shared'))}</div>
         <div class="finding-path">
-          <button onclick="navigator.clipboard.writeText('${escapeHtml(path)}').then(()=>showToast('Path copied'))" title="Copy path">${escapeHtml(shortPath)}${finding.line ? `:${finding.line}` : ''}</button>
+          <button data-copy-path="${escapeHtml(path)}" title="Copy path">${escapeHtml(shortPath)}${finding.line ? `:${finding.line}` : ''}</button>
         </div>
       </div>
     `

@@ -149,6 +149,16 @@ els.findingsSearch.addEventListener('input', debouncedApplyFilters)
 els.findingsSeverity.addEventListener('change', applyFilters)
 els.findingsRule.addEventListener('change', applyFilters)
 els.findingsModule.addEventListener('change', applyFilters)
+els.findingsTable.addEventListener('click', async event => {
+  const button = event.target.closest('[data-copy-path]')
+  if (!button) return
+  try {
+    await navigator.clipboard.writeText(button.dataset.copyPath)
+    showToast('Path copied')
+  } catch {
+    showToast('Unable to copy path')
+  }
+})
 
 // ── graph/domain interactions ─────────────────────────────────────────────────
 

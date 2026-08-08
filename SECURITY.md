@@ -18,3 +18,7 @@ Security-sensitive areas include:
 - unsafe project-map import or plugin loading behavior,
 - unintended network access,
 - exposure of repository topology or source paths.
+
+## Viewer Hardening
+
+The viewer binds to loopback by default. Mutating requests require a same-origin session, request bodies and connection lifetimes are bounded, and every response includes a restrictive Content Security Policy and defensive browser headers. The packaged viewer does not load remote runtime assets.
