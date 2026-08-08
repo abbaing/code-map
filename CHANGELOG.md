@@ -12,6 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Interactive local viewer with execution traces, findings, quality signals, and portable submaps.
 - Composable templates, architectural guardrails, JSON Schemas, CLI commands, and a programmatic submap API.
 - Cross-platform CI, grouped dependency updates, static quality checks, and coverage regression thresholds.
+- A machine-checked component inventory, contract baseline, and Definition of Done.
 
 ### Changed
 

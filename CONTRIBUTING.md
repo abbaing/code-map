@@ -53,6 +53,7 @@ npm run release:check
 
 - Keep changes focused and explain the user-facing impact.
 - Add or update tests for scanner, CLI, config, or viewer behavior changes.
+- Assign every new production module to a component and satisfy the Definition of Done in [COMPONENTS.md](COMPONENTS.md).
 - Do not include repository-specific rules in generic templates.
 - Keep code-map local-first; do not add telemetry or network calls.
 

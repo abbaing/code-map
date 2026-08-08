@@ -527,4 +527,4 @@ code-map is open source under the GNU Affero General Public License v3.0 (`AGPL-
 
 Commercial licenses are available for proprietary, hosted, white-label, or AGPL-incompatible use. See [COMMERCIAL.md](COMMERCIAL.md).
 
-Project policies and maintainer documentation are available in [ARCHITECTURE.md](ARCHITECTURE.md), [CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md), [RELEASING.md](RELEASING.md), and [SECURITY.md](SECURITY.md).
+Project policies and maintainer documentation are available in [ARCHITECTURE.md](ARCHITECTURE.md), [COMPONENTS.md](COMPONENTS.md), [CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md), [RELEASING.md](RELEASING.md), and [SECURITY.md](SECURITY.md).
