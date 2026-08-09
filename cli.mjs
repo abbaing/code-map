@@ -7,7 +7,7 @@ import { nodeTextWriter } from './json-io.mjs'
 import { writeGraph } from './scan.mjs'
 import { nodeSubmapRepository } from './submap/io.mjs'
 import { nodeSubmapCliCapabilities } from './submap/cli-node.mjs'
-import { listTemplates, loadTemplatePlugins } from './templates/registry.mjs'
+import { buildTemplateRegistry, listTemplates, loadTemplatePlugins } from './templates/registry.mjs'
 
 const { environment } = nodePlatform
 const registry = createCommandRegistry(
@@ -19,7 +19,10 @@ const registry = createCommandRegistry(
     detector: Object.freeze({ detect, summarize: detectSummary }),
     scanner: Object.freeze({
       scan(outputPath, projectContext) {
-        return writeGraph(outputPath, projectContext, { writer: nodeTextWriter })
+        return writeGraph(outputPath, projectContext, {
+          registry: buildTemplateRegistry(projectContext.projectMap),
+          writer: nodeTextWriter
+        })
       }
     }),
     templates: Object.freeze({ list: listTemplates, load: loadTemplatePlugins }),

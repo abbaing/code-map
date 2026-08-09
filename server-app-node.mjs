@@ -3,11 +3,16 @@ import { nodeTextWriter, writeFileAtomic, writeJsonFileAtomic } from './json-io.
 import { writeGraph } from './scan.mjs'
 import { createSubmap, defaultSubmapFilename } from './submap/index.mjs'
 import { nodeSubmapRepository } from './submap/io.mjs'
+import { buildTemplateRegistry } from './templates/registry.mjs'
 
 export const nodeServerApplicationServices = Object.freeze({
   scanner: Object.freeze({
     scan(outputPath, projectContext, options = {}) {
-      return writeGraph(outputPath, projectContext, { writer: nodeTextWriter, ...options })
+      return writeGraph(outputPath, projectContext, {
+        registry: buildTemplateRegistry(projectContext.projectMap),
+        writer: nodeTextWriter,
+        ...options
+      })
     }
   }),
   projectMaps: Object.freeze({

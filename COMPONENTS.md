@@ -64,6 +64,7 @@ Contracts are structural JavaScript objects or functions. Their exact signatures
 | `Rule`                          | Evaluate one policy against a documented rule context                           |
 | `FindingSink` / `FindingSource` | Write findings or read finalized findings, never both by default                |
 | `Template`                      | Compose named file kinds, scanners, enrichers, rules, and presentation metadata |
+| `TemplateRegistry`              | Immutable effective capabilities selected for one scan execution                |
 | `SelectionStrategy`             | Resolve submap seed or exclusion node identifiers                               |
 | `TraversalStrategy`             | Traverse eligible graph relationships under a bounded policy                    |
 | `AccessStrategy`                | Resolve access classifications and conflicts                                    |

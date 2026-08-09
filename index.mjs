@@ -3,6 +3,7 @@ import { createProjectContext as createContext, loadProjectContext as loadContex
 import { writeGraph as writeGraphWithContext } from './scan.mjs'
 import { nodeTextWriter } from './json-io.mjs'
 import { createNodePlatform, nodePlatform } from './platform/node.mjs'
+import { buildTemplateRegistry } from './templates/registry.mjs'
 
 export { createNodePlatform, nodePlatform }
 export { createScanPipeline, defineScanPhase } from './scan-pipeline.mjs'
@@ -17,7 +18,11 @@ export function loadProjectContext(source, options = {}) {
 }
 
 export function writeGraph(outputPath, projectContext = loadProjectContext(), options = {}) {
-  return writeGraphWithContext(outputPath, projectContext, { writer: nodeTextWriter, ...options })
+  return writeGraphWithContext(outputPath, projectContext, {
+    registry: buildTemplateRegistry(projectContext.projectMap),
+    writer: nodeTextWriter,
+    ...options
+  })
 }
 
 export * from './submap/index.mjs'

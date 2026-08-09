@@ -23,6 +23,7 @@ graph.json → viewer
 - Each scan owns a finding collector; rules receive its write capability while graph finalization receives its read capability.
 - `rules/` evaluates graph and source facts without depending on CLI, HTTP, or the viewer.
 - `templates/` extends scanning through validated capability objects that declare their required and optional inputs.
+- Executable and public composition boundaries build the effective template registry before invoking the scan orchestrator.
 - `submap/` keeps selection, traversal, access, digest, diff, and validation independent from its CLI adapter; its policies are validated strategies and persistence enters through a repository contract.
 - `server-app.mjs` coordinates injected scan, configuration, and submap capabilities; `server.mjs` selects Node adapters and dispatches through a validated route registry.
 - `viewer/` consumes the serialized graph and does not reach into Node.js modules.

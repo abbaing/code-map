@@ -5,9 +5,8 @@ import { Graph } from './graph.mjs'
 import { resolveTsImport } from './resolve.mjs'
 import { isEntryPoint } from './quality.mjs'
 import { createFindingCollector } from './rules/findings.mjs'
-import { buildTemplateRegistry } from './templates/registry.mjs'
 import { createScanPipeline, defineScanPhase } from './scan-pipeline.mjs'
-import { capabilityInput } from './templates/contracts.mjs'
+import { assertCapabilityRegistry, capabilityInput } from './templates/contracts.mjs'
 import { assertTextWriter } from './writer-contract.mjs'
 
 // ── Phase functions ───────────────────────────────────────────────────────────
@@ -453,9 +452,8 @@ export function createDefaultScanPipeline() {
   ])
 }
 
-function buildGraph(projectContext, pipeline = createDefaultScanPipeline()) {
+function buildGraph(projectContext, registry, pipeline = createDefaultScanPipeline()) {
   const { projectMap } = projectContext
-  const registry = buildTemplateRegistry(projectMap)
   const effectiveProjectMap = buildEffectiveProjectMap(projectMap, registry)
   const graph = new Graph()
   const { sink: findingSink, source: findingSource } = createFindingCollector(projectMap)
@@ -576,13 +574,18 @@ function phaseRunRegisteredEnrichers(context) {
   }
 }
 
-export function writeGraph(outputPath, projectContext, { pipeline = createDefaultScanPipeline(), writer } = {}) {
+export function writeGraph(
+  outputPath,
+  projectContext,
+  { pipeline = createDefaultScanPipeline(), registry, writer } = {}
+) {
   if (!projectContext) {
     throw new TypeError('writeGraph requires a ProjectContext.')
   }
+  assertCapabilityRegistry(registry)
   assertTextWriter(writer)
   const targetPath = outputPath ?? projectContext.resolveGraphOutputPath()
-  const result = buildGraph(projectContext, pipeline)
+  const result = buildGraph(projectContext, registry, pipeline)
   writer.writeText(targetPath, `${JSON.stringify(result, null, 2)}\n`)
   removeLegacyDefaultGraph(targetPath, projectContext)
   return result

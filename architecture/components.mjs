@@ -1,11 +1,11 @@
 export const components = [
   {
     id: 'public-api',
-    responsibility: 'Expose the supported package entry points without implementing domain behavior.',
-    role: 'adapter',
+    responsibility: 'Compose and expose the supported package entry points without implementing domain behavior.',
+    role: 'composition-root',
     files: ['index.mjs'],
     contracts: ['PackageExports'],
-    compositionRoot: false,
+    compositionRoot: true,
     design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'pass'),
     decision:
       'Keep supported entry points explicit and extend behavior behind their validated registries and contracts.'
@@ -146,9 +146,9 @@ export const components = [
     responsibility: 'Compose source discovery, scanners, enrichers, and graph serialization.',
     role: 'application',
     files: ['scan.mjs'],
-    contracts: ['ScanPhase', 'Scanner', 'GraphEnricher', 'TextWriter'],
+    contracts: ['ScanPhase', 'Scanner', 'GraphEnricher', 'TemplateRegistry', 'TextWriter'],
     compositionRoot: false,
-    design: designStatus('pass', 'pass', 'pass', 'gap', 'gap'),
+    design: designStatus('pass', 'pass', 'pass', 'gap', 'pass'),
     decision: 'Pipeline phases declare focused inputs and outputs; scanner capabilities still receive a broad context.'
   },
   {
@@ -213,12 +213,11 @@ export const components = [
   },
   {
     id: 'templates',
-    responsibility: 'Register, normalize, validate, and compose architectural capabilities.',
+    responsibility: 'Register, normalize, and compose architectural capabilities.',
     role: 'composition-root',
     files: [
       'templates/architectures.mjs',
       'templates/catalog.mjs',
-      'templates/contracts.mjs',
       'templates/core.mjs',
       'templates/dotnet-api.mjs',
       'templates/entity-framework.mjs',
@@ -229,10 +228,20 @@ export const components = [
       'templates/rule-metadata.mjs',
       'templates/typescript.mjs'
     ],
-    contracts: ['Template', 'Scanner', 'GraphEnricher', 'FileKind'],
+    contracts: ['Template', 'TemplateRegistry', 'Scanner', 'GraphEnricher', 'FileKind'],
     compositionRoot: true,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision: 'Validate capabilities at registration and project only their declared required and optional inputs.'
+  },
+  {
+    id: 'template-contracts',
+    responsibility: 'Validate templates, capability registries, and focused capability inputs.',
+    role: 'core',
+    files: ['templates/contracts.mjs'],
+    contracts: ['Template', 'TemplateRegistry', 'Scanner', 'GraphEnricher', 'FileKind'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep capability validation and input projection independent from template composition.'
   },
   {
     id: 'persistence-contracts',
@@ -268,10 +277,10 @@ export const components = [
   {
     id: 'node-application-services',
     responsibility: 'Assemble Node-backed scanning, configuration persistence, and submap services.',
-    role: 'adapter',
+    role: 'composition-root',
     files: ['server-app-node.mjs'],
     contracts: ['ServerApplicationServices'],
-    compositionRoot: false,
+    compositionRoot: true,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision: 'Keep concrete service selection outside the application and expose only its declared capabilities.'
   },

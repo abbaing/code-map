@@ -5,7 +5,7 @@ import { detect } from './detect-node.mjs'
 import { nodePlatform } from './platform/node.mjs'
 import { nodeTextWriter } from './json-io.mjs'
 import { writeGraph } from './scan.mjs'
-import { loadTemplatePlugins } from './templates/registry.mjs'
+import { buildTemplateRegistry, loadTemplatePlugins } from './templates/registry.mjs'
 
 export async function runNodeScan({ platform = nodePlatform } = {}) {
   const { environment, fileSystem } = platform
@@ -25,7 +25,10 @@ export async function runNodeScan({ platform = nodePlatform } = {}) {
   })
   const outArgIndex = argv.indexOf('--out')
   const outputPath = outArgIndex >= 0 ? path.resolve(argv[outArgIndex + 1]) : projectContext.resolveGraphOutputPath()
-  const result = writeGraph(outputPath, projectContext, { writer: nodeTextWriter })
+  const result = writeGraph(outputPath, projectContext, {
+    registry: buildTemplateRegistry(projectContext.projectMap),
+    writer: nodeTextWriter
+  })
   return { outputPath, projectContext, result }
 }
 

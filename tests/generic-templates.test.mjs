@@ -10,6 +10,7 @@ import { escapeRegExp } from '../source-analysis.mjs'
 import { nodePlatform } from '../platform/node.mjs'
 import { nodeTextWriter } from '../json-io.mjs'
 import { architectureFixture, createFixtureTree, typescriptFixture } from './fixtures.mjs'
+import { buildTemplateRegistry } from '../templates/registry.mjs'
 
 const fixtureRoot = createFixtureTree(typescriptFixture, architectureFixture)
 
@@ -37,7 +38,7 @@ function scanTypeScriptFixture(name) {
     },
     { platform: nodePlatform }
   )
-  return writeGraph(path.join(fixtureRoot, `${name}.graph.json`), projectContext, { writer: nodeTextWriter })
+  return writeGraph(path.join(fixtureRoot, `${name}.graph.json`), projectContext, scanOptions(projectContext))
 }
 
 function scanArchitectureFixture(name) {
@@ -127,7 +128,7 @@ function scanArchitectureFixture(name) {
     },
     { platform: nodePlatform }
   )
-  return writeGraph(path.join(fixtureRoot, `${name}.graph.json`), projectContext, { writer: nodeTextWriter })
+  return writeGraph(path.join(fixtureRoot, `${name}.graph.json`), projectContext, scanOptions(projectContext))
 }
 
 const typescriptGraph = scanTypeScriptFixture('typescript-template-fixture')
@@ -400,7 +401,12 @@ const frontendOnlyContext = loadProjectContext(
   { platform: nodePlatform }
 )
 
+assert.throws(
+  () => writeGraph(path.join(tempRoot, 'missing-registry.graph.json'), frontendOnlyContext, { writer: nodeTextWriter }),
+  /Template registry capabilities must be an object/u
+)
 const frontendOnlyGraph = writeGraph(path.join(tempRoot, 'frontend-only.graph.json'), frontendOnlyContext, {
+  registry: buildTemplateRegistry(frontendOnlyContext.projectMap),
   writer: nodeTextWriter
 })
 assert.equal(frontendOnlyGraph.stats.backFiles, 0, 'frontend-only scan should not require sourceRoots.backend')
@@ -434,6 +440,7 @@ const templateDefaultsContext = loadProjectContext(
 )
 
 const templateDefaultsGraph = writeGraph(path.join(tempRoot, 'template-defaults.graph.json'), templateDefaultsContext, {
+  registry: buildTemplateRegistry(templateDefaultsContext.projectMap),
   writer: nodeTextWriter
 })
 assert.equal(
@@ -451,3 +458,10 @@ fs.rmSync(fixtureRoot, { recursive: true, force: true })
 fs.rmSync(tempRoot, { recursive: true, force: true })
 
 console.log('generic template fixtures passed')
+
+function scanOptions(projectContext) {
+  return {
+    registry: buildTemplateRegistry(projectContext.projectMap),
+    writer: nodeTextWriter
+  }
+}
