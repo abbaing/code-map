@@ -30,6 +30,7 @@ const viewerAssets = new Map(
     'viewer-selection.js',
     'viewer-state.js',
     'viewer-store.mjs',
+    'viewer-svg.js',
     'viewer-trace.js',
     'viewer-utils.js'
   ].map((file) => [`/${file}`, path.join(viewerRoot, file)])

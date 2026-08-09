@@ -484,11 +484,16 @@ export const components = [
     id: 'viewer-rendering',
     responsibility: 'Lay out graph views and render graph primitives as SVG.',
     role: 'adapter',
-    files: ['viewer/rendering-contracts.mjs', 'viewer/viewer-graph.js', 'viewer/viewer-layouts.js'],
+    files: [
+      'viewer/rendering-contracts.mjs',
+      'viewer/viewer-graph.js',
+      'viewer/viewer-layouts.js',
+      'viewer/viewer-svg.js'
+    ],
     contracts: ['LayoutStrategy', 'NodeRenderer', 'EdgeRenderer'],
     compositionRoot: false,
-    design: designStatus('gap', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Move registered SVG primitives out of the remaining graph view coordinator.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep view coordination, layout algorithms, and SVG primitives in focused registered modules.'
   },
   {
     id: 'viewer-ui',

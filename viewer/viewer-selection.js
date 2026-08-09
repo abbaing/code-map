@@ -1,6 +1,7 @@
 import { isCoverable } from './viewer-data.js'
-import { render, scoreColor } from './viewer-graph.js'
+import { render } from './viewer-graph.js'
 import { els, state } from './viewer-state.js'
+import { scoreColor } from './viewer-svg.js'
 import { escapeHtml, formatModule, formatRuleId, formatType, healthPill, pillHtml } from './viewer-utils.js'
 
 let selectionOperations = null
