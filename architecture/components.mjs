@@ -77,8 +77,8 @@ export const components = [
     files: ['classify.mjs'],
     contracts: ['SourceClassifier'],
     compositionRoot: false,
-    design: designStatus('pass', 'gap', 'not-applicable', 'pass', 'gap'),
-    decision: 'Inject ProjectContext and move remaining framework-specific branches behind classifier strategies.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Compose ordered classifier strategies over explicit repository paths and ProjectContext.'
   },
   {
     id: 'resolution',
