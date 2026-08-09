@@ -111,14 +111,24 @@ export const components = [
     decision: 'Inject scoring policy and ProjectContext instead of reading global configuration.'
   },
   {
+    id: 'scan-pipeline',
+    responsibility: 'Validate and execute ordered scan phases through declared inputs and outputs.',
+    role: 'core',
+    files: ['scan-pipeline.mjs'],
+    contracts: ['ScanPhase'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep phase execution generic, synchronous, deterministic, and independent from scan implementations.'
+  },
+  {
     id: 'scan-orchestrator',
     responsibility: 'Compose source discovery, scanners, enrichers, and graph serialization.',
     role: 'application',
     files: ['scan.mjs'],
-    contracts: ['Scanner', 'GraphEnricher'],
+    contracts: ['ScanPhase', 'Scanner', 'GraphEnricher'],
     compositionRoot: false,
-    design: designStatus('gap', 'pass', 'pass', 'gap', 'gap'),
-    decision: 'Extract pipeline phases and replace the broad mutable scan context with phase-specific contracts.'
+    design: designStatus('pass', 'pass', 'pass', 'gap', 'gap'),
+    decision: 'Pipeline phases declare focused inputs and outputs; scanner capabilities still receive a broad context.'
   },
   {
     id: 'frontend-scanner',

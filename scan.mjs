@@ -18,6 +18,7 @@ import { clearFindings, getActiveFindings, getFindings, getSuppressedFindings } 
 import { buildTemplateRegistry, loadTemplatePlugins } from './templates/registry.mjs'
 import { detect } from './detect.mjs'
 import { writeJsonFileAtomic } from './json-io.mjs'
+import { createScanPipeline, defineScanPhase } from './scan-pipeline.mjs'
 
 // ── Phase functions ───────────────────────────────────────────────────────────
 
@@ -423,18 +424,55 @@ function addInternalComponentQuality(graph, parent, internal) {
 
 // ── Orchestrator ──────────────────────────────────────────────────────────────
 
-function buildGraph(projectContext) {
+export function createDefaultScanPipeline() {
+  return createScanPipeline([
+    defineScanPhase({
+      id: 'discover-files',
+      requires: ['projectContext', 'registry'],
+      provides: ['files'],
+      run: ({ projectContext, registry }) => ({ files: phaseWalkFiles(projectContext, registry) })
+    }),
+    defineScanPhase({
+      id: 'run-scanners',
+      requires: ['graph', 'projectContext', 'registry', 'files'],
+      provides: ['scanContext'],
+      run: ({ graph, projectContext, registry, files }) => {
+        const scanContext = createScanContext(graph, projectContext, registry, files)
+        phaseRunRegisteredScanners(scanContext)
+        return { scanContext }
+      }
+    }),
+    defineScanPhase({
+      id: 'apply-runtime-links',
+      requires: ['graph', 'projectContext'],
+      run: ({ graph, projectContext }) => phaseApplyRuntimeLinks(graph, projectContext)
+    }),
+    defineScanPhase({
+      id: 'run-enrichers',
+      requires: ['scanContext'],
+      run: ({ scanContext }) => phaseRunRegisteredEnrichers(scanContext)
+    }),
+    defineScanPhase({
+      id: 'finalize-document',
+      requires: ['graph', 'projectContext', 'registry', 'effectiveProjectMap', 'files'],
+      provides: ['result'],
+      run: (input) => ({ result: finalizeGraphDocument(input) })
+    })
+  ])
+}
+
+function buildGraph(projectContext, pipeline = createDefaultScanPipeline()) {
   const { projectMap } = projectContext
   const registry = buildTemplateRegistry(projectMap)
   const effectiveProjectMap = buildEffectiveProjectMap(projectMap, registry)
   const graph = new Graph()
   clearFindings()
 
-  const files = phaseWalkFiles(projectContext, registry)
-  const context = createScanContext(graph, projectContext, registry, files)
-  phaseRunRegisteredScanners(context)
-  phaseApplyRuntimeLinks(graph, projectContext)
-  phaseRunRegisteredEnrichers(context)
+  return pipeline.run({ graph, projectContext, registry, effectiveProjectMap }).result
+}
+
+function finalizeGraphDocument({ graph, projectContext, registry, effectiveProjectMap, files }) {
+  const { projectMap } = projectContext
 
   const nodes = graph.allNodes().sort((a, b) => a.id.localeCompare(b.id))
   const edges = graph.allEdges().sort((a, b) => a.id.localeCompare(b.id))
@@ -542,12 +580,12 @@ function phaseRunRegisteredEnrichers(context) {
   }
 }
 
-export function writeGraph(outputPath, projectContext) {
+export function writeGraph(outputPath, projectContext, { pipeline = createDefaultScanPipeline() } = {}) {
   if (!projectContext) {
     throw new TypeError('writeGraph requires a ProjectContext.')
   }
   const targetPath = outputPath ?? projectContext.resolveGraphOutputPath()
-  const result = buildGraph(projectContext)
+  const result = buildGraph(projectContext, pipeline)
   writeJsonFileAtomic(targetPath, result)
   removeLegacyDefaultGraph(targetPath, projectContext)
   return result

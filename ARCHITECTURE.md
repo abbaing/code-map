@@ -15,7 +15,7 @@ graph.json → viewer
 ```
 
 - `graph.mjs` owns only the in-memory graph model and has no dependencies.
-- `scan.mjs` orchestrates scanning; specialized scanners extract frontend, backend, endpoint, and quality facts.
+- `scan.mjs` composes an ordered pipeline whose phases declare their required inputs and produced outputs; specialized scanners extract frontend, backend, endpoint, and quality facts.
 - `rules/` evaluates graph and source facts without depending on CLI, HTTP, or the viewer.
 - `templates/` extends scanning through small capability objects rather than conditionals in the orchestrator.
 - `submap/` keeps selection, traversal, digest, diff, and validation independent from its CLI adapter.

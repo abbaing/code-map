@@ -124,4 +124,28 @@ export class Graph {
   clear(): void
 }
 
-export function writeGraph(outputPath?: string, projectContext?: ProjectContext): CodeMapGraph
+export interface ScanPhase {
+  readonly id: string
+  readonly requires: readonly string[]
+  readonly provides: readonly string[]
+  run(input: Readonly<Record<string, unknown>>): Record<string, unknown> | void
+}
+
+export interface ScanPipeline {
+  readonly phases: readonly ScanPhase[]
+  run(initialState?: Record<string, unknown>): Readonly<Record<string, unknown>>
+}
+
+export function defineScanPhase(phase: {
+  id: string
+  requires?: string[]
+  provides?: string[]
+  run(input: Readonly<Record<string, unknown>>): Record<string, unknown> | void
+}): ScanPhase
+export function createScanPipeline(phases: Array<ScanPhase | Parameters<typeof defineScanPhase>[0]>): ScanPipeline
+export function createDefaultScanPipeline(): ScanPipeline
+export function writeGraph(
+  outputPath?: string,
+  projectContext?: ProjectContext,
+  options?: { pipeline?: ScanPipeline }
+): CodeMapGraph
