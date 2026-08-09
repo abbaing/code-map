@@ -70,6 +70,7 @@ Contracts are structural JavaScript objects or functions. Their exact signatures
 | `Route`                         | Match one HTTP request and adapt it to an application operation                 |
 | `ViewerStore`                   | Read, update, and subscribe to browser application state                        |
 | `GraphGateway`                  | Load and mutate viewer-facing graph resources                                   |
+| `TraceStrategy`                 | Calculate node, module, and system traces from explicit graph inputs            |
 | `LayoutStrategy`                | Produce positions for one graph view without touching the DOM                   |
 | `NodeRenderer` / `EdgeRenderer` | Render one supported graph primitive                                            |
 | `ViewController`                | Bind one view's interactions to store operations and effects                    |
@@ -101,4 +102,4 @@ A new or materially changed component is complete only when:
 7. architecture, contract, behavior, and coverage tests pass;
 8. documentation names any public contract or compatibility impact.
 
-Existing `gap` entries are the controlled remediation baseline for S15–S16. S17 will turn the target dependency rules into automated fitness functions, and S18 will require every remaining applicable status to be `pass`.
+Existing `gap` entries are the controlled remediation baseline for S16. S17 will turn the target dependency rules into automated fitness functions, and S18 will require every remaining applicable status to be `pass`.

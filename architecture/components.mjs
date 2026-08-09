@@ -367,20 +367,26 @@ export const components = [
     id: 'viewer-state-data',
     responsibility: 'Own browser state, graph loading, filtering, labels, and shared UI utilities.',
     role: 'adapter',
-    files: ['viewer/viewer-state.js', 'viewer/viewer-data.js', 'viewer/viewer-utils.js'],
+    files: [
+      'viewer/graph-gateway.mjs',
+      'viewer/viewer-state.js',
+      'viewer/viewer-store.mjs',
+      'viewer/viewer-data.js',
+      'viewer/viewer-utils.js'
+    ],
     contracts: ['ViewerStore', 'GraphGateway'],
     compositionRoot: false,
-    design: designStatus('gap', 'gap', 'gap', 'gap', 'gap'),
+    design: designStatus('gap', 'pass', 'pass', 'pass', 'gap'),
     decision: 'Replace classic-script globals with modules, an encapsulated store, and injected browser gateways.'
   },
   {
     id: 'viewer-trace',
     responsibility: 'Calculate execution traces and trace-focused layouts.',
     role: 'core',
-    files: ['viewer/viewer-trace.js'],
+    files: ['viewer/trace-strategy.mjs', 'viewer/viewer-trace.js'],
     contracts: ['TraceStrategy'],
     compositionRoot: false,
-    design: designStatus('pass', 'gap', 'gap', 'gap', 'gap'),
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'gap'),
     decision: 'Separate pure trace calculation from state access and layout mutation behind a TraceStrategy.'
   },
   {

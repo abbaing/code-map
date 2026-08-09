@@ -1,0 +1,77 @@
+const GRAPH_RESOURCE = '/graph.json'
+const SCAN_RESOURCE = '/api/scan'
+const PROJECT_MAP_RESOURCE = '/api/project-map'
+const TRACE_SUBMAP_RESOURCE = '/api/submaps/from-trace'
+
+export function createGraphGateway({ request = globalThis.fetch } = {}) {
+  if (typeof request !== 'function') {
+    throw new TypeError('GraphGateway request must be a function')
+  }
+
+  const send = async (resource, options) => {
+    const response = await request(resource, options)
+    if (!response?.ok) {
+      throw new GraphGatewayError(response?.status ?? 0, await readError(response))
+    }
+    return response.json()
+  }
+
+  return Object.freeze({
+    loadGraph() {
+      return send(GRAPH_RESOURCE, { cache: 'no-store' })
+    },
+    scan() {
+      return send(SCAN_RESOURCE, { method: 'POST' })
+    },
+    updateProjectMap(projectMap) {
+      return send(PROJECT_MAP_RESOURCE, jsonRequest('PUT', projectMap))
+    },
+    createTraceSubmap(request) {
+      return send(TRACE_SUBMAP_RESOURCE, jsonRequest('POST', request))
+    }
+  })
+}
+
+export function assertGraphGateway(gateway) {
+  assertOperations(gateway, 'GraphGateway', ['loadGraph', 'scan', 'updateProjectMap', 'createTraceSubmap'])
+  return gateway
+}
+
+export class GraphGatewayError extends Error {
+  constructor(status, message) {
+    super(message || `Graph request failed with status ${status}`)
+    this.name = 'GraphGatewayError'
+    this.status = status
+  }
+}
+
+function jsonRequest(method, body) {
+  return {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  }
+}
+
+async function readError(response) {
+  if (typeof response?.json !== 'function') {
+    return ''
+  }
+  try {
+    const body = await response.json()
+    return body?.error ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function assertOperations(candidate, name, operations) {
+  if (!candidate || typeof candidate !== 'object') {
+    throw new TypeError(`${name} must be an object`)
+  }
+  for (const operation of operations) {
+    if (typeof candidate[operation] !== 'function') {
+      throw new TypeError(`${name} must implement ${operation}()`)
+    }
+  }
+}
