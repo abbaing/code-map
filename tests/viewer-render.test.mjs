@@ -215,6 +215,15 @@ const graphData = {
       meta: {}
     },
     {
+      id: 'support',
+      label: 'UsersSupport',
+      type: 'service',
+      layer: 'backend-service',
+      module: 'users',
+      path: 'back/UsersSupport.cs',
+      meta: {}
+    },
+    {
       id: 'shared',
       label: 'Database',
       type: 'table',
@@ -270,6 +279,20 @@ assert.equal(classNames.has('hidden'), false, 'the system-map summary must remai
 assert.match(banner.textContent, /2 modules/u)
 assert.equal(attributes.get('viewBox'), '0 0 1000 720')
 
+state.activeModule = 'users'
+render()
+const modulePositions = nodePositions(svg.innerHTML)
+state.selectedId = 'back'
+render()
+assert.deepEqual(
+  nodePositions(svg.innerHTML),
+  modulePositions,
+  'selecting a component must preserve the module graph layout'
+)
+assert.match(svg.innerHTML, /class="node selected[^"]*" data-id="back"/u, 'selected component must remain highlighted')
+state.selectedId = null
+state.activeModule = null
+
 const layout = layoutSystemModules(
   [
     { id: 'z', label: 'Z', module: 'z', meta: { externalRelations: 1 } },
@@ -318,3 +341,9 @@ assert.equal(
 )
 
 console.log('viewer render tests passed')
+
+function nodePositions(markup) {
+  return new Map(
+    [...markup.matchAll(/data-id="([^"]+)" transform="translate\(([^)]+)\)"/gu)].map((match) => [match[1], match[2]])
+  )
+}

@@ -70,13 +70,16 @@ function render() {
   }
 
   const renderLimit = state.view === 'domain' ? DOMAIN_RENDER_LIMIT : NODE_RENDER_LIMIT
+  const moduleTrace =
+    state.view === 'graph' && state.activeModule ? buildModuleTraceContext(state.graph, state.activeModule) : null
   state.trace =
     state.view === 'graph'
       ? state.selectedId
         ? buildTraceContext(state.graph, state.selectedId, state.showAllTrace)
-        : buildModuleTraceContext(state.graph, state.activeModule)
+        : moduleTrace
       : null
-  const nodesToRender = nodesForRender(state.filteredNodes, renderLimit, state.trace)
+  const layoutTrace = moduleTrace ?? state.trace
+  const nodesToRender = nodesForRender(state.filteredNodes, renderLimit, layoutTrace)
   const renderedIds = new Set(nodesToRender.map((node) => node.id))
   const truncated = state.filteredNodes.some((node) => !renderedIds.has(node.id))
 
@@ -88,8 +91,8 @@ function render() {
   }
 
   let layout = layoutRegistry.layout(state.view, { nodes: nodesToRender, width, height })
-  if (state.trace) {
-    layout = applyTraceFocusLayout(layout, state.trace, width, height, state.view)
+  if (layoutTrace) {
+    layout = applyTraceFocusLayout(layout, layoutTrace, width, height, state.view)
   }
 
   if (state.fitView) {
