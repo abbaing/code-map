@@ -171,6 +171,7 @@ function drillIntoModule(moduleName) {
   els.search.value = ''
   state.panX = 0
   state.panY = 0
+  state.fitView = true
   updateViewUI()
   applyFilters()
 }

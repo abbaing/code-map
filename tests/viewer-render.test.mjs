@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { populateSettingsTab } from '#viewer/viewer-actions.js'
 import { renderFindingsTable } from '#viewer/viewer-findings.js'
-import { nodesForRender, render, renderingStrategies } from '#viewer/viewer-graph.js'
+import { fitLayoutViewport, nodesForRender, render, renderingStrategies } from '#viewer/viewer-graph.js'
 import { layoutNodes, layoutSystemModules } from '#viewer/viewer-layouts.js'
 import {
   colors,
@@ -30,6 +30,19 @@ assert.deepEqual(renderingStrategies, {
   nodes: ['system', 'graph', 'domain'],
   edges: ['system', 'graph', 'domain']
 })
+assert.deepEqual(
+  fitLayoutViewport(
+    {
+      nodes: [{ x: 1800, y: 76, width: 180, height: 52 }],
+      moduleLabels: [],
+      layerLabels: [{ x: 1800, width: 180 }]
+    },
+    900,
+    700
+  ),
+  { zoom: 1, panX: 1440, panY: -286 },
+  'module navigation must center layouts whose first populated stage is far from the origin'
+)
 assert.doesNotMatch(
   viewerHtml,
   /<(?:script|link)\b[^>]*(?:src|href)=["']https?:\/\//iu,

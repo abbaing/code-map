@@ -14,6 +14,7 @@ export const viewerStore = createViewerStore({
   zoom: 1,
   panX: 0,
   panY: 0,
+  fitView: false,
   dragMoved: false,
   suppressOutsideReset: false,
   view: 'overview',

@@ -90,6 +90,14 @@ function render() {
     layout = applyTraceFocusLayout(layout, state.trace, width, height, state.view)
   }
 
+  if (state.fitView) {
+    const viewport = fitLayoutViewport(layout, vw, vh)
+    state.zoom = viewport.zoom
+    state.panX = viewport.panX
+    state.panY = viewport.panY
+    state.fitView = false
+  }
+
   svg.style.width = '100%'
   svg.style.height = '100%'
   const vpW = vw / state.zoom
@@ -101,6 +109,33 @@ function render() {
     renderDomainView(svg, layout)
   } else {
     renderGraphView(svg, layout)
+  }
+}
+
+function fitLayoutViewport(layout, viewportWidth, viewportHeight, padding = 40) {
+  if (!layout.nodes.length) {
+    return { zoom: 1, panX: 0, panY: 0 }
+  }
+
+  const horizontalItems = [...layout.nodes, ...(layout.moduleLabels ?? []), ...(layout.layerLabels ?? [])]
+  const verticalItems = [...layout.nodes, ...(layout.moduleLabels ?? [])]
+  const minX = Math.min(...horizontalItems.map((item) => item.x ?? 0))
+  const maxX = Math.max(...horizontalItems.map((item) => (item.x ?? 0) + (item.width ?? 0)))
+  const minY = Math.min(0, ...verticalItems.map((item) => item.y ?? 0))
+  const maxY = Math.max(...verticalItems.map((item) => (item.y ?? 0) + (item.height ?? 0)))
+  const contentWidth = Math.max(1, maxX - minX + padding * 2)
+  const contentHeight = Math.max(1, maxY - minY + padding * 2)
+  const zoom = Math.min(
+    1,
+    Math.max(0.2, Number(Math.min(viewportWidth / contentWidth, viewportHeight / contentHeight).toFixed(2)))
+  )
+  const visibleWidth = viewportWidth / zoom
+  const visibleHeight = viewportHeight / zoom
+
+  return {
+    zoom,
+    panX: (minX + maxX - visibleWidth) / 2,
+    panY: (minY + maxY - visibleHeight) / 2
   }
 }
 
@@ -302,4 +337,4 @@ function isFocusedEdge(edge, focusedIds) {
   return Boolean(focusedIds?.has(edge.from) && focusedIds?.has(edge.to))
 }
 
-export { nodesForRender, render, renderingStrategies }
+export { fitLayoutViewport, nodesForRender, render, renderingStrategies }
