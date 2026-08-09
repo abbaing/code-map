@@ -17,7 +17,8 @@ import {
   applyTraceFocusLayout,
   buildModuleTraceContext,
   buildSystemModuleGraph,
-  buildTraceContext
+  buildTraceContext,
+  isDataContextCatalogEdge
 } from '#viewer/viewer-trace.js'
 import { escapeHtml, formatLayer, formatModule } from '#viewer/viewer-utils.js'
 
@@ -195,7 +196,7 @@ function renderGraphView(svg, layout) {
   const orphanIds = new Set(state.graph.orphans.map((orphan) => orphan.id))
   const moduleOverview = Boolean(state.trace?.moduleOverview)
   const selectedEdges = moduleOverview ? new Set() : (state.trace?.edgeIds ?? connectedEdgeIds(state.selectedId))
-  const edges = graphEdgesForRender(state.graph.edges, visibleIds)
+  const edges = graphEdgesForRender(state.graph.edges, visibleIds, nodeById)
   const managedEntities = managedEntityCounts(state.graph.edges)
   const focusedIds = moduleOverview ? null : (state.trace?.nodeIds ?? focusedNodeIds(state.selectedId, edges))
 
@@ -248,8 +249,10 @@ function renderGraphView(svg, layout) {
   `
 }
 
-function graphEdgesForRender(edges, visibleIds) {
-  return edges.filter((edge) => edge.type !== 'dbset' && visibleIds.has(edge.from) && visibleIds.has(edge.to))
+function graphEdgesForRender(edges, visibleIds, nodeById) {
+  return edges.filter(
+    (edge) => !isDataContextCatalogEdge(edge, nodeById) && visibleIds.has(edge.from) && visibleIds.has(edge.to)
+  )
 }
 
 function managedEntityCounts(edges) {

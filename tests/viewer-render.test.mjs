@@ -53,12 +53,19 @@ assert.deepEqual(
 )
 const persistenceEdges = [
   { id: 'context:account', from: 'context', to: 'account', type: 'dbset' },
+  { id: 'context:account:usage', from: 'context', to: 'account', type: 'uses-entity' },
+  { id: 'context:accounts', from: 'context', to: 'accounts', type: 'queries-table' },
   { id: 'account:accounts', from: 'account', to: 'accounts', type: 'maps-to-table' }
 ]
+const persistenceNodes = new Map([
+  ['context', { id: 'context', type: 'data-context' }],
+  ['account', { id: 'account', type: 'entity' }],
+  ['accounts', { id: 'accounts', type: 'table' }]
+])
 assert.deepEqual(
-  graphEdgesForRender(persistenceEdges, new Set(['context', 'account', 'accounts'])),
-  [persistenceEdges[1]],
-  'DbSet catalog relations must not create a line from the context to every entity'
+  graphEdgesForRender(persistenceEdges, new Set(['context', 'account', 'accounts']), persistenceNodes),
+  [persistenceEdges[3]],
+  'context catalog relations must not create repeated lines to every entity and table'
 )
 assert.deepEqual(
   managedEntityCounts(persistenceEdges),

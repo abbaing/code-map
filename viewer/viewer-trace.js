@@ -264,6 +264,9 @@ function traceEdgeAllowed(edge, nodeById, graphEdges) {
   if (!from || !to) {
     return false
   }
+  if (isDataContextCatalogEdge(edge, nodeById)) {
+    return false
+  }
   if (edge.type === 'handled-by' && from.type === 'endpoint' && to.type === 'controller') {
     return false
   }
@@ -274,6 +277,18 @@ function traceEdgeAllowed(edge, nodeById, graphEdges) {
     return !graphEdges.some((candidate) => candidate.from === from.id && candidate.type === 'depends-on')
   }
   return true
+}
+
+function isDataContextCatalogEdge(edge, nodeById) {
+  if (edge.type === 'dbset') {
+    return true
+  }
+  const from = nodeById.get(edge.from)
+  const to = nodeById.get(edge.to)
+  return Boolean(
+    from?.type === 'data-context' &&
+    ((edge.type === 'uses-entity' && to?.type === 'entity') || (edge.type === 'queries-table' && to?.type === 'table'))
+  )
 }
 
 function adjacencyFor(edges, direction) {
@@ -620,6 +635,7 @@ export {
   buildModuleTraceContext,
   buildSystemModuleGraph,
   buildTraceContext,
+  isDataContextCatalogEdge,
   moduleTraceNodeIds,
   nodeHeight
 }

@@ -37,6 +37,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - The viewer server exposes every browser module required by the rendering graph.
 - Module navigation centers and fits the populated graph instead of opening on empty canvas space.
 - Database contexts summarize managed entities without drawing a relation to every entity card.
+- Shared database contexts no longer expand a module graph through duplicated entity and table usages.
 
 ### Security
 

@@ -61,6 +61,8 @@ assert.deepEqual(graph.getNode(entityId).meta.domain.properties, [{ name: 'Name'
 assert.equal(graph.getNode(tableId).meta.entity, 'Account')
 assert.equal(graph.getNode(tableId).module, 'accounts')
 assert.equal(hasEdge('file:back/App/Data/AppDbContext.cs', entityId, 'dbset'), true)
+assert.equal(hasEdge('file:back/App/Data/AppDbContext.cs', entityId, 'uses-entity'), false)
+assert.equal(hasEdge('file:back/App/Data/AppDbContext.cs', tableId, 'queries-table'), false)
 assert.equal(hasEdge(entityId, tableId, 'maps-to-table'), true)
 assert.equal(hasEdge('file:back/Infrastructure/Repositories/AccountRepository.cs', entityId, 'uses-entity'), true)
 assert.equal(hasEdge('file:back/Infrastructure/Repositories/AccountRepository.cs', tableId, 'queries-table'), true)

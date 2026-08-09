@@ -88,6 +88,37 @@ assert.equal(
   'module execution lanes should omit controller implementation detail'
 )
 
+const contextHubGraph = {
+  nodes: [
+    { id: 'agents-handler', type: 'handler', module: 'agents' },
+    { id: 'agents-entity', type: 'entity', module: 'agents' },
+    { id: 'agents-table', type: 'table', module: 'agents' },
+    { id: 'context', type: 'data-context', module: 'shared' },
+    { id: 'foreign-entity', type: 'entity', module: 'billing' },
+    { id: 'foreign-table', type: 'table', module: 'billing' }
+  ],
+  edges: [
+    { id: 'handler:context', from: 'agents-handler', to: 'context', type: 'depends-on' },
+    { id: 'handler:entity', from: 'agents-handler', to: 'agents-entity', type: 'uses-entity' },
+    { id: 'entity:table', from: 'agents-entity', to: 'agents-table', type: 'maps-to-table' },
+    { id: 'context:foreign:dbset', from: 'context', to: 'foreign-entity', type: 'dbset' },
+    { id: 'context:foreign:usage', from: 'context', to: 'foreign-entity', type: 'uses-entity' },
+    { id: 'context:foreign:query', from: 'context', to: 'foreign-table', type: 'queries-table' }
+  ]
+}
+const contextHubOverview = buildModuleTraceContext(contextHubGraph, 'agents')
+assert.equal(
+  contextHubOverview.nodeIds.has('context'),
+  false,
+  'a shared context that only acts as a catalog must not occupy a module execution lane'
+)
+assert.equal(
+  contextHubOverview.nodeIds.has('foreign-entity'),
+  false,
+  'a shared context must not pull another module entity into the selected module graph'
+)
+assert.equal(contextHubOverview.nodeIds.has('foreign-table'), false)
+
 const fallbackNodes = [
   { id: 'app-routes', label: 'AppRoutes', layer: 'Routes', type: 'route', module: 'app', path: 'front/AppRoutes.tsx' },
   { id: 'local-route', label: 'UsersRoutes', layer: 'Routes', type: 'route', module: 'users' },

@@ -126,7 +126,7 @@ function extractEntityUsage(
 ) {
   const { toRepoPath } = projectContext
   const usageFiles = files.filter((file) =>
-    ['handler', 'repository', 'service', 'data-context'].includes(graph.getNode(`file:${toRepoPath(file)}`)?.type)
+    ['handler', 'repository', 'service'].includes(graph.getNode(`file:${toRepoPath(file)}`)?.type)
   )
   for (const file of usageFiles) {
     const repoPath = toRepoPath(file)
