@@ -6,7 +6,7 @@ import { resolveTsImport } from './resolve.mjs'
 import { isEntryPoint } from './quality.mjs'
 import { createFindingCollector } from './rules/findings.mjs'
 import { createScanPipeline, defineScanPhase } from './scan-pipeline.mjs'
-import { assertCapabilityRegistry, capabilityInput } from './templates/contracts.mjs'
+import { assertCapabilityRegistry, capabilityInput, deepFreeze } from './templates/contracts.mjs'
 import { assertTextWriter } from './writer-contract.mjs'
 
 // ── Phase functions ───────────────────────────────────────────────────────────
@@ -426,11 +426,10 @@ export function createDefaultScanPipeline() {
     defineScanPhase({
       id: 'run-scanners',
       requires: ['graph', 'projectContext', 'registry', 'files', 'findingSink', 'findingSource'],
-      provides: ['scanContext'],
-      run: ({ graph, projectContext, registry, files, findingSink, findingSource }) => {
-        const scanContext = createScanContext(graph, projectContext, registry, files, findingSink, findingSource)
-        phaseRunRegisteredScanners(scanContext)
-        return { scanContext }
+      provides: ['scannerResults'],
+      run: (input) => {
+        const capabilities = createScanCapabilities(input)
+        return { scannerResults: phaseRunRegisteredScanners(input.registry, capabilities) }
       }
     }),
     defineScanPhase({
@@ -440,8 +439,9 @@ export function createDefaultScanPipeline() {
     }),
     defineScanPhase({
       id: 'run-enrichers',
-      requires: ['scanContext'],
-      run: ({ scanContext }) => phaseRunRegisteredEnrichers(scanContext)
+      requires: ['graph', 'projectContext', 'registry', 'files', 'findingSink', 'findingSource', 'scannerResults'],
+      run: ({ scannerResults, ...input }) =>
+        phaseRunRegisteredEnrichers(input.registry, createScanCapabilities(input), scannerResults)
     }),
     defineScanPhase({
       id: 'finalize-document',
@@ -536,7 +536,7 @@ function mergeById(left = [], right = []) {
   return [...byId.values()]
 }
 
-function createScanContext(graph, projectContext, registry, files, findingSink, findingSource) {
+function createScanCapabilities({ graph, projectContext, registry, files, findingSink, findingSource }) {
   const { projectMap, toRepoPath } = projectContext
   const sourceReader = createSourceReader(projectContext.platform.fileSystem, toRepoPath)
   return {
@@ -548,8 +548,6 @@ function createScanContext(graph, projectContext, registry, files, findingSink, 
     findingSink,
     findingSource,
     sourceReader,
-    frontEndpointIds: [],
-    controllerEndpoints: [],
     controllerFiles: () =>
       files.backFiles.filter((file) =>
         toRepoPath(file).includes(projectMap.backend?.controllerPathFragment ?? '/Controllers/')
@@ -559,17 +557,20 @@ function createScanContext(graph, projectContext, registry, files, findingSink, 
   }
 }
 
-function phaseRunRegisteredScanners(context) {
-  for (const scanner of context.registry.capabilities.scanners) {
-    const result = scanner.run(capabilityInput(scanner, context))
+function phaseRunRegisteredScanners(registry, capabilities) {
+  const results = { frontEndpointIds: Object.freeze([]), controllerEndpoints: Object.freeze([]) }
+  for (const scanner of registry.capabilities.scanners) {
+    const result = scanner.run(capabilityInput(scanner, { ...capabilities, ...results }))
     if (scanner.assign) {
-      context[scanner.assign] = result ?? []
+      results[scanner.assign] = deepFreeze(result ?? [])
     }
   }
+  return deepFreeze(results)
 }
 
-function phaseRunRegisteredEnrichers(context) {
-  for (const enricher of context.registry.capabilities.enrichers) {
+function phaseRunRegisteredEnrichers(registry, capabilities, scannerResults) {
+  const context = { ...capabilities, ...scannerResults }
+  for (const enricher of registry.capabilities.enrichers) {
     enricher.run(capabilityInput(enricher, context))
   }
 }

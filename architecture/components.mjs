@@ -148,8 +148,8 @@ export const components = [
     files: ['scan.mjs'],
     contracts: ['ScanPhase', 'Scanner', 'GraphEnricher', 'TemplateRegistry', 'TextWriter'],
     compositionRoot: false,
-    design: designStatus('pass', 'pass', 'pass', 'gap', 'pass'),
-    decision: 'Pipeline phases declare focused inputs and outputs; scanner capabilities still receive a broad context.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Pass immutable named scanner results between phases and project only declared inputs to each capability.'
   },
   {
     id: 'node-scan',

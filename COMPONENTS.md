@@ -59,6 +59,7 @@ Contracts are structural JavaScript objects or functions. Their exact signatures
 | `ImportResolver`                | Resolve one import from a source file                                           |
 | `ScanPhase`                     | Transform declared scan inputs into declared outputs in an ordered pipeline     |
 | `Scanner`                       | Add one bounded category of evidence to a scan session                          |
+| `ScannerResults`                | Immutable named outputs passed from scanners to later scan phases               |
 | `BackendAnalysisSession`        | Query backend files, declarations, and implementations for one scan execution   |
 | `GraphEnricher`                 | Derive metadata from an already populated graph                                 |
 | `QualityScoringPolicy`          | Convert immutable graph evidence into scores and auditable calculation details  |

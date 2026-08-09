@@ -74,5 +74,14 @@ assert.deepEqual(
   ['discover-files', 'run-scanners', 'apply-runtime-links', 'run-enrichers', 'finalize-document'],
   'the default scan order must remain explicit and reviewable'
 )
+const defaultPhases = createDefaultScanPipeline().phases
+const scannerPhase = defaultPhases.find((phase) => phase.id === 'run-scanners')
+const enricherPhase = defaultPhases.find((phase) => phase.id === 'run-enrichers')
+assert.deepEqual(scannerPhase.provides, ['scannerResults'])
+assert.equal(enricherPhase.requires.includes('scannerResults'), true)
+assert.equal(
+  defaultPhases.some((phase) => [...phase.requires, ...phase.provides].includes('scanContext')),
+  false
+)
 
 console.log('scan pipeline contract tests passed')
