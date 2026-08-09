@@ -55,6 +55,7 @@ Contracts are structural JavaScript objects or functions. Their exact signatures
 | `ImportResolver`                | Resolve one import from a source file                                           |
 | `ScanPhase`                     | Transform declared scan inputs into declared outputs in an ordered pipeline     |
 | `Scanner`                       | Add one bounded category of evidence to a scan session                          |
+| `BackendAnalysisSession`        | Query backend files, declarations, and implementations for one scan execution   |
 | `GraphEnricher`                 | Derive metadata from an already populated graph                                 |
 | `Rule`                          | Evaluate one policy against a documented rule context                           |
 | `FindingSink` / `FindingSource` | Write findings or read finalized findings, never both by default                |
@@ -99,4 +100,4 @@ A new or materially changed component is complete only when:
 7. architecture, contract, behavior, and coverage tests pass;
 8. documentation names any public contract or compatibility impact.
 
-Existing `gap` entries are the controlled remediation baseline for S05–S16. S17 will turn the target dependency rules into automated fitness functions, and S18 will require every remaining applicable status to be `pass`.
+Existing `gap` entries are the controlled remediation baseline for S06–S16. S17 will turn the target dependency rules into automated fitness functions, and S18 will require every remaining applicable status to be `pass`.

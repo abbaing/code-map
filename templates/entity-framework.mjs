@@ -1,4 +1,4 @@
-import { scanDatabase } from '../scan-back.mjs'
+import { createBackScanSession, scanDatabase } from '../scan-back.mjs'
 
 export const entityFrameworkTemplate = {
   id: 'entity-framework',
@@ -16,7 +16,10 @@ export const entityFrameworkTemplate = {
     scanners: [
       {
         id: 'entity-framework.database',
-        run: (context) => scanDatabase(context.graph, context.files.backFiles, context.projectContext)
+        run: (context) => {
+          const session = context.backSession ?? createBackScanSession(context.files.allBackFiles)
+          return scanDatabase(context.graph, context.files.backFiles, context.projectContext, session)
+        }
       }
     ]
   }

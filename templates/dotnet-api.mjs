@@ -4,7 +4,7 @@ import {
   scanControllers,
   scanRequestDispatches,
   scanRequestHandlers,
-  initBackFileIndex
+  createBackScanSession
 } from '../scan-back.mjs'
 import { isBackTestFile } from '../scan-utils.mjs'
 
@@ -48,27 +48,36 @@ export const dotnetApiTemplate = {
       }
     ],
     scanners: [
-      { id: 'dotnet.index', run: (context) => initBackFileIndex(context.files.allBackFiles) },
+      {
+        id: 'dotnet.index',
+        assign: 'backSession',
+        run: (context) => createBackScanSession(context.files.allBackFiles)
+      },
       {
         id: 'dotnet.files',
-        run: (context) => scanBackFiles(context.graph, context.files.backFiles, context.projectContext)
+        run: (context) =>
+          scanBackFiles(context.graph, context.files.backFiles, context.projectContext, context.backSession)
       },
       {
         id: 'dotnet.controllers',
         assign: 'controllerEndpoints',
-        run: (context) => scanControllers(context.graph, context.controllerFiles(), context.projectContext)
+        run: (context) =>
+          scanControllers(context.graph, context.controllerFiles(), context.projectContext, context.backSession)
       },
       {
         id: 'dotnet.dispatches',
-        run: (context) => scanRequestDispatches(context.graph, context.files.backFiles, context.projectContext)
+        run: (context) =>
+          scanRequestDispatches(context.graph, context.files.backFiles, context.projectContext, context.backSession)
       },
       {
         id: 'dotnet.handlers',
-        run: (context) => scanRequestHandlers(context.graph, context.files.backFiles, context.projectContext)
+        run: (context) =>
+          scanRequestHandlers(context.graph, context.files.backFiles, context.projectContext, context.backSession)
       },
       {
         id: 'dotnet.dependencies',
-        run: (context) => scanBackDependencies(context.graph, context.files.backFiles, context.projectContext)
+        run: (context) =>
+          scanBackDependencies(context.graph, context.files.backFiles, context.projectContext, context.backSession)
       }
     ]
   }

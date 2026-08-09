@@ -16,6 +16,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Immutable, injectable project contexts that isolate configuration and path resolution between executions.
 - Injectable filesystem, environment, clock, hashing, and randomness capabilities with a Node adapter.
 - A validated scan pipeline with ordered phases and explicit input/output contracts.
+- Execution-scoped backend analysis sessions that prevent index state from leaking between scans.
 
 ### Changed
 

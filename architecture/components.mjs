@@ -141,14 +141,24 @@ export const components = [
     decision: 'The scanner honors the capability contract but still imports concrete classifiers and resolution.'
   },
   {
+    id: 'backend-analysis-session',
+    responsibility: 'Own immutable per-run indexes for backend files, declarations, and implementations.',
+    role: 'core',
+    files: ['backend-analysis-session.mjs'],
+    contracts: ['BackendAnalysisSession'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Expose read-only index queries and keep all indexed data scoped to one scan execution.'
+  },
+  {
     id: 'backend-scanner',
     responsibility: 'Extract .NET files, controllers, CQRS, dependencies, and persistence evidence.',
     role: 'extension',
     files: ['scan-back.mjs'],
-    contracts: ['Scanner'],
+    contracts: ['Scanner', 'BackendAnalysisSession'],
     compositionRoot: false,
     design: designStatus('gap', 'gap', 'gap', 'pass', 'gap'),
-    decision: 'Split scanner families and replace ordered process-wide indexes with an explicit scan session.'
+    decision: 'Backend indexes are execution-scoped; split scanner families before adding more backend technologies.'
   },
   {
     id: 'rules',
