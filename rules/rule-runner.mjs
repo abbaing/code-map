@@ -2,7 +2,18 @@ import { readText } from '../scan-utils.mjs'
 import { importsOf } from '../source-analysis.mjs'
 import { classifyFront } from '../classify.mjs'
 
-export function runFileRules(files, rules, defaultRules, repoRules, projectContext, classify = classifySource) {
+export function runFileRules(
+  files,
+  rules,
+  defaultRules,
+  repoRules,
+  projectContext,
+  findingSink,
+  classify = classifySource
+) {
+  if (!findingSink || typeof findingSink.add !== 'function') {
+    throw new TypeError('Rule execution requires a finding sink.')
+  }
   const effectiveRules = effectiveRuleConfig(repoRules, defaultRules)
   const enabledIds = new Set(
     effectiveRules.enabled ?? rules.filter((rule) => rule.defaultEnabled).map((rule) => rule.id)
@@ -23,7 +34,8 @@ export function runFileRules(files, rules, defaultRules, repoRules, projectConte
         type: classification.type,
         layer: classification.layer,
         projectMapRules: effectiveRules,
-        projectContext
+        projectContext,
+        findingSink
       })
     }
   }

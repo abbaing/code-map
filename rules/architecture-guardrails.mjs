@@ -1,5 +1,4 @@
 import { escapeRegExp } from '../source-analysis.mjs'
-import { addFinding } from './findings.mjs'
 import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from './rule-runner.mjs'
 
 const reactStateHooks = /\buse(State|Effect|Memo|Callback|Reducer|Ref)\s*\(/g
@@ -29,7 +28,7 @@ export const ARCHITECTURE_RULES = [
       fixHint: 'Move the component to a component folder entry file and update imports to the configured alias.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, type, projectMapRules }) {
+    check({ nodeId, repoPath, type, projectMapRules, findingSink }) {
       if (!['component', 'main-component', 'subcomponent'].includes(type)) {
         return
       }
@@ -43,7 +42,7 @@ export const ARCHITECTURE_RULES = [
       if (entryNames.some((entryName) => repoPath.endsWith(`/${entryName}`))) {
         return
       }
-      addFinding({ ...findingBase(this), nodeId, path: repoPath, line: 1, evidence: repoPath.split('/').pop() })
+      findingSink.add({ ...findingBase(this), nodeId, path: repoPath, line: 1, evidence: repoPath.split('/').pop() })
     }
   },
   {
@@ -61,7 +60,7 @@ export const ARCHITECTURE_RULES = [
         'Move orchestration into a view-model hook or controller and keep the entry component as a small bridge to the view.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content, type, projectMapRules }) {
+    check({ nodeId, repoPath, content, type, projectMapRules, findingSink }) {
       if (!matchesAny(type, ruleOption(projectMapRules, this, 'types') ?? ['main-component'])) {
         return
       }
@@ -77,7 +76,7 @@ export const ARCHITECTURE_RULES = [
         if (!match) {
           continue
         }
-        addFinding({
+        findingSink.add({
           ...findingBase(this),
           nodeId,
           path: repoPath,
@@ -101,7 +100,7 @@ export const ARCHITECTURE_RULES = [
         'Move the shared contract to a public feature entrypoint or shared/application layer, or declare an explicit allowed edge.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content, projectMapRules, projectContext }) {
+    check({ nodeId, repoPath, content, projectMapRules, projectContext, findingSink }) {
       const sourceFeature = featureFromPath(repoPath, projectContext)
       if (!sourceFeature) {
         return
@@ -114,7 +113,7 @@ export const ARCHITECTURE_RULES = [
         if (isAllowedFeatureImport(specifier, sourceFeature, targetFeature, this, projectMapRules)) {
           continue
         }
-        addFinding({
+        findingSink.add({
           ...findingBase(this),
           nodeId,
           path: repoPath,
@@ -137,7 +136,7 @@ export const ARCHITECTURE_RULES = [
       fixHint: 'Create or import the expected view-model hook and keep the component entry as a prop bridge.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content, type, projectMapRules }) {
+    check({ nodeId, repoPath, content, type, projectMapRules, findingSink }) {
       if (!matchesAny(type, ruleOption(projectMapRules, this, 'types') ?? ['main-component'])) {
         return
       }
@@ -155,7 +154,7 @@ export const ARCHITECTURE_RULES = [
       if (new RegExp(`\\b${escapeRegExp(expectedHook)}\\s*\\(`).test(content)) {
         return
       }
-      addFinding({ ...findingBase(this), nodeId, path: repoPath, line: 1, evidence: expectedHook })
+      findingSink.add({ ...findingBase(this), nodeId, path: repoPath, line: 1, evidence: expectedHook })
     }
   },
   {
@@ -172,7 +171,7 @@ export const ARCHITECTURE_RULES = [
         'Move UI-facing types to shared contracts, feature types, or schema modules and keep adapters limited to API/data concerns.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content, type, projectMapRules }) {
+    check({ nodeId, repoPath, content, type, projectMapRules, findingSink }) {
       const adapterTypes = ruleOption(projectMapRules, this, 'types') ?? ['repository']
       if (!adapterTypes.includes(type)) {
         return
@@ -181,7 +180,7 @@ export const ARCHITECTURE_RULES = [
         if (!isUiImport(specifier, this, projectMapRules)) {
           continue
         }
-        addFinding({
+        findingSink.add({
           ...findingBase(this),
           nodeId,
           path: repoPath,
@@ -205,7 +204,7 @@ export const ARCHITECTURE_RULES = [
         'Move branching, persistence, and business logic into application handlers and keep controller actions as request/response adapters.',
       docsPath: 'docs/backend-rules.md'
     },
-    check({ nodeId, repoPath, content }) {
+    check({ nodeId, repoPath, content, findingSink }) {
       if (!repoPath.includes('/Controllers/') || !repoPath.endsWith('Controller.cs')) {
         return
       }
@@ -223,7 +222,7 @@ export const ARCHITECTURE_RULES = [
         if (!match) {
           continue
         }
-        addFinding({
+        findingSink.add({
           ...findingBase(this),
           nodeId,
           path: repoPath,
@@ -246,7 +245,7 @@ export const ARCHITECTURE_RULES = [
       fixHint: 'Move shared contracts inward or invert the dependency through application/domain abstractions.',
       docsPath: 'docs/backend-rules.md'
     },
-    check({ nodeId, repoPath, content, projectMapRules }) {
+    check({ nodeId, repoPath, content, projectMapRules, findingSink }) {
       const forbidden = forbiddenBackendUsings(repoPath, this, projectMapRules)
       if (forbidden.length === 0) {
         return
@@ -257,7 +256,7 @@ export const ARCHITECTURE_RULES = [
         if (!match) {
           continue
         }
-        addFinding({
+        findingSink.add({
           ...findingBase(this),
           nodeId,
           path: repoPath,
@@ -269,8 +268,8 @@ export const ARCHITECTURE_RULES = [
   }
 ]
 
-export function runArchitectureGuardrails(files, defaultRules, projectContext) {
-  runFileRules(files, ARCHITECTURE_RULES, defaultRules, projectContext.projectMap.rules, projectContext)
+export function runArchitectureGuardrails(files, defaultRules, projectContext, findingSink) {
+  runFileRules(files, ARCHITECTURE_RULES, defaultRules, projectContext.projectMap.rules, projectContext, findingSink)
 }
 
 export function getArchitectureGuardrailMetadata() {

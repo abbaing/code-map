@@ -1,34 +1,43 @@
-const findings = []
+export function createFindingCollector(projectMap) {
+  const collected = []
 
-export function clearFindings() {
-  findings.length = 0
+  const sink = Object.freeze({
+    add(data) {
+      const finding = Object.freeze({
+        id: [data.ruleId, data.nodeId, data.line ?? 0, collected.length].join(':'),
+        ruleId: data.ruleId,
+        severity: data.severity ?? 'warning',
+        category: data.category ?? 'architecture',
+        confidence: data.confidence ?? 'medium',
+        effort: data.effort ?? 'medium',
+        nodeId: data.nodeId,
+        message: data.message,
+        why: data.why,
+        fixHint: data.fixHint,
+        docsPath: data.docsPath,
+        path: data.path,
+        line: data.line,
+        evidence: data.evidence,
+        source: data.source ?? 'code-map'
+      })
+      collected.push(finding)
+      return finding
+    }
+  })
+
+  const evaluated = () => collected.map((finding) => withSuppression(finding, projectMap))
+  const source = Object.freeze({
+    all: () => freezeFindings(sortFindings(evaluated())),
+    active: () => freezeFindings(sortFindings(evaluated().filter((finding) => !finding.suppressed))),
+    suppressed: () => freezeFindings(sortFindings(evaluated().filter((finding) => finding.suppressed)))
+  })
+
+  return Object.freeze({ sink, source })
 }
 
-export function addFinding(data) {
-  const finding = {
-    id: [data.ruleId, data.nodeId, data.line ?? 0, findings.length].join(':'),
-    ruleId: data.ruleId,
-    severity: data.severity ?? 'warning',
-    category: data.category ?? 'architecture',
-    confidence: data.confidence ?? 'medium',
-    effort: data.effort ?? 'medium',
-    nodeId: data.nodeId,
-    message: data.message,
-    why: data.why,
-    fixHint: data.fixHint,
-    docsPath: data.docsPath,
-    path: data.path,
-    line: data.line,
-    evidence: data.evidence,
-    source: data.source ?? 'code-map'
-  }
-  findings.push(finding)
-  return finding
-}
-
-export function attachFindingsToNodes(graph, projectMap) {
+export function attachFindingsToNodes(graph, findings) {
   const byNode = new Map()
-  for (const finding of activeFindings(projectMap)) {
+  for (const finding of findings) {
     if (!finding.nodeId || !graph.hasNode(finding.nodeId)) {
       continue
     }
@@ -42,20 +51,8 @@ export function attachFindingsToNodes(graph, projectMap) {
   }
 }
 
-export function getFindings(projectMap) {
-  return sortFindings(findings.map((finding) => withSuppression(finding, projectMap)))
-}
-export function getActiveFindings(projectMap) {
-  return sortFindings(activeFindings(projectMap))
-}
-export function getSuppressedFindings(projectMap) {
-  return sortFindings(
-    findings.map((finding) => withSuppression(finding, projectMap)).filter((finding) => finding.suppressed)
-  )
-}
-
-function activeFindings(projectMap) {
-  return findings.map((finding) => withSuppression(finding, projectMap)).filter((finding) => !finding.suppressed)
+function freezeFindings(findings) {
+  return Object.freeze(findings.map((finding) => Object.freeze(finding)))
 }
 
 function sortFindings(items) {
@@ -69,19 +66,20 @@ function sortFindings(items) {
 }
 
 function withSuppression(finding, projectMap) {
-  const result = { ...finding }
   const suppression = (projectMap.rules?.suppressions ?? []).find((candidate) => suppressionMatches(candidate, finding))
   if (!suppression) {
-    return result
+    return { ...finding }
   }
-  result.suppressed = true
-  result.suppression = {
-    reason: suppression.reason,
-    ruleId: suppression.ruleId,
-    pathPattern: suppression.pathPattern,
-    expiresOn: suppression.expiresOn
+  return {
+    ...finding,
+    suppressed: true,
+    suppression: Object.freeze({
+      reason: suppression.reason,
+      ruleId: suppression.ruleId,
+      pathPattern: suppression.pathPattern,
+      expiresOn: suppression.expiresOn
+    })
   }
-  return result
 }
 
 function suppressionMatches(suppression, finding) {

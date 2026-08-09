@@ -18,6 +18,7 @@ graph.json → viewer
 - `scan.mjs` composes an ordered pipeline whose phases declare their required inputs and produced outputs; specialized scanners extract frontend, backend, endpoint, and quality facts.
 - Backend indexes belong to an immutable analysis session created for each scan execution.
 - Deterministic source-text and path analysis is isolated from filesystem-backed source acquisition.
+- Each scan owns a finding collector; rules receive its write capability while graph finalization receives its read capability.
 - `rules/` evaluates graph and source facts without depending on CLI, HTTP, or the viewer.
 - `templates/` extends scanning through small capability objects rather than conditionals in the orchestrator.
 - `submap/` keeps selection, traversal, digest, diff, and validation independent from its CLI adapter.

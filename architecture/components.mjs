@@ -178,7 +178,7 @@ export const components = [
     contracts: ['Rule'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'gap'),
-    decision: 'Rule implementations are substitutable; inject configuration, source access, and a FindingSink.'
+    decision: 'Rules receive an isolated FindingSink; inject source access before adding more rule families.'
   },
   {
     id: 'findings',
@@ -187,8 +187,8 @@ export const components = [
     files: ['rules/findings.mjs'],
     contracts: ['FindingSink', 'FindingSource'],
     compositionRoot: false,
-    design: designStatus('pass', 'gap', 'not-applicable', 'pass', 'gap'),
-    decision: 'Replace the module-level collection and global suppression configuration with an injected collector.'
+    design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'pass'),
+    decision: 'Keep collection execution-scoped and expose separate immutable write and read capabilities.'
   },
   {
     id: 'templates',

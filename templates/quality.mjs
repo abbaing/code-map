@@ -21,7 +21,12 @@ export const qualityTemplate = {
       {
         id: 'quality.guardrails',
         run: (context) =>
-          runFrontendGuardrails(context.files.frontFiles, context.registry.rules, context.projectContext)
+          runFrontendGuardrails(
+            context.files.frontFiles,
+            context.registry.rules,
+            context.projectContext,
+            context.findingSink
+          )
       },
       {
         id: 'quality.architecture-guardrails',
@@ -29,12 +34,13 @@ export const qualityTemplate = {
           runArchitectureGuardrails(
             [...context.files.frontFiles, ...context.files.backFiles],
             context.registry.rules,
-            context.projectContext
+            context.projectContext,
+            context.findingSink
           )
       },
       {
         id: 'quality.findings',
-        run: (context) => attachFindingsToNodes(context.graph, context.projectMap)
+        run: (context) => attachFindingsToNodes(context.graph, context.findingSource.active())
       }
     ]
   }

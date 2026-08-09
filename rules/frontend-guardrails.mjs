@@ -1,4 +1,3 @@
-import { addFinding } from './findings.mjs'
 import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from './rule-runner.mjs'
 
 // Rule interface: { id, defaultEnabled, meta, check(nodeId, repoPath, content, type, projectMap) }
@@ -18,12 +17,12 @@ export const RULES = [
       fixHint: 'Replace the relative import with the configured alias, usually @/...',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content }) {
+    check({ nodeId, repoPath, content, findingSink }) {
       for (const { specifier, index } of importsOf(content)) {
         if (!specifier.startsWith('.')) {
           continue
         }
-        addFinding({
+        findingSink.add({
           ...findingBase(this),
           nodeId,
           path: repoPath,
@@ -48,7 +47,7 @@ export const RULES = [
         'Extract private subcomponents, typed config, helpers, or a dedicated hook until the component is below the limit.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content, type, projectMapRules }) {
+    check({ nodeId, repoPath, content, type, projectMapRules, findingSink }) {
       if (!['component', 'main-component', 'subcomponent'].includes(type)) {
         return
       }
@@ -63,7 +62,7 @@ export const RULES = [
       if (lines <= max) {
         return
       }
-      addFinding({
+      findingSink.add({
         ...findingBase(this),
         nodeId,
         path: repoPath,
@@ -88,7 +87,7 @@ export const RULES = [
         'Replace with a concrete type, generic contract, discriminated union, or bounded unknown with explicit narrowing.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content }) {
+    check({ nodeId, repoPath, content, findingSink }) {
       const patterns = [
         { pattern: /\bas\s+any\b/g, label: 'as any' },
         { pattern: /:\s*any\b/g, label: ': any' },
@@ -97,7 +96,7 @@ export const RULES = [
       ]
       for (const { pattern, label } of patterns) {
         for (const match of content.matchAll(pattern)) {
-          addFinding({
+          findingSink.add({
             ...findingBase(this),
             nodeId,
             path: repoPath,
@@ -123,7 +122,7 @@ export const RULES = [
         'Statically import pages, use RouteConfig[] with { path, component }, and move permissions into PermissionedPage.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content, type }) {
+    check({ nodeId, repoPath, content, type, findingSink }) {
       if (type !== 'route') {
         return
       }
@@ -144,7 +143,7 @@ export const RULES = [
         if (!match) {
           continue
         }
-        addFinding({
+        findingSink.add({
           ...findingBase(this),
           nodeId,
           path: repoPath,
@@ -156,8 +155,8 @@ export const RULES = [
   }
 ]
 
-export function runFrontendGuardrails(files, defaultRules, projectContext) {
-  runFileRules(files, RULES, defaultRules, projectContext.projectMap.rules, projectContext)
+export function runFrontendGuardrails(files, defaultRules, projectContext, findingSink) {
+  runFileRules(files, RULES, defaultRules, projectContext.projectMap.rules, projectContext, findingSink)
 }
 
 export function getFrontendGuardrailMetadata() {

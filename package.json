@@ -37,7 +37,7 @@
     "lint": "eslint .",
     "prepublishOnly": "npm run release:check",
     "release:check": "npm run lint && npm run format:check && npm run test:coverage && npm run build:viewer-css && git diff --exit-code -- viewer/tailwind.css && npm run pack:dry",
-    "test": "node tests/architecture.test.mjs && node tests/component-contracts.test.mjs && node tests/platform.test.mjs && node tests/scan-pipeline.test.mjs && node tests/backend-analysis-session.test.mjs && node tests/source-analysis.test.mjs && node tests/core-critical.test.mjs && node tests/generic-templates.test.mjs && node tests/server-app.test.mjs && node tests/cli-smoke.test.mjs && node tests/submap.test.mjs && node tests/submap-cli.test.mjs && node tests/viewer-trace.test.mjs && node tests/viewer-render.test.mjs",
+    "test": "node tests/architecture.test.mjs && node tests/component-contracts.test.mjs && node tests/platform.test.mjs && node tests/scan-pipeline.test.mjs && node tests/backend-analysis-session.test.mjs && node tests/source-analysis.test.mjs && node tests/findings.test.mjs && node tests/core-critical.test.mjs && node tests/generic-templates.test.mjs && node tests/server-app.test.mjs && node tests/cli-smoke.test.mjs && node tests/submap.test.mjs && node tests/submap-cli.test.mjs && node tests/viewer-trace.test.mjs && node tests/viewer-render.test.mjs",
     "test:coverage": "c8 --all --include=*.mjs --include=rules/**/*.mjs --include=submap/**/*.mjs --include=templates/**/*.mjs --check-coverage --lines=78 --statements=78 --branches=77 --functions=80 npm test",
     "pack:dry": "npm pack --dry-run"
   },

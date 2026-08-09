@@ -6,7 +6,7 @@ import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
 import { Graph } from './graph.mjs'
 import { resolveTsImport } from './resolve.mjs'
 import { isEntryPoint } from './quality.mjs'
-import { clearFindings, getActiveFindings, getFindings, getSuppressedFindings } from './rules/findings.mjs'
+import { createFindingCollector } from './rules/findings.mjs'
 import { buildTemplateRegistry, loadTemplatePlugins } from './templates/registry.mjs'
 import { detect } from './detect.mjs'
 import { writeJsonFileAtomic } from './json-io.mjs'
@@ -426,10 +426,10 @@ export function createDefaultScanPipeline() {
     }),
     defineScanPhase({
       id: 'run-scanners',
-      requires: ['graph', 'projectContext', 'registry', 'files'],
+      requires: ['graph', 'projectContext', 'registry', 'files', 'findingSink', 'findingSource'],
       provides: ['scanContext'],
-      run: ({ graph, projectContext, registry, files }) => {
-        const scanContext = createScanContext(graph, projectContext, registry, files)
+      run: ({ graph, projectContext, registry, files, findingSink, findingSource }) => {
+        const scanContext = createScanContext(graph, projectContext, registry, files, findingSink, findingSource)
         phaseRunRegisteredScanners(scanContext)
         return { scanContext }
       }
@@ -446,7 +446,7 @@ export function createDefaultScanPipeline() {
     }),
     defineScanPhase({
       id: 'finalize-document',
-      requires: ['graph', 'projectContext', 'registry', 'effectiveProjectMap', 'files'],
+      requires: ['graph', 'projectContext', 'registry', 'effectiveProjectMap', 'files', 'findingSource'],
       provides: ['result'],
       run: (input) => ({ result: finalizeGraphDocument(input) })
     })
@@ -458,20 +458,20 @@ function buildGraph(projectContext, pipeline = createDefaultScanPipeline()) {
   const registry = buildTemplateRegistry(projectMap)
   const effectiveProjectMap = buildEffectiveProjectMap(projectMap, registry)
   const graph = new Graph()
-  clearFindings()
+  const { sink: findingSink, source: findingSource } = createFindingCollector(projectMap)
 
-  return pipeline.run({ graph, projectContext, registry, effectiveProjectMap }).result
+  return pipeline.run({ graph, projectContext, registry, effectiveProjectMap, findingSink, findingSource }).result
 }
 
-function finalizeGraphDocument({ graph, projectContext, registry, effectiveProjectMap, files }) {
+function finalizeGraphDocument({ graph, projectContext, registry, effectiveProjectMap, files, findingSource }) {
   const { projectMap } = projectContext
 
   const nodes = graph.allNodes().sort((a, b) => a.id.localeCompare(b.id))
   const edges = graph.allEdges().sort((a, b) => a.id.localeCompare(b.id))
   const orphans = computeOrphans(graph, projectContext)
-  const findings = getFindings(projectMap)
-  const activeFindings = getActiveFindings(projectMap)
-  const suppressedFindings = getSuppressedFindings(projectMap)
+  const findings = findingSource.all()
+  const activeFindings = findingSource.active()
+  const suppressedFindings = findingSource.suppressed()
 
   return {
     version: 1,
@@ -538,7 +538,7 @@ function mergeById(left = [], right = []) {
   return [...byId.values()]
 }
 
-function createScanContext(graph, projectContext, registry, files) {
+function createScanContext(graph, projectContext, registry, files, findingSink, findingSource) {
   const { projectMap, toRepoPath } = projectContext
   return {
     graph,
@@ -546,6 +546,8 @@ function createScanContext(graph, projectContext, registry, files) {
     projectContext,
     registry,
     files,
+    findingSink,
+    findingSource,
     frontEndpointIds: [],
     controllerEndpoints: [],
     controllerFiles: () =>
