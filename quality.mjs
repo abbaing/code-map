@@ -26,6 +26,71 @@ function clampScore(value) {
   return Math.max(1, Math.min(10, value))
 }
 
+export function createQualityScoringPolicy(implementation) {
+  if (!implementation || typeof implementation.score !== 'function') {
+    throw new TypeError('QualityScoringPolicy must implement score(evidence).')
+  }
+  return Object.freeze({ score: implementation.score.bind(implementation) })
+}
+
+export const defaultQualityScoringPolicy = createQualityScoringPolicy({
+  score(evidence) {
+    const {
+      internalRelations,
+      externalRelations,
+      outgoingDependencies,
+      incomingUsages,
+      relatedRelations,
+      externalModuleCount,
+      insideFeatureFolder,
+      entryPoint
+    } = evidence
+    const internalRatioBonus = relatedRelations > 0 ? Math.round((internalRelations / relatedRelations) * 3) : 0
+    const dependencyPenalty = outgoingDependencies > 12 ? 2 : outgoingDependencies > 8 ? 1 : 0
+    const unusedPenalty = incomingUsages === 0 && !entryPoint ? 1 : 0
+    const outgoingDependencyPenalty = Math.max(0, outgoingDependencies - 4)
+    const externalModulePenalty = externalModuleCount * 2
+    const externalDominancePenalty = externalRelations > internalRelations && externalRelations > 2 ? 1 : 0
+    const noDependencyBonus = outgoingDependencies === 0 ? 1 : 0
+
+    let cohesion = 6 + internalRatioBonus - dependencyPenalty - unusedPenalty
+    if (insideFeatureFolder) {
+      cohesion += 1
+    }
+    let coupling = 10 - outgoingDependencyPenalty - externalModulePenalty - externalDominancePenalty
+    if (noDependencyBonus) {
+      coupling = Math.min(10, coupling + noDependencyBonus)
+    }
+
+    const cohesionScore = clampScore(cohesion)
+    const couplingScore = clampScore(coupling)
+    return {
+      score: Math.round((cohesionScore + couplingScore + Math.min(cohesionScore, couplingScore)) / 3),
+      formula: 'round((cohesion + coupling + min(cohesion, coupling)) / 3)',
+      cohesion: {
+        score: cohesionScore,
+        calculation: {
+          base: 6,
+          internalRatioBonus,
+          featureFolderBonus: insideFeatureFolder ? 1 : 0,
+          dependencyPenalty,
+          unusedPenalty
+        }
+      },
+      coupling: {
+        score: couplingScore,
+        calculation: {
+          base: 10,
+          outgoingDependencyPenalty,
+          externalModulePenalty,
+          externalDominancePenalty,
+          noDependencyBonus
+        }
+      }
+    }
+  }
+})
+
 function buildCohesionReason(node, internalRelations, externalRelations, outgoingCount, incomingCount, projectMap) {
   const parts = [
     `${internalRelations} relations inside module ${node.module}`,
@@ -56,7 +121,8 @@ function buildCouplingReason(outgoingCount, externalModules, outgoingExternal) {
   return parts.join('; ')
 }
 
-export function applyQualityMetrics(graph, projectContext) {
+export function applyQualityMetrics(graph, projectContext, scoringPolicy) {
+  assertQualityScoringPolicy(scoringPolicy)
   const projectMap = projectContext.projectMap
   const incomingByNode = new Map()
   const outgoingByNode = new Map()
@@ -94,33 +160,24 @@ export function applyQualityMetrics(graph, projectContext) {
     const outgoingCount = scoredOutgoing.length
     const incomingCount = scoredIncoming.length
     const insideFeatureFolder = isInsideFeatureFolder(node, projectMap)
-    const internalRatioBonus = relatedNodes.length > 0 ? Math.round((internalRelations / relatedNodes.length) * 3) : 0
-    const cohesionDependencyPenalty = outgoingCount > 12 ? 2 : outgoingCount > 8 ? 1 : 0
-    const unusedPenalty = incomingCount === 0 && !isEntryPoint(node, projectContext) ? 1 : 0
-
-    let cohesion = 6
-    cohesion += internalRatioBonus
-    if (insideFeatureFolder) {
-      cohesion += 1
-    }
-    cohesion -= cohesionDependencyPenalty
-    cohesion -= unusedPenalty
-
-    const outgoingCouplingPenalty = Math.max(0, outgoingCount - 4)
-    const externalModulePenalty = externalModules.size * 2
-    const externalDominancePenalty = externalRelations > internalRelations && externalRelations > 2 ? 1 : 0
-    const noDependencyBonus = outgoingCount === 0 ? 1 : 0
-    let coupling = 10
-    coupling -= outgoingCouplingPenalty
-    coupling -= externalModulePenalty
-    coupling -= externalDominancePenalty
-    if (noDependencyBonus) {
-      coupling = Math.min(10, coupling + noDependencyBonus)
-    }
-
-    const cohesionScore = clampScore(cohesion)
-    const couplingScore = clampScore(coupling)
-    const score = Math.round((cohesionScore + couplingScore + Math.min(cohesionScore, couplingScore)) / 3)
+    const entryPoint = isEntryPoint(node, projectContext)
+    const scoring = assertQualityScore(
+      scoringPolicy.score(
+        Object.freeze({
+          internalRelations,
+          externalRelations,
+          outgoingDependencies: outgoingCount,
+          incomingUsages: incomingCount,
+          relatedRelations: relatedNodes.length,
+          externalModuleCount: externalModules.size,
+          insideFeatureFolder,
+          entryPoint
+        })
+      )
+    )
+    const { score } = scoring
+    const cohesionScore = scoring.cohesion.score
+    const couplingScore = scoring.coupling.score
     const topRelated = relatedNodes.slice(0, 8).map((related) => ({
       id: related.id,
       label: related.label,
@@ -150,7 +207,7 @@ export function applyQualityMetrics(graph, projectContext) {
           },
           related: topRelated,
           calculation: {
-            formula: 'round((cohesion + coupling + min(cohesion, coupling)) / 3)',
+            formula: scoring.formula,
             inputs: {
               internalRelations,
               externalRelations,
@@ -158,22 +215,14 @@ export function applyQualityMetrics(graph, projectContext) {
               incomingUsages: incomingCount,
               externalModules: [...externalModules].filter(Boolean).sort(),
               insideFeatureFolder,
-              entryPoint: isEntryPoint(node, projectContext)
+              entryPoint
             },
             cohesion: {
-              base: 6,
-              internalRatioBonus,
-              featureFolderBonus: insideFeatureFolder ? 1 : 0,
-              dependencyPenalty: cohesionDependencyPenalty,
-              unusedPenalty,
+              ...scoring.cohesion.calculation,
               result: cohesionScore
             },
             coupling: {
-              base: 10,
-              outgoingDependencyPenalty: outgoingCouplingPenalty,
-              externalModulePenalty,
-              externalDominancePenalty,
-              noDependencyBonus,
+              ...scoring.coupling.calculation,
               result: couplingScore
             }
           }
@@ -181,6 +230,31 @@ export function applyQualityMetrics(graph, projectContext) {
       }
     })
   }
+}
+
+function assertQualityScoringPolicy(policy) {
+  if (!policy || typeof policy.score !== 'function') {
+    throw new TypeError('applyQualityMetrics requires a QualityScoringPolicy.')
+  }
+}
+
+function assertQualityScore(result) {
+  if (
+    !result ||
+    !isScore(result.score) ||
+    typeof result.formula !== 'string' ||
+    !isScore(result.cohesion?.score) ||
+    !result.cohesion?.calculation ||
+    !isScore(result.coupling?.score) ||
+    !result.coupling?.calculation
+  ) {
+    throw new TypeError('QualityScoringPolicy must return scores, a formula, and calculation details.')
+  }
+  return result
+}
+
+function isScore(value) {
+  return Number.isInteger(value) && value >= 1 && value <= 10
 }
 
 function isInsideFeatureFolder(node, projectMap) {

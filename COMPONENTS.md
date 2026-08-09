@@ -61,6 +61,7 @@ Contracts are structural JavaScript objects or functions. Their exact signatures
 | `Scanner`                       | Add one bounded category of evidence to a scan session                          |
 | `BackendAnalysisSession`        | Query backend files, declarations, and implementations for one scan execution   |
 | `GraphEnricher`                 | Derive metadata from an already populated graph                                 |
+| `QualityScoringPolicy`          | Convert immutable graph evidence into scores and auditable calculation details  |
 | `Rule`                          | Evaluate one policy against a documented rule context                           |
 | `FindingSink` / `FindingSource` | Write findings or read finalized findings, never both by default                |
 | `Template`                      | Compose named file kinds, scanners, enrichers, rules, and presentation metadata |

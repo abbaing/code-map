@@ -1,4 +1,4 @@
-import { applyQualityMetrics } from '../quality.mjs'
+import { applyQualityMetrics, defaultQualityScoringPolicy } from '../quality.mjs'
 import { runArchitectureGuardrails } from '../rules/architecture-guardrails.mjs'
 import { runFrontendGuardrails } from '../rules/frontend-guardrails.mjs'
 import { attachFindingsToNodes } from '../rules/findings.mjs'
@@ -19,7 +19,7 @@ export const qualityTemplate = {
       {
         id: 'quality.score',
         requires: ['graph', 'projectContext'],
-        run: (context) => applyQualityMetrics(context.graph, context.projectContext)
+        run: (context) => applyQualityMetrics(context.graph, context.projectContext, defaultQualityScoringPolicy)
       },
       {
         id: 'quality.track-internals',

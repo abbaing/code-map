@@ -126,10 +126,10 @@ export const components = [
     responsibility: 'Calculate maintainability signals from an architectural graph.',
     role: 'core',
     files: ['quality.mjs'],
-    contracts: ['GraphEnricher'],
+    contracts: ['GraphEnricher', 'QualityScoringPolicy'],
     compositionRoot: false,
-    design: designStatus('pass', 'gap', 'not-applicable', 'pass', 'gap'),
-    decision: 'Inject scoring policy and ProjectContext instead of reading global configuration.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Collect graph evidence separately from the injected scoring policy and retain auditable calculations.'
   },
   {
     id: 'scan-pipeline',
