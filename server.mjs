@@ -25,6 +25,7 @@ const viewerAssets = new Map(
     'viewer-graph.js',
     'viewer-init.js',
     'viewer-interactions.mjs',
+    'viewer-layouts.js',
     'viewer-overview.js',
     'viewer-selection.js',
     'viewer-state.js',

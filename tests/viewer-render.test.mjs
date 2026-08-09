@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { populateSettingsTab } from '../viewer/viewer-actions.js'
 import { renderFindingsTable } from '../viewer/viewer-findings.js'
-import { layoutSystemModules, nodesForRender, render, renderingStrategies } from '../viewer/viewer-graph.js'
+import { nodesForRender, render, renderingStrategies } from '../viewer/viewer-graph.js'
+import { layoutNodes, layoutSystemModules } from '../viewer/viewer-layouts.js'
 import {
   colors,
   configureViewerElements,
@@ -223,6 +224,30 @@ assert.deepEqual(
   traceNodes.map((node) => node.id),
   ['front', 'shared'],
   'trace nodes must survive the normal render limit'
+)
+
+const domainNodes = [
+  { id: 'user', label: 'User', type: 'entity', module: 'users', meta: { domain: { properties: [] } } },
+  { id: 'role', label: 'Role', type: 'entity', module: 'users', meta: { domain: { properties: [] } } }
+]
+Object.assign(state, {
+  view: 'domain',
+  graph: {
+    nodes: domainNodes,
+    edges: [{ id: 'user:role', from: 'user', to: 'role', type: 'domain-relation' }],
+    projectMap: { modules: { shared: 'shared' } }
+  }
+})
+const firstDomainLayout = layoutNodes(domainNodes, 900, 700)
+const secondDomainLayout = layoutNodes(domainNodes, 900, 700)
+assert.deepEqual(
+  firstDomainLayout.nodes.map(({ id, x, y }) => ({ id, x, y })),
+  secondDomainLayout.nodes.map(({ id, x, y }) => ({ id, x, y })),
+  'domain simulation must remain deterministic after extraction'
+)
+assert.equal(
+  firstDomainLayout.nodes.every(({ x, y }) => Number.isFinite(x) && Number.isFinite(y)),
+  true
 )
 
 console.log('viewer render tests passed')
