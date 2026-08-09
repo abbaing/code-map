@@ -428,13 +428,14 @@ export const components = [
       'viewer/viewer-actions.js',
       'viewer/viewer-findings.js',
       'viewer/viewer-init.js',
+      'viewer/viewer-interactions.mjs',
       'viewer/viewer-overview.js',
       'viewer/viewer-selection.js'
     ],
-    contracts: ['ViewerStore', 'ViewController', 'GraphGateway'],
+    contracts: ['ViewerStore', 'ViewController', 'ViewerUiController', 'GraphGateway'],
     compositionRoot: true,
-    design: designStatus('gap', 'pass', 'pass', 'pass', 'gap'),
-    decision: 'Make viewer-init the only composition root and split controllers, views, and effects into ES modules.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep viewer-init as the composition root and inject browser capabilities into the UI controller.'
   }
 ]
 

@@ -8,6 +8,7 @@ import {
   createNodeRendererRegistry
 } from '../viewer/rendering-contracts.mjs'
 import { assertViewController, createViewController, createViewControllerRegistry } from '../viewer/view-controller.mjs'
+import { createViewerUiController } from '../viewer/viewer-interactions.mjs'
 
 const layouts = [
   { id: 'grid', layout: ({ nodes }) => nodes.map((node, index) => ({ ...node, x: index, y: 0 })) },
@@ -78,5 +79,59 @@ assert.equal(controllerRegistry.render('overview', { title: 'Code map' }), 'Over
 assert.equal(controllerRegistry.render('findings', { count: 3 }), 'Findings: 3')
 assert.throws(() => controllerRegistry.get('settings'), /Unknown view controller/u)
 assert.throws(() => createViewController({ id: 'broken', bind() {} }), /render/u)
+
+const listeners = []
+const element = {
+  addEventListener(type) {
+    listeners.push(type)
+  },
+  classList: {
+    add() {},
+    remove() {},
+    toggle() {},
+    contains() {
+      return false
+    }
+  },
+  contains() {
+    return false
+  }
+}
+const elements = new Proxy(
+  { status: { textContent: '' } },
+  {
+    get(target, property) {
+      return target[property] ?? element
+    }
+  }
+)
+const operationCalls = []
+const operations = new Proxy(
+  {
+    debounce: (operation) => operation,
+    loadGraph: async () => operationCalls.push('load'),
+    updateViewUI: () => operationCalls.push('view')
+  },
+  {
+    get(target, property) {
+      return target[property] ?? (() => {})
+    }
+  }
+)
+const uiController = createViewerUiController({
+  state: { zoom: 1, panX: 0, panY: 0, selectedHealth: new Set(), selectedTypes: new Set() },
+  elements,
+  document: element,
+  browser: { setTimeout, clearTimeout },
+  clipboard: { async writeText() {} },
+  operations
+})
+assert.equal(Object.isFrozen(uiController), true)
+await uiController.start()
+const bindingCount = listeners.length
+await uiController.start()
+assert.deepEqual(operationCalls, ['view', 'load'], 'viewer startup must be idempotent')
+assert.equal(listeners.length, bindingCount, 'viewer interactions must bind once')
+assert.throws(() => createViewerUiController({}), /state must be an object/u)
 
 console.log('viewer extension contract tests passed')

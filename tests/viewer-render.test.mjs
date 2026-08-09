@@ -5,7 +5,7 @@ import vm from 'node:vm'
 const viewerHtml = fs.readFileSync(new URL('../viewer/viewer.html', import.meta.url), 'utf8')
 const tailwindCss = fs.readFileSync(new URL('../viewer/tailwind.css', import.meta.url), 'utf8')
 const findingsSource = fs.readFileSync(new URL('../viewer/viewer-findings.js', import.meta.url), 'utf8')
-const initSource = fs.readFileSync(new URL('../viewer/viewer-init.js', import.meta.url), 'utf8')
+const interactionsSource = fs.readFileSync(new URL('../viewer/viewer-interactions.mjs', import.meta.url), 'utf8')
 assert.match(
   viewerHtml,
   /<link rel="stylesheet" href="\/tailwind\.css" \/>/u,
@@ -21,7 +21,11 @@ assert.doesNotMatch(
   /\bonclick\s*=/iu,
   'viewer markup must not contain inline click handlers'
 )
-assert.match(initSource, /findingsTable\.addEventListener\('click'/u, 'finding actions must use event delegation')
+assert.match(
+  interactionsSource,
+  /findingsTable\.addEventListener\('click'/u,
+  'finding actions must use event delegation'
+)
 assert.match(
   tailwindCss,
   /tailwindcss v4\.3\.3/u,
