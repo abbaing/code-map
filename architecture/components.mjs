@@ -183,13 +183,23 @@ export const components = [
   },
   {
     id: 'backend-scanner',
-    responsibility: 'Expose backend scanning compatibility and extract file classification and persistence evidence.',
+    responsibility: 'Expose backend scanning compatibility and extract backend file classifications.',
     role: 'extension',
     files: ['scan-back.mjs'],
     contracts: ['Scanner', 'BackendAnalysisSession'],
     compositionRoot: false,
     design: designStatus('gap', 'gap', 'gap', 'pass', 'pass'),
     decision: 'Backend indexes are execution-scoped; split scanner families before adding more backend technologies.'
+  },
+  {
+    id: 'backend-persistence-scanner',
+    responsibility: 'Extract backend contexts, entities, tables, domain relationships, and ORM usage.',
+    role: 'extension',
+    files: ['scan-back-persistence.mjs'],
+    contracts: ['Scanner', 'BackendAnalysisSession'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Extend persistence conventions through focused entity, mapping, relationship, and usage extractors.'
   },
   {
     id: 'backend-session-builder',
