@@ -1,6 +1,18 @@
+let graphGateway = null
+
+function configureGraphGateway(gateway) {
+  graphGateway = gateway
+}
+
+function requireGraphGateway() {
+  if (!graphGateway) {
+    throw new Error('Graph gateway is not configured')
+  }
+  return graphGateway
+}
+
 async function loadGraph() {
-  const response = await fetch('/graph.json', { cache: 'no-store' })
-  state.graph = await response.json()
+  state.graph = await requireGraphGateway().loadGraph()
   state.selectedId = null
   hidePopover()
   initializeFilters()

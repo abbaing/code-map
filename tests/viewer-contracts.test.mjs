@@ -43,7 +43,7 @@ assert.deepEqual(
   requests.map(({ resource }) => resource),
   ['/graph.json', '/api/scan', '/api/project-map', '/api/submaps/from-trace']
 )
-assert.equal(requests[2].options.method, 'PUT')
+assert.equal(requests[2].options.method, 'POST')
 assert.equal(requests[3].options.method, 'POST')
 assert.throws(() => createGraphGateway({ request: null }), /request must be a function/u)
 const failingGateway = createGraphGateway({

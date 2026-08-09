@@ -24,7 +24,7 @@ export function createGraphGateway({ request = globalThis.fetch } = {}) {
       return send(SCAN_RESOURCE, { method: 'POST' })
     },
     updateProjectMap(projectMap) {
-      return send(PROJECT_MAP_RESOURCE, jsonRequest('PUT', projectMap))
+      return send(PROJECT_MAP_RESOURCE, jsonRequest('POST', projectMap))
     },
     createTraceSubmap(request) {
       return send(TRACE_SUBMAP_RESOURCE, jsonRequest('POST', request))

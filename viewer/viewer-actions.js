@@ -15,8 +15,7 @@ async function refreshGraph() {
   btnBusy(els.refreshBtn)
   els.status.textContent = 'Refreshing...'
   try {
-    const response = await fetch('/api/scan', { method: 'POST' })
-    const result = await response.json()
+    const result = await requireGraphGateway().scan()
     if (!result.ok) {
       throw new Error(result.error)
     }
@@ -78,18 +77,13 @@ async function createTraceSubmap() {
       .replace(/[^a-z0-9]+/gi, '-')
       .replace(/^-|-$/g, '')
       .toLowerCase()
-    const response = await fetch('/api/submaps/from-trace', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: `trace-${base || 'selection'}`,
-        nodeIds: [...trace.nodeIds],
-        edgeIds: [...trace.edgeIds],
-        selectedNodeId: trace.selectedId,
-        complete: trace.complete
-      })
+    const result = await requireGraphGateway().createTraceSubmap({
+      id: `trace-${base || 'selection'}`,
+      nodeIds: [...trace.nodeIds],
+      edgeIds: [...trace.edgeIds],
+      selectedNodeId: trace.selectedId,
+      complete: trace.complete
     })
-    const result = await response.json()
     if (!result.ok) {
       throw new Error(result.error)
     }
@@ -157,12 +151,7 @@ function importProjectMap(file) {
   reader.onload = async () => {
     try {
       const projectMap = JSON.parse(String(reader.result))
-      const response = await fetch('/api/project-map', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(projectMap)
-      })
-      const result = await response.json()
+      const result = await requireGraphGateway().updateProjectMap(projectMap)
       if (!result.ok) {
         throw new Error(result.error)
       }
@@ -325,12 +314,7 @@ async function saveConfig() {
     }
     pm.rules.enabled = enabledRules
 
-    const response = await fetch('/api/project-map', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(pm)
-    })
-    const result = await response.json()
+    const result = await requireGraphGateway().updateProjectMap(pm)
     if (!result.ok) {
       throw new Error(result.error)
     }

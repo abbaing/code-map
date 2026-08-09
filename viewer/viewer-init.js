@@ -1,6 +1,7 @@
-import('./viewer-interactions.mjs')
-  .then(({ createViewerUiController }) =>
-    createViewerUiController({
+Promise.all([import('./viewer-interactions.mjs'), import('./graph-gateway.mjs')])
+  .then(([{ createViewerUiController }, { createGraphGateway }]) => {
+    configureGraphGateway(createGraphGateway())
+    return createViewerUiController({
       state,
       elements: els,
       document,
@@ -38,7 +39,7 @@ import('./viewer-interactions.mjs')
         zoomAt
       }
     }).start()
-  )
+  })
   .catch((error) => {
     els.status.textContent = `Error: ${error.message}`
   })
