@@ -104,12 +104,12 @@ export const components = [
   {
     id: 'source-files',
     responsibility: 'Provide bounded source reading and deterministic filesystem walking.',
-    role: 'adapter',
+    role: 'core',
     files: ['scan-utils.mjs'],
     contracts: ['SourceReader', 'SourceWalker'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'pass'),
-    decision: 'Keep bounded filesystem reads behind the injected SourceReader capability.'
+    decision: 'Keep bounded reads and deterministic walking behind injected filesystem and path capabilities.'
   },
   {
     id: 'endpoints',

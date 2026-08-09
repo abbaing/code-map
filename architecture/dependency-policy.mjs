@@ -8,7 +8,6 @@ export const allowedDependencyRoles = Object.freeze({
 
 export const legacyDependencyEdges = Object.freeze([
   'index.mjs -> submap/index.mjs',
-  'scan.mjs -> scan-utils.mjs',
   'scan.mjs -> templates/registry.mjs',
   'scan.mjs -> templates/contracts.mjs',
   'server-app-node.mjs -> submap/index.mjs',

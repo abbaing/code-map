@@ -416,7 +416,7 @@ assert.equal(
 )
 assert.match(frontendOnlyGraph.warnings.join('\n'), /1 source file larger than 2 MiB was skipped/u)
 assert.throws(
-  () => readText(oversizedSourcePath),
+  () => readText(oversizedSourcePath, nodePlatform.fileSystem),
   (error) => error.code === 'SOURCE_FILE_TOO_LARGE',
   'direct scanner reads must enforce the same size limit'
 )

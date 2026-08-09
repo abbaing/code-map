@@ -18,7 +18,8 @@ import {
   SourceFileTooLargeError,
   createSourceReader,
   importsOf as compatibleImportsOf,
-  normalizePath as compatibleNormalizePath
+  normalizePath as compatibleNormalizePath,
+  walk
 } from '../scan-utils.mjs'
 
 assert.equal(normalizePath('src\\features\\orders\\index.ts'), 'src/features/orders/index.ts')
@@ -53,6 +54,33 @@ assert.throws(
   (error) => error instanceof SourceFileTooLargeError && error.message.includes('source/large.ts')
 )
 assert.throws(() => createSourceReader({ stat() {} }), /requires stat and readText/u)
+
+const sourceEntries = new Map([
+  ['/source', [directoryEntry('nested'), fileEntry('z.ts'), fileEntry('ignored.js')]],
+  ['/source/nested', [fileEntry('a.ts'), fileEntry('large.ts')]]
+])
+const skippedFiles = []
+const walkedFiles = walk('/source', (filePath) => filePath.endsWith('.ts'), {
+  fileSystem: {
+    exists: (filePath) => sourceEntries.has(filePath),
+    readDirectory: (directory) => sourceEntries.get(directory),
+    stat: (filePath) => ({ size: filePath.endsWith('large.ts') ? 11 : 4 })
+  },
+  resolveChildPath: (directory, name) => `${directory}/${name}`,
+  maxFileBytes: 10,
+  onSkippedFile: (file) => skippedFiles.push(file),
+  toRepoPath: (filePath) => filePath
+})
+assert.deepEqual(walkedFiles, ['/source/nested/a.ts', '/source/z.ts'])
+assert.deepEqual(skippedFiles, [{ filePath: '/source/nested/large.ts', size: 11, limit: 10 }])
+assert.throws(() => walk('/source', () => true), /requires exists, readDirectory, and stat/u)
+assert.throws(
+  () =>
+    walk('/source', () => true, {
+      fileSystem: { exists() {}, readDirectory() {}, stat() {} }
+    }),
+  /requires a child path resolver/u
+)
 assert.equal(Object.isFrozen(componentContainerDirs), true)
 assert.equal(compatibleImportsOf, importsOf, 'the source adapter must preserve analysis re-exports')
 assert.equal(compatibleNormalizePath, normalizePath)
@@ -85,3 +113,11 @@ assert.doesNotMatch(withoutComments, /IgnoredCommand|HiddenQuery/u)
 assert.match(withoutComments, /VisibleCommand/u)
 
 console.log('source analysis tests passed')
+
+function directoryEntry(name) {
+  return { name, isDirectory: () => true, isFile: () => false }
+}
+
+function fileEntry(name) {
+  return { name, isDirectory: () => false, isFile: () => true }
+}

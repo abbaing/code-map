@@ -13,11 +13,13 @@ import { assertTextWriter } from './writer-contract.mjs'
 // ── Phase functions ───────────────────────────────────────────────────────────
 
 function phaseWalkFiles(projectContext, registry) {
-  const { projectMap, resolveRepoPath, toRepoPath } = projectContext
+  const { projectMap, resolveRepoPath, resolveChildPath, toRepoPath } = projectContext
   const skippedByPath = new Map()
   const walkOptions = {
     maxFileBytes: maxSourceFileBytes,
     ignoredDirs: projectMap.ignoredDirs,
+    fileSystem: projectContext.platform.fileSystem,
+    resolveChildPath,
     toRepoPath,
     onSkippedFile: (skipped) => skippedByPath.set(skipped.filePath, skipped)
   }
@@ -81,7 +83,7 @@ function phaseApplyRuntimeLinks(graph, projectContext) {
   if (!fileSystem.exists(runtimeLinksPath)) {
     return
   }
-  const parsed = JSON.parse(readText(runtimeLinksPath))
+  const parsed = JSON.parse(readText(runtimeLinksPath, fileSystem, maxSourceFileBytes, projectContext.toRepoPath))
   for (const link of parsed.links ?? []) {
     const from = resolveRuntimeNode(graph, link.from)
     const to = resolveRuntimeNode(graph, link.to)
@@ -110,7 +112,7 @@ function phaseApplyCoverage(graph, testFiles, projectContext) {
       }
     }
 
-    const content = readText(testFile)
+    const content = readText(testFile, fileSystem, maxSourceFileBytes, projectContext.toRepoPath)
     testCaseCountByFile.set(toRepoPath(testFile), countTestCases(content))
     const imports = content.matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]/g)
     for (const match of imports) {
