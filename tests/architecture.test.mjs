@@ -2,16 +2,61 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { allowedDependencyRoles, dependencyEdge, legacyDependencyEdges } from '../architecture/dependency-policy.mjs'
+import { components } from '../architecture/components.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const productionFiles = listSourceFiles(root)
 const dependencies = new Map(productionFiles.map((file) => [file, localDependencies(file)]))
+const componentByFile = new Map(
+  components.flatMap((component) => component.files.map((file) => [path.join(root, file), component]))
+)
 
 for (const [file, imports] of dependencies) {
   assert.equal(
     imports.some((target) => target.includes(`${path.sep}tests${path.sep}`)),
     false,
     `${relative(file)} must not import tests`
+  )
+}
+
+const observedLegacyEdges = new Set()
+const approvedLegacyEdges = new Set(legacyDependencyEdges)
+assert.equal(approvedLegacyEdges.size, legacyDependencyEdges.length, 'legacy dependency edges must be unique')
+for (const [source, targets] of dependencies) {
+  const sourceComponent = componentByFile.get(source)
+  assert.ok(sourceComponent, `${relative(source)} must have a component owner`)
+  const allowedRoles = new Set(allowedDependencyRoles[sourceComponent.role])
+  assert.equal(allowedRoles.size > 0, true, `${sourceComponent.role} must define allowed dependency roles`)
+
+  for (const target of targets) {
+    const targetComponent = componentByFile.get(target)
+    assert.ok(targetComponent, `${relative(target)} must have a component owner`)
+    if (sourceComponent.id === targetComponent.id || allowedRoles.has(targetComponent.role)) {
+      continue
+    }
+    const edge = dependencyEdge(relative(source), relative(target))
+    assert.equal(approvedLegacyEdges.has(edge), true, `${edge} violates component dependency direction`)
+    observedLegacyEdges.add(edge)
+  }
+}
+assert.deepEqual(
+  [...observedLegacyEdges].sort(),
+  [...approvedLegacyEdges].sort(),
+  'legacy dependency exceptions must describe current production edges exactly'
+)
+
+for (const file of productionFiles.filter((candidate) => relative(candidate).startsWith('viewer/'))) {
+  const specifiers = importSpecifiers(fs.readFileSync(file, 'utf8'))
+  assert.equal(
+    specifiers.some((specifier) => specifier.startsWith('node:')),
+    false,
+    `${relative(file)} must remain browser-runtime independent`
+  )
+  assert.equal(
+    dependencies.get(file).some((target) => !relative(target).startsWith('viewer/')),
+    false,
+    `${relative(file)} must not reach into server modules`
   )
 }
 
@@ -63,13 +108,13 @@ console.log('architecture guardrails passed')
 function listSourceFiles(directory) {
   const files = []
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    if (['.git', 'node_modules', 'tests'].includes(entry.name)) {
+    if (['.git', 'architecture', 'node_modules', 'tests'].includes(entry.name)) {
       continue
     }
     const target = path.join(directory, entry.name)
     if (entry.isDirectory()) {
       files.push(...listSourceFiles(target))
-    } else if (/\.(?:mjs|js)$/u.test(entry.name)) {
+    } else if (/\.(?:mjs|js)$/u.test(entry.name) && entry.name !== 'eslint.config.js') {
       files.push(target)
     }
   }

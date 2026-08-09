@@ -36,6 +36,6 @@ graph.json → viewer
 - **Minimal capabilities:** public entry points export focused functions; adapters consume only the methods they need.
 - **Dependency direction:** delivery adapters depend inward on application/core modules. Core modules never import CLI, HTTP, viewer, or tests.
 
-`tests/architecture.test.mjs` enforces dependency direction, an independent `Graph`, the HTTP/application boundary, and an acyclic production graph.
+`tests/architecture.test.mjs` enforces dependency direction, an independent `Graph`, the HTTP/application boundary, browser isolation, and an acyclic production graph. The role matrix and the exact ratcheted set of inherited dependency edges live in `architecture/dependency-policy.mjs`; adding an unapproved edge or retaining a stale exception fails the suite.
 
 The complete component inventory, structural contracts, composition roots, current gaps, and Definition of Done are maintained in [COMPONENTS.md](COMPONENTS.md). `tests/component-contracts.test.mjs` ensures every executable production module has exactly one declared component owner.
