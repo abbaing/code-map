@@ -30,7 +30,8 @@ const nodeRendererRegistry = createNodeRendererRegistry([
   { id: 'system', render: ({ node }) => systemModuleNodeSvg(node) },
   {
     id: 'graph',
-    render: ({ node, orphan, dimmed, focused }) => nodeGraphSvg(node, orphan, dimmed, focused)
+    render: ({ node, orphan, dimmed, focused, managedEntityCount }) =>
+      nodeGraphSvg(node, orphan, dimmed, focused, managedEntityCount)
   },
   {
     id: 'domain',
@@ -194,7 +195,8 @@ function renderGraphView(svg, layout) {
   const orphanIds = new Set(state.graph.orphans.map((orphan) => orphan.id))
   const moduleOverview = Boolean(state.trace?.moduleOverview)
   const selectedEdges = moduleOverview ? new Set() : (state.trace?.edgeIds ?? connectedEdgeIds(state.selectedId))
-  const edges = state.graph.edges.filter((edge) => visibleIds.has(edge.from) && visibleIds.has(edge.to))
+  const edges = graphEdgesForRender(state.graph.edges, visibleIds)
+  const managedEntities = managedEntityCounts(state.graph.edges)
   const focusedIds = moduleOverview ? null : (state.trace?.nodeIds ?? focusedNodeIds(state.selectedId, edges))
 
   svg.innerHTML = `
@@ -237,12 +239,27 @@ function renderGraphView(svg, layout) {
             node,
             orphan: orphanIds.has(node.id),
             dimmed: isDimmedNode(node, focusedIds),
-            focused: isFocusedNode(node, focusedIds)
+            focused: isFocusedNode(node, focusedIds),
+            managedEntityCount: managedEntities.get(node.id) ?? 0
           })
         )
         .join('')}
     </g>
   `
+}
+
+function graphEdgesForRender(edges, visibleIds) {
+  return edges.filter((edge) => edge.type !== 'dbset' && visibleIds.has(edge.from) && visibleIds.has(edge.to))
+}
+
+function managedEntityCounts(edges) {
+  const counts = new Map()
+  for (const edge of edges) {
+    if (edge.type === 'dbset') {
+      counts.set(edge.from, (counts.get(edge.from) ?? 0) + 1)
+    }
+  }
+  return counts
 }
 
 function renderDomainView(svg, layout) {
@@ -337,4 +354,4 @@ function isFocusedEdge(edge, focusedIds) {
   return Boolean(focusedIds?.has(edge.from) && focusedIds?.has(edge.to))
 }
 
-export { fitLayoutViewport, nodesForRender, render, renderingStrategies }
+export { fitLayoutViewport, graphEdgesForRender, managedEntityCounts, nodesForRender, render, renderingStrategies }

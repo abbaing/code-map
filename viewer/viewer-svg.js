@@ -123,7 +123,7 @@ function connectionPoint(node, other) {
   }
 }
 
-function nodeGraphSvg(node, orphan, dimmed = false, focused = false) {
+function nodeGraphSvg(node, orphan, dimmed = false, focused = false, managedEntityCount = 0) {
   const selected = node.id === state.selectedId
   const color = colors[node.type] || '#64748b'
   const quality = node.meta?.quality
@@ -153,12 +153,16 @@ function nodeGraphSvg(node, orphan, dimmed = false, focused = false) {
   `
     : ''
   const support = state.trace && focused && (node.type === 'hook' || node.layer === 'auxiliary')
+  const managedEntityLabel = `${managedEntityCount} ${managedEntityCount === 1 ? 'entity' : 'entities'}`
   const secondary =
     node.type === 'endpoint' && node.meta?.backend?.action
       ? node.meta.backend.action
-      : `${formatType(node.type)} - ${formatModule(node.module)}`
+      : node.type === 'data-context' && managedEntityCount > 0
+        ? `${formatType(node.type)} · ${managedEntityLabel}`
+        : `${formatType(node.type)} - ${formatModule(node.module)}`
   return `
     <g class="node ${selected ? 'selected' : ''} ${focused ? 'focused' : ''} ${support ? 'trace-support' : ''} ${orphan ? 'orphan' : ''} ${dimmed ? 'dimmed' : ''} ${node.layer === 'auxiliary' ? 'auxiliary' : ''}" data-id="${escapeHtml(node.id)}" transform="translate(${node.x}, ${node.y})">
+      ${node.type === 'data-context' && managedEntityCount > 0 ? `<title>${managedEntityLabel} managed; individual DbSet relations are summarized</title>` : ''}
       <rect width="${node.width}" height="${node.height}"></rect>
       <rect width="5" height="${node.height}" fill="${color}" rx="5"></rect>
       <text x="12" y="20">${escapeHtml(truncate(node.label, 24))}</text>

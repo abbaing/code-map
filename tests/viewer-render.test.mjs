@@ -2,8 +2,16 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { populateSettingsTab } from '#viewer/viewer-actions.js'
 import { renderFindingsTable } from '#viewer/viewer-findings.js'
-import { fitLayoutViewport, nodesForRender, render, renderingStrategies } from '#viewer/viewer-graph.js'
+import {
+  fitLayoutViewport,
+  graphEdgesForRender,
+  managedEntityCounts,
+  nodesForRender,
+  render,
+  renderingStrategies
+} from '#viewer/viewer-graph.js'
 import { layoutNodes, layoutSystemModules } from '#viewer/viewer-layouts.js'
+import { nodeGraphSvg } from '#viewer/viewer-svg.js'
 import {
   colors,
   configureViewerElements,
@@ -42,6 +50,42 @@ assert.deepEqual(
   ),
   { zoom: 1, panX: 1440, panY: -286 },
   'module navigation must center layouts whose first populated stage is far from the origin'
+)
+const persistenceEdges = [
+  { id: 'context:account', from: 'context', to: 'account', type: 'dbset' },
+  { id: 'account:accounts', from: 'account', to: 'accounts', type: 'maps-to-table' }
+]
+assert.deepEqual(
+  graphEdgesForRender(persistenceEdges, new Set(['context', 'account', 'accounts'])),
+  [persistenceEdges[1]],
+  'DbSet catalog relations must not create a line from the context to every entity'
+)
+assert.deepEqual(
+  managedEntityCounts(persistenceEdges),
+  new Map([['context', 1]]),
+  'the context card must retain a summary of its managed entities'
+)
+assert.match(
+  nodeGraphSvg(
+    {
+      id: 'context',
+      label: 'DatabaseContext.cs',
+      type: 'data-context',
+      module: 'shared',
+      layer: 'backend-repository',
+      meta: {},
+      x: 0,
+      y: 0,
+      width: 180,
+      height: 52
+    },
+    false,
+    false,
+    false,
+    24
+  ),
+  /24 entities/u,
+  'the context card must display the summarized entity count'
 )
 assert.doesNotMatch(
   viewerHtml,
