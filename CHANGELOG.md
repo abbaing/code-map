@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-09
+
 ### Added
 
 - Local architectural graph generation for frontend and backend source trees.
@@ -39,3 +41,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Confined viewer-managed paths to the project root, including symbolic links.
 - Made JSON and configuration persistence atomic and transactional.
 - Disabled custom plugin execution unless explicitly enabled with `--allow-plugins`.
+
+[Unreleased]: https://github.com/abbaing/code-map/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/abbaing/code-map/releases/tag/v0.1.0
