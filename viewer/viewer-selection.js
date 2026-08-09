@@ -1,3 +1,24 @@
+import { isCoverable } from './viewer-data.js'
+import { render, scoreColor } from './viewer-graph.js'
+import { els, state } from './viewer-state.js'
+import { escapeHtml, formatModule, formatRuleId, formatType, healthPill, pillHtml } from './viewer-utils.js'
+
+let selectionOperations = null
+
+function configureViewerSelection(operations) {
+  if (!operations || typeof operations.renderModuleDetail !== 'function') {
+    throw new TypeError('Viewer selection operations must implement renderModuleDetail()')
+  }
+  selectionOperations = operations
+}
+
+function renderSelectionDetail() {
+  if (!selectionOperations) {
+    throw new Error('Viewer selection operations are not configured')
+  }
+  selectionOperations.renderModuleDetail()
+}
+
 function selectNode(id) {
   state.selectedId = id
   state.showAllTrace = false
@@ -5,7 +26,7 @@ function selectNode(id) {
   if (state.view === 'graph' || state.view === 'domain') {
     render()
   }
-  renderModuleDetail()
+  renderSelectionDetail()
 }
 
 function clearSelectedNode() {
@@ -18,7 +39,7 @@ function clearSelectedNode() {
     render()
   }
   if (hadSelection) {
-    renderModuleDetail()
+    renderSelectionDetail()
   }
 }
 
@@ -326,4 +347,20 @@ function connectedEdgeIds(nodeId) {
     return new Set()
   }
   return new Set(state.graph.edges.filter((edge) => edge.from === nodeId || edge.to === nodeId).map((edge) => edge.id))
+}
+
+export {
+  clearSelectedNode,
+  configureViewerSelection,
+  connectedEdgeIds,
+  coverageDetail,
+  edgeLine,
+  findingsDetail,
+  hidePopover,
+  movePopover,
+  qualityDetail,
+  reviewDetail,
+  selectNode,
+  selectedNodeDetailHtml,
+  showPopover
 }

@@ -1,6 +1,17 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import vm from 'node:vm'
+import { populateSettingsTab } from '../viewer/viewer-actions.js'
+import { renderFindingsTable } from '../viewer/viewer-findings.js'
+import { layoutSystemModules, nodesForRender, render } from '../viewer/viewer-graph.js'
+import {
+  colors,
+  configureViewerElements,
+  layerLabels,
+  layerOrder,
+  moduleLabels,
+  state,
+  typeLabels
+} from '../viewer/viewer-state.js'
 
 const viewerHtml = fs.readFileSync(new URL('../viewer/viewer.html', import.meta.url), 'utf8')
 const tailwindCss = fs.readFileSync(new URL('../viewer/tailwind.css', import.meta.url), 'utf8')
@@ -16,6 +27,12 @@ assert.doesNotMatch(
   viewerHtml,
   /<(?:script|link)\b[^>]*(?:src|href)=["']https?:\/\//iu,
   'the viewer must not load remote scripts or stylesheets'
+)
+assert.match(viewerHtml, /<script type="module" src="\/viewer-init\.js"><\/script>/u)
+assert.equal(
+  [...viewerHtml.matchAll(/<script\b/gu)].length,
+  1,
+  'the viewer must start from one explicit module entry point'
 )
 assert.doesNotMatch(
   `${viewerHtml}\n${findingsSource}`,
@@ -39,20 +56,10 @@ assert.match(
 )
 
 const findingsTable = { innerHTML: '' }
-const findingsContext = vm.createContext({
-  state: { graph: { nodes: [] } },
-  els: { findingsTable },
-  moduleLabels: {},
-  layerLabels: {},
-  typeLabels: {},
-  console
-})
-for (const source of [fs.readFileSync(new URL('../viewer/viewer-utils.js', import.meta.url), 'utf8'), findingsSource]) {
-  vm.runInContext(source, findingsContext)
-}
-vm.runInContext('globalThis.findingsApi = { renderFindingsTable }', findingsContext)
+state.graph = { nodes: [] }
+configureViewerElements({ findingsTable })
 const hostilePath = `src/');globalThis.injected=true;//" onmouseover="alert(1).js`
-findingsContext.findingsApi.renderFindingsTable([
+renderFindingsTable([
   {
     ruleId: 'repo.test',
     severity: 'error',
@@ -82,25 +89,15 @@ const hostileId = `users"><img src=x onerror="globalThis.injected=true">`
 const hostileLabel = `<script>globalThis.injected=true</script>`
 const hostileColor = `#fff"><img src=x onerror="globalThis.injected=true">`
 const hostileRule = `rule"><img src=x onerror="globalThis.injected=true">`
-const settingsContext = vm.createContext({
-  state: {
-    graph: {
-      projectMap: {
-        modules: { labels: { [hostileId]: hostileLabel } },
-        types: { labels: { [hostileId]: hostileLabel }, colors: { [hostileId]: hostileColor } },
-        rules: { enabled: [hostileRule], suppressions: [] }
-      }
-    }
-  },
-  els: settingsElements,
-  window: { clearTimeout, setTimeout },
-  console
-})
-for (const source of [fs.readFileSync(new URL('../viewer/viewer-utils.js', import.meta.url), 'utf8'), actionsSource]) {
-  vm.runInContext(source, settingsContext)
+state.graph = {
+  projectMap: {
+    modules: { labels: { [hostileId]: hostileLabel } },
+    types: { labels: { [hostileId]: hostileLabel }, colors: { [hostileId]: hostileColor } },
+    rules: { enabled: [hostileRule], suppressions: [] }
+  }
 }
-vm.runInContext('globalThis.settingsApi = { populateSettingsTab }', settingsContext)
-settingsContext.settingsApi.populateSettingsTab()
+configureViewerElements(settingsElements)
+populateSettingsTab()
 const settingsMarkup = Object.values(settingsElements)
   .map((body) => body.innerHTML)
   .join('\n')
@@ -172,38 +169,26 @@ const banner = {
     }
   }
 }
-const context = vm.createContext({
-  state: {
-    graph: graphData,
-    filteredNodes: graphData.nodes,
-    selectedId: null,
-    showAllTrace: false,
-    trace: null,
-    zoom: 1,
-    panX: 0,
-    panY: 0,
-    view: 'graph',
-    activeModule: null
-  },
-  els: {
-    graph: svg,
-    nodeLimitBanner: banner,
-    zoomValue: { textContent: '' }
-  },
-  moduleLabels: { users: 'Users', shared: 'Shared' },
-  layerLabels: {},
-  typeLabels: {},
-  colors: {},
-  layerOrder: [],
-  console
+Object.assign(state, {
+  graph: graphData,
+  filteredNodes: graphData.nodes,
+  selectedId: null,
+  showAllTrace: false,
+  trace: null,
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+  view: 'graph',
+  activeModule: null
 })
+configureViewerElements({ graph: svg, nodeLimitBanner: banner, zoomValue: { textContent: '' } })
+Object.assign(moduleLabels, { users: 'Users', shared: 'Shared' })
+Object.assign(layerLabels, {})
+Object.assign(typeLabels, {})
+Object.assign(colors, {})
+layerOrder.splice(0)
 
-for (const file of ['viewer-utils.js', 'viewer-trace.js', 'viewer-graph.js']) {
-  vm.runInContext(fs.readFileSync(new URL(`../viewer/${file}`, import.meta.url), 'utf8'), context, { filename: file })
-}
-vm.runInContext('globalThis.viewerApi = { render, layoutSystemModules, nodesForRender }', context)
-
-context.viewerApi.render()
+render()
 assert.match(svg.innerHTML, /class="node system-module-node"/u, 'graph overview must render module cards')
 assert.match(svg.innerHTML, /module-overview-edges/u, 'graph overview must render aggregated module flows')
 assert.match(svg.innerHTML, />Users</u)
@@ -212,7 +197,7 @@ assert.equal(classNames.has('hidden'), false, 'the system-map summary must remai
 assert.match(banner.textContent, /2 modules/u)
 assert.equal(attributes.get('viewBox'), '0 0 1000 720')
 
-const layout = context.viewerApi.layoutSystemModules(
+const layout = layoutSystemModules(
   [
     { id: 'z', label: 'Z', module: 'z', meta: { externalRelations: 1 } },
     { id: 'shared', label: 'Shared', module: 'shared', meta: { externalRelations: 0 } }
@@ -226,7 +211,7 @@ assert.equal(
   true
 )
 
-const traceNodes = context.viewerApi.nodesForRender(context.state.graph.nodes.slice(0, 1), 1, {
+const traceNodes = nodesForRender(state.graph.nodes.slice(0, 1), 1, {
   nodeIds: new Set(['front', 'shared'])
 })
 assert.deepEqual(

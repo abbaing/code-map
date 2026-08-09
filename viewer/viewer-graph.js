@@ -1,3 +1,13 @@
+import { colors, DOMAIN_RENDER_LIMIT, els, layerOrder, NODE_RENDER_LIMIT, state } from './viewer-state.js'
+import {
+  applyTraceFocusLayout,
+  buildModuleTraceContext,
+  buildSystemModuleGraph,
+  buildTraceContext,
+  nodeHeight
+} from './viewer-trace.js'
+import { escapeHtml, formatLayer, formatModule, formatType, truncate, unique } from './viewer-utils.js'
+
 function render() {
   const svg = els.graph
   const vw = svg.parentElement.clientWidth || 900
@@ -14,8 +24,8 @@ function render() {
   state.trace =
     state.view === 'graph'
       ? state.selectedId
-        ? buildTraceContext(state.selectedId, state.showAllTrace)
-        : buildModuleTraceContext(state.activeModule)
+        ? buildTraceContext(state.graph, state.selectedId, state.showAllTrace)
+        : buildModuleTraceContext(state.graph, state.activeModule)
       : null
   const nodesToRender = nodesForRender(state.filteredNodes, renderLimit, state.trace)
   const renderedIds = new Set(nodesToRender.map((node) => node.id))
@@ -30,7 +40,7 @@ function render() {
 
   let layout = layoutNodes(nodesToRender, width, height)
   if (state.trace) {
-    layout = applyTraceFocusLayout(layout, state.trace, width, height)
+    layout = applyTraceFocusLayout(layout, state.trace, width, height, state.view)
   }
 
   svg.style.width = '100%'
@@ -48,7 +58,7 @@ function render() {
 }
 
 function renderSystemModuleGraph(svg, width, height, viewportWidth, viewportHeight) {
-  const systemGraph = buildSystemModuleGraph()
+  const systemGraph = buildSystemModuleGraph(state.graph, state.filteredNodes, formatModule)
   const layout = layoutSystemModules(systemGraph.nodes, width, height)
   const nodeById = new Map(layout.nodes.map((node) => [node.id, node]))
   const visibleEdges = systemGraph.edges.filter((edge) => nodeById.has(edge.from) && nodeById.has(edge.to))
@@ -279,6 +289,13 @@ function focusedNodeIds(selectedId, edges) {
   return ids
 }
 
+function connectedEdgeIds(nodeId) {
+  if (!nodeId) {
+    return new Set()
+  }
+  return new Set(state.graph.edges.filter((edge) => edge.from === nodeId || edge.to === nodeId).map((edge) => edge.id))
+}
+
 function isDimmedNode(node, focusedIds) {
   return Boolean(focusedIds && !focusedIds.has(node.id))
 }
@@ -418,7 +435,7 @@ function layoutNodes(nodes, width, height) {
           layoutLayer: layer,
           level,
           width: columnWidth - levelGap * 2,
-          height: nodeHeight(node)
+          height: nodeHeight(node, state.view)
         })
       })
     })
@@ -478,7 +495,7 @@ function layoutDomainNodes(nodes, width, height, domainOrder) {
         layoutLayer: 'domain',
         level: 0,
         width: cardWidth,
-        height: nodeHeight(node)
+        height: nodeHeight(node, state.view)
       })
     })
 
@@ -503,7 +520,7 @@ function gridPlaceDomainCluster(cluster, cardWidth, columnGap, rowGap) {
   const rows = Math.ceil(cluster.nodes.length / columns)
   const rowHeights = Array.from({ length: rows }, (_, row) => {
     const rowNodes = cluster.nodes.slice(row * columns, row * columns + columns)
-    return Math.max(...rowNodes.map(nodeHeight), 120)
+    return Math.max(...rowNodes.map((node) => nodeHeight(node, state.view)), 120)
   })
   const positions = new Map()
   const rowOffsets = []
@@ -567,7 +584,7 @@ function forcePlaceDomainCluster(cluster, cardWidth) {
         const distance = Math.hypot(dx, dy) || 1
         dx /= distance
         dy /= distance
-        const minDistance = (cardWidth + Math.max(nodeHeight(a), nodeHeight(b))) * 0.7
+        const minDistance = (cardWidth + Math.max(nodeHeight(a, state.view), nodeHeight(b, state.view))) * 0.7
         const repulsion = Math.min(7, 90000 / (distance * distance)) * alpha
         const collision = distance < minDistance ? (minDistance - distance) * 0.04 : 0
         const force = repulsion + collision
@@ -610,7 +627,7 @@ function forcePlaceDomainCluster(cluster, cardWidth) {
     x: positions.get(node.id).x,
     y: positions.get(node.id).y,
     width: cardWidth,
-    height: nodeHeight(node)
+    height: nodeHeight(node, state.view)
   }))
 
   resolveDomainCollisions(boxes)
@@ -962,15 +979,6 @@ function componentLabel(component, byId) {
   )
 }
 
-function nodeHeight(node) {
-  if (state.view === 'domain' && node.type === 'entity') {
-    const propertyCount = Math.min(node.meta?.domain?.properties?.length ?? 0, 10)
-    const hasMore = (node.meta?.domain?.properties?.length ?? 0) > propertyCount
-    return Math.max(104, 52 + propertyCount * 16 + (hasMore ? 20 : 10))
-  }
-  return node.meta?.quality ? 66 : 52
-}
-
 function computeLayerLevels(nodes, layers, layoutLayerByNode) {
   const levels = new Map(layers.map((layer) => [layer, 1]))
   const moduleGroups = new Map()
@@ -1246,3 +1254,5 @@ function scoreColor(score) {
   const hue = ((Math.max(1, Math.min(10, score)) - 1) / 9) * 120
   return `hsl(${hue}, 72%, 42%)`
 }
+
+export { layoutSystemModules, nodesForRender, render, scoreColor }

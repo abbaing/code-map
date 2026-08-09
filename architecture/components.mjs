@@ -467,8 +467,8 @@ export const components = [
     ],
     contracts: ['ViewerStore', 'GraphGateway'],
     compositionRoot: false,
-    design: designStatus('gap', 'pass', 'pass', 'pass', 'gap'),
-    decision: 'Replace classic-script globals with modules, an encapsulated store, and injected browser gateways.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep state store-owned and route browser effects through explicitly configured module boundaries.'
   },
   {
     id: 'viewer-trace',
@@ -477,8 +477,8 @@ export const components = [
     files: ['viewer/trace-strategy.mjs', 'viewer/viewer-trace.js'],
     contracts: ['TraceStrategy'],
     compositionRoot: false,
-    design: designStatus('pass', 'pass', 'pass', 'pass', 'gap'),
-    decision: 'Separate pure trace calculation from state access and layout mutation behind a TraceStrategy.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep trace calculation pure by passing graph data, visible nodes, labels, and view mode explicitly.'
   },
   {
     id: 'viewer-rendering',

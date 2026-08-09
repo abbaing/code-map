@@ -9,6 +9,7 @@ import {
 } from '../viewer/rendering-contracts.mjs'
 import { assertViewController, createViewController, createViewControllerRegistry } from '../viewer/view-controller.mjs'
 import { createViewerUiController } from '../viewer/viewer-interactions.mjs'
+import { configureViewerSelection } from '../viewer/viewer-selection.js'
 
 const layouts = [
   { id: 'grid', layout: ({ nodes }) => nodes.map((node, index) => ({ ...node, x: index, y: 0 })) },
@@ -133,5 +134,6 @@ await uiController.start()
 assert.deepEqual(operationCalls, ['view', 'load'], 'viewer startup must be idempotent')
 assert.equal(listeners.length, bindingCount, 'viewer interactions must bind once')
 assert.throws(() => createViewerUiController({}), /state must be an object/u)
+assert.throws(() => configureViewerSelection({}), /renderModuleDetail/u)
 
 console.log('viewer extension contract tests passed')

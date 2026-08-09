@@ -1,16 +1,17 @@
 export function createViewerStore(initialState = {}) {
   assertState(initialState)
-  let currentState = clone(initialState)
+  const currentState = clone(initialState)
   const listeners = new Set()
 
   return Object.freeze({
+    state: currentState,
     getState() {
       return clone(currentState)
     },
     update(change) {
       const patch = typeof change === 'function' ? change(clone(currentState)) : change
       assertState(patch)
-      currentState = { ...currentState, ...clone(patch) }
+      Object.assign(currentState, clone(patch))
       const snapshot = clone(currentState)
       for (const listener of listeners) {
         listener(clone(snapshot))
@@ -29,6 +30,7 @@ export function createViewerStore(initialState = {}) {
 
 export function assertViewerStore(store) {
   assertOperations(store, 'ViewerStore', ['getState', 'update', 'subscribe'])
+  assertState(store.state)
   return store
 }
 

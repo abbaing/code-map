@@ -1,3 +1,6 @@
+import { els, state } from './viewer-state.js'
+import { capitalize, escapeHtml, fillSelect, formatModule, formatRuleId, pillHtml, unique } from './viewer-utils.js'
+
 function initializeFindingsFilters() {
   const findings = state.graph?.findings ?? []
   const modules = [
@@ -96,3 +99,5 @@ function renderFindingsTable(findings) {
 function nodeForFinding(finding) {
   return state.graph.nodes.find((node) => node.id === finding.nodeId)
 }
+
+export { initializeFindingsFilters, renderFindings, renderFindingsTable }

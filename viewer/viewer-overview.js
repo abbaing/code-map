@@ -1,3 +1,8 @@
+import { applyFilters, isCoverable } from './viewer-data.js'
+import { selectedNodeDetailHtml } from './viewer-selection.js'
+import { els, state } from './viewer-state.js'
+import { escapeHtml, formatModule, healthPill, pillHtml, scoreToHealthKey } from './viewer-utils.js'
+
 function buildModuleStats() {
   const modules = new Map()
   const orphanIds = new Set(state.graph.orphans.map((o) => o.id))
@@ -201,3 +206,5 @@ function updateViewUI() {
   els.viewTitle.textContent = title
   els.viewSubtitle.textContent = subtitle
 }
+
+export { drillIntoModule, renderModuleDetail, renderOverview, updateViewUI }

@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
-import fs from 'node:fs'
-import vm from 'node:vm'
+import { buildModuleTraceContext, buildSystemModuleGraph, buildTraceContext } from '../viewer/viewer-trace.js'
 
 const nodes = [
   ['route', 'Routes', 'route'],
@@ -36,11 +35,9 @@ const edges = relations.map(([from, to, type, confidence]) => ({
   type,
   confidence
 }))
-const context = vm.createContext({ state: { graph: { nodes, edges } } })
-const source = `${fs.readFileSync(new URL('../viewer/viewer-trace.js', import.meta.url), 'utf8')}\nglobalThis.traceApi = { buildTraceContext, buildModuleTraceContext, buildSystemModuleGraph };`
-vm.runInContext(source, context)
+const graph = { nodes, edges }
 
-const forward = context.traceApi.buildTraceContext('component', false)
+const forward = buildTraceContext(graph, 'component', false)
 assert.equal(forward.complete, true)
 assert.deepEqual(
   [...forward.primaryNodeIds],
@@ -63,7 +60,7 @@ assert.equal(
   'controller implementation detail should not interrupt the execution trace'
 )
 
-const reverse = context.traceApi.buildTraceContext('table', false)
+const reverse = buildTraceContext(graph, 'table', false)
 assert.equal(reverse.complete, true)
 assert.deepEqual(
   [...reverse.primaryNodeIds],
@@ -81,7 +78,7 @@ assert.deepEqual(
   ]
 )
 
-const moduleOverview = context.traceApi.buildModuleTraceContext('feature')
+const moduleOverview = buildModuleTraceContext(graph, 'feature')
 assert.equal(moduleOverview.moduleOverview, true)
 assert.equal(moduleOverview.nodeIds.has('route'), true)
 assert.equal(moduleOverview.nodeIds.has('table'), true)
@@ -113,21 +110,16 @@ const fallbackEdges = fallbackRelations.map(([from, to, type]) => ({
   type,
   confidence: 'high'
 }))
-const fallbackContext = vm.createContext({
-  state: {
-    graph: {
-      nodes: fallbackNodes,
-      edges: fallbackEdges,
-      projectMap: { frontend: { entryPoints: ['front/AppRoutes.tsx'] } }
-    }
-  }
-})
-vm.runInContext(source, fallbackContext)
-const isolatedFallback = fallbackContext.traceApi.buildTraceContext('selected-field', false)
+const fallbackGraph = {
+  nodes: fallbackNodes,
+  edges: fallbackEdges,
+  projectMap: { frontend: { entryPoints: ['front/AppRoutes.tsx'] } }
+}
+const isolatedFallback = buildTraceContext(fallbackGraph, 'selected-field', false)
 assert.equal(isolatedFallback.complete, false, 'a component must not borrow persistence from another feature')
 assert.equal(isolatedFallback.nodeIds.has('other-route'), false)
 assert.equal(isolatedFallback.nodeIds.has('other-table'), false)
-const systemModules = fallbackContext.traceApi.buildSystemModuleGraph()
+const systemModules = buildSystemModuleGraph(fallbackGraph)
 assert.equal(systemModules.nodes.length, 3, 'the system graph should aggregate every visible module')
 assert.equal(systemModules.edges.length, 2, 'cross-module relations should be aggregated instead of truncated')
 
@@ -174,9 +166,7 @@ const intentEdges = intentRelations.map(([from, to, type]) => ({
   type,
   confidence: 'high'
 }))
-const intentContext = vm.createContext({ state: { graph: { nodes: intentNodes, edges: intentEdges } } })
-vm.runInContext(source, intentContext)
-const createTrace = intentContext.traceApi.buildTraceContext('create-page', false)
+const createTrace = buildTraceContext({ nodes: intentNodes, edges: intentEdges }, 'create-page', false)
 assert.equal(
   createTrace.primaryNodeIds.includes('create-user'),
   true,

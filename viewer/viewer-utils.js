@@ -1,3 +1,5 @@
+import { layerLabels, moduleLabels, typeLabels } from './viewer-state.js'
+
 function unique(values) {
   return [...new Set(values.filter(Boolean))]
 }
@@ -190,4 +192,22 @@ function healthDescription(key) {
     'n/a': 'No score is available for this module.'
   }
   return descriptions[key] ?? descriptions['n/a']
+}
+
+export {
+  capitalize,
+  debounce,
+  escapeHtml,
+  fillSelect,
+  formatLayer,
+  formatModule,
+  formatRuleId,
+  formatType,
+  healthDescription,
+  healthPill,
+  pillHtml,
+  ruleLabels,
+  scoreToHealthKey,
+  truncate,
+  unique
 }

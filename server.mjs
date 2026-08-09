@@ -18,6 +18,7 @@ const viewerAssets = new Map(
   [
     'tailwind.css',
     'viewer.css',
+    'graph-gateway.mjs',
     'viewer-actions.js',
     'viewer-data.js',
     'viewer-findings.js',
@@ -27,6 +28,7 @@ const viewerAssets = new Map(
     'viewer-overview.js',
     'viewer-selection.js',
     'viewer-state.js',
+    'viewer-store.mjs',
     'viewer-trace.js',
     'viewer-utils.js'
   ].map((file) => [`/${file}`, path.join(viewerRoot, file)])

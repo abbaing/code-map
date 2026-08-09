@@ -1,7 +1,43 @@
-let graphGateway = null
+import { assertGraphGateway } from './graph-gateway.mjs'
+import { colors, els, layerLabels, layerOrder, moduleLabels, state, typeLabels } from './viewer-state.js'
+import { moduleTraceNodeIds } from './viewer-trace.js'
+import {
+  escapeHtml,
+  formatRuleId,
+  formatType,
+  healthDescription,
+  ruleLabels,
+  scoreToHealthKey,
+  unique
+} from './viewer-utils.js'
 
-function configureGraphGateway(gateway) {
-  graphGateway = gateway
+let graphGateway = null
+let viewOperations = null
+
+function configureViewerData({ gateway, operations }) {
+  const nextGateway = assertGraphGateway(gateway)
+  const nextOperations = assertViewOperations(operations)
+  graphGateway = nextGateway
+  viewOperations = nextOperations
+}
+
+function assertViewOperations(operations) {
+  if (!operations || typeof operations !== 'object') {
+    throw new TypeError('Viewer data operations must be an object')
+  }
+  for (const operation of [
+    'hidePopover',
+    'initializeFindingsFilters',
+    'renderFindings',
+    'renderGraph',
+    'renderModuleDetail',
+    'renderOverview'
+  ]) {
+    if (typeof operations[operation] !== 'function') {
+      throw new TypeError(`Viewer data operations must implement ${operation}()`)
+    }
+  }
+  return operations
 }
 
 function requireGraphGateway() {
@@ -11,10 +47,17 @@ function requireGraphGateway() {
   return graphGateway
 }
 
+function requireViewOperations() {
+  if (!viewOperations) {
+    throw new Error('Viewer data operations are not configured')
+  }
+  return viewOperations
+}
+
 async function loadGraph() {
   state.graph = await requireGraphGateway().loadGraph()
   state.selectedId = null
-  hidePopover()
+  requireViewOperations().hidePopover()
   initializeFilters()
   applyFilters()
 }
@@ -24,7 +67,7 @@ function initializeFilters() {
   const { nodes, orphans, stats, generatedAt } = state.graph
   const types = unique(nodes.map((node) => node.type)).sort()
 
-  initializeFindingsFilters()
+  requireViewOperations().initializeFindingsFilters()
 
   const healthLevels = [
     { key: 'excellent', label: 'Excellent', className: 'text-emerald-700' },
@@ -159,7 +202,7 @@ function buildFilterPredicate() {
   const healthFilterActive = state.selectedHealth.size < 6
   const domainViewIds = state.view === 'domain' ? domainModelNodeIds() : null
   const effectiveModule = state.activeModule ?? 'all'
-  const moduleNodeIds = effectiveModule === 'all' ? null : moduleTraceNodeIds(effectiveModule)
+  const moduleNodeIds = effectiveModule === 'all' ? null : moduleTraceNodeIds(state.graph, effectiveModule)
   const isOverview = state.view === 'overview'
   const query = isOverview ? '' : els.graphSearch.value.trim().toLowerCase()
 
@@ -188,13 +231,13 @@ function applyFilters() {
   state.filteredNodes = state.graph.nodes.filter(buildFilterPredicate())
 
   if (state.view === 'overview') {
-    renderOverview()
+    requireViewOperations().renderOverview()
   } else if (state.view === 'findings') {
-    renderFindings()
+    requireViewOperations().renderFindings()
   } else {
-    render()
+    requireViewOperations().renderGraph()
   }
-  renderModuleDetail()
+  requireViewOperations().renderModuleDetail()
 }
 
 function domainModelNodeIds() {
@@ -253,3 +296,5 @@ function isCoverable(node) {
     ].includes(node.type)
   )
 }
+
+export { applyFilters, configureViewerData, initializeFilters, isCoverable, loadGraph, requireGraphGateway }

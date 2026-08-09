@@ -1,16 +1,19 @@
 import assert from 'node:assert/strict'
 import { GraphGatewayError, assertGraphGateway, createGraphGateway } from '../viewer/graph-gateway.mjs'
 import { assertTraceStrategy, createTraceStrategy } from '../viewer/trace-strategy.mjs'
+import { configureViewerData } from '../viewer/viewer-data.js'
 import { assertViewerStore, createViewerStore } from '../viewer/viewer-store.mjs'
 
 const store = createViewerStore({ selectedId: null, selectedTypes: new Set(['page']) })
 assertViewerStore(store)
+const liveState = store.state
 const changes = []
 const unsubscribe = store.subscribe((state) => changes.push(state))
 const initial = store.getState()
 initial.selectedTypes.add('handler')
 assert.deepEqual([...store.getState().selectedTypes], ['page'], 'readers must not mutate stored state')
 store.update({ selectedId: 'users' })
+assert.equal(store.state, liveState, 'updates must preserve the state reference used by viewer modules')
 store.update((state) => ({ selectedId: `${state.selectedId}-page` }))
 unsubscribe()
 store.update({ selectedId: 'ignored' })
@@ -46,6 +49,7 @@ assert.deepEqual(
 assert.equal(requests[2].options.method, 'POST')
 assert.equal(requests[3].options.method, 'POST')
 assert.throws(() => createGraphGateway({ request: null }), /request must be a function/u)
+assert.throws(() => configureViewerData({ gateway, operations: {} }), /hidePopover/u)
 const failingGateway = createGraphGateway({
   request: async () => ({
     ok: false,

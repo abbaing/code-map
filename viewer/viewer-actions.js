@@ -1,3 +1,7 @@
+import { applyFilters, initializeFilters, loadGraph, requireGraphGateway } from './viewer-data.js'
+import { els, state } from './viewer-state.js'
+import { escapeHtml } from './viewer-utils.js'
+
 const SPINNER_SVG = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" class="btn-spin"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5" stroke-dasharray="20 12" stroke-linecap="round"/></svg>`
 
 function btnBusy(btn) {
@@ -370,4 +374,20 @@ function zoomAt(nextZoom, clientX, clientY) {
   state.panX = svgX - mouseX / boundedZoom
   state.panY = svgY - mouseY / boundedZoom
   applyPan()
+}
+
+export {
+  applyPan,
+  createTraceSubmap,
+  exportGraph,
+  exportProjectMap,
+  importGraph,
+  importProjectMap,
+  populateSettingsTab,
+  refreshGraph,
+  resetZoom,
+  saveConfig,
+  setZoom,
+  showToast,
+  zoomAt
 }

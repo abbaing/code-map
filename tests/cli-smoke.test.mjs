@@ -344,6 +344,11 @@ await withServer(['--config', arbitraryConfigPath, '--allow-plugins'], arbitrary
   assert.equal(viewerInteractions.status, 200, 'the viewer interaction module must be served locally')
   assert.match(viewerInteractions.headers['content-type'], /^text\/javascript/u)
   assert.match(viewerInteractions.body, /export function createViewerUiController/u)
+  for (const moduleName of ['graph-gateway.mjs', 'viewer-store.mjs']) {
+    const viewerModule = await request(port, 'GET', `/${moduleName}`, null)
+    assert.equal(viewerModule.status, 200, `${moduleName} must be served for the viewer module graph`)
+    assert.match(viewerModule.headers['content-type'], /^text\/javascript/u)
+  }
   assert.equal(
     (await request(port, 'GET', '/viewer-unlisted.js', null)).status,
     404,

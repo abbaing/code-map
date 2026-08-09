@@ -29,13 +29,7 @@ export default [
   {
     files: ['viewer/*.js'],
     languageOptions: {
-      sourceType: 'script',
       globals: globals.browser
-    },
-    rules: {
-      // The viewer is loaded as ordered classic scripts and intentionally shares globals.
-      'no-undef': 'off',
-      'no-unused-vars': 'off'
     }
   }
 ]
