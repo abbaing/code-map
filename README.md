@@ -14,7 +14,7 @@ pnpm exec code-map --init
 pnpm exec code-map --config my-app.project-map.json
 ```
 
-Open `http://localhost:1133` and see the full picture: a live dependency graph with every architectural violation, quality score, and dead-code signal attached to the file that caused it.
+Open `http://localhost:1133` and inspect a live dependency graph with detected architecture findings, quality scores, and orphan signals attached to their source files.
 
 ---
 
@@ -36,11 +36,11 @@ Open `http://localhost:1133` and see the full picture: a live dependency graph w
 
 ## How it works
 
-code-map scans your source tree statically. No build required, no instrumentation. It reads imports, classifies files by architectural role, matches frontend calls to backend endpoints, and scores each module by cohesion and coupling. Individual source files larger than 2 MiB are skipped and reported in the generated graph warnings.
+code-map scans supported source trees statically. No build or instrumentation is required. Its React and .NET templates read imports, classify files by architectural role, match frontend calls to backend endpoints, and score modules by cohesion and coupling. Individual source files larger than 2 MiB are skipped and reported in the generated graph warnings.
 
 The result is a `.code-map/graph.json` and a local viewer served at port 1133. Discovered file paths are repository-relative, and generated graphs do not embed code-map's absolute workspace root. Everything runs on your machine. Nothing leaves your repo.
 
-### End-to-end execution traces
+### React + .NET execution traces
 
 In the graph, selecting a frontend component highlights its primary path through routes, views, supporting hooks, API clients, the backend action, CQRS request and handler, services or repositories, the EF entity, and the database table. Unrelated nodes remain visible at low opacity. Use **Show all paths** when the selected component reaches multiple endpoints or tables.
 
@@ -55,6 +55,16 @@ Quality badges use `Q n/10`. Q is a maintainability heuristic derived from cohes
 ## Requirements
 
 Node.js 20 or later. No runtime dependencies.
+
+## Supported stacks
+
+Specialized source analysis currently covers:
+
+- React frontends written in JavaScript or TypeScript, including routes, components, hooks, imports, tests, and HTTP calls;
+- .NET APIs written in C#, including controllers, CQRS requests and handlers, services, repositories, Entity Framework entities, and tables;
+- frontend-only React repositories, with `sourceRoots.backend` omitted.
+
+Project detection can recognize Vue, Angular, Node.js, Go, and Python markers to report the discovered stack and propose repository structure. Recognition does not enable a specialized source analyzer for those stacks. Add a trusted custom template when a repository needs capabilities beyond React and .NET.
 
 ---
 
@@ -467,7 +477,7 @@ Validation without `--against` checks internal consistency, IDs, access classifi
 
 ### Programmatic API
 
-The core API does not access the filesystem:
+The submap entry exposes pure graph operations alongside explicit Node.js filesystem helpers such as `readGraph` and `writeSubmap`:
 
 ```js
 import { createSubmap, readGraph, validateSubmap, writeSubmap } from '@abbaing/code-map/submap'
@@ -511,7 +521,7 @@ Submaps describe access intent but do not enforce filesystem permissions. Extern
 Yes. `sourceRoots.backend` is optional. Frontend-only projects work out of the box.
 
 **Which stacks are supported?**
-Auto-detection covers React, Vue, Angular frontends and .NET, Node.js, Go backends. Any project can be configured manually.
+Specialized analysis currently supports React frontends and .NET backends. Detection also recognizes Vue, Angular, Node.js, Go, and Python markers, but those stacks require custom templates for specialized analysis. See [Supported stacks](#supported-stacks).
 
 **Is `.code-map/graph.json` safe to commit?**
 No. It contains your full repository topology. Add it to `.gitignore`.
