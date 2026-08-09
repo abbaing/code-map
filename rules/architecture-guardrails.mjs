@@ -268,8 +268,17 @@ export const ARCHITECTURE_RULES = [
   }
 ]
 
-export function runArchitectureGuardrails(files, defaultRules, projectContext, findingSink) {
-  runFileRules(files, ARCHITECTURE_RULES, defaultRules, projectContext.projectMap.rules, projectContext, findingSink)
+export function runArchitectureGuardrails(files, defaultRules, projectContext, findingSink, sourceReader) {
+  runFileRules(
+    files,
+    ARCHITECTURE_RULES,
+    defaultRules,
+    projectContext.projectMap.rules,
+    projectContext,
+    findingSink,
+    undefined,
+    sourceReader
+  )
 }
 
 export function getArchitectureGuardrailMetadata() {

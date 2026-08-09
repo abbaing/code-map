@@ -1,4 +1,3 @@
-import { readText } from './scan-utils.mjs'
 import { displayLabel, importsOf, stripTsComments } from './source-analysis.mjs'
 import { classifyFront, featureFromRepoPath } from './classify.mjs'
 import { addEndpoint, extractFrontendEndpoints } from './endpoints.mjs'
@@ -22,15 +21,15 @@ export function detectFrontBehavior(content) {
   }
 }
 
-export function scanFront(graph, files, projectContext) {
+export function scanFront(graph, files, projectContext, sourceReader) {
   const { toRepoPath } = projectContext
   const frontEndpointNodes = []
-  const apiVersionPrefix = detectApiVersionPrefix(files)
-  const exportedEndpointBindings = collectExportedEndpointBindings(files, toRepoPath)
+  const apiVersionPrefix = detectApiVersionPrefix(files, sourceReader)
+  const exportedEndpointBindings = collectExportedEndpointBindings(files, toRepoPath, sourceReader)
 
   for (const file of files) {
     const repoPath = toRepoPath(file)
-    const content = readText(file)
+    const content = sourceReader.readText(file)
     const [type, layer] = classifyFront(repoPath, projectContext)
     const module = featureFromRepoPath(repoPath, projectContext)
     const id = `file:${repoPath}`
@@ -90,13 +89,13 @@ export function scanFront(graph, files, projectContext) {
   return frontEndpointNodes
 }
 
-function collectExportedEndpointBindings(files, toRepoPath) {
+function collectExportedEndpointBindings(files, toRepoPath, sourceReader) {
   const byFile = new Map()
   const candidates = new Map()
   const pattern = /\bexport\s+const\s+([A-Za-z_$][\w$]*)\s*(?::[^=;\n]+)?=\s*['"`]((?:\/api)(?:[^'"`\\]|\\.)*)['"`]/g
   for (const file of files) {
     const bindings = new Map()
-    for (const match of readText(file).matchAll(pattern)) {
+    for (const match of sourceReader.readText(file).matchAll(pattern)) {
       bindings.set(match[1], match[2])
     }
     if (bindings.size > 0) {
@@ -143,9 +142,9 @@ function resolveImportedEndpointBindings(file, content, exportedBindings, projec
   return result
 }
 
-function detectApiVersionPrefix(files) {
+function detectApiVersionPrefix(files, sourceReader) {
   for (const file of files) {
-    const content = readText(file)
+    const content = sourceReader.readText(file)
     const match = content.match(/\.replace\([\s\S]{0,180}?['"](\/api\/v\d+\/)['"]\)/)
     if (match && /\^\\?\/api\\?\//.test(match[0])) {
       return match[1]

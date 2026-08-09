@@ -1,4 +1,3 @@
-import { readText } from '../scan-utils.mjs'
 import { importsOf } from '../source-analysis.mjs'
 import { classifyFront } from '../classify.mjs'
 
@@ -9,7 +8,8 @@ export function runFileRules(
   repoRules,
   projectContext,
   findingSink,
-  classify = classifySource
+  classify = classifySource,
+  sourceReader = projectContext.sourceReader
 ) {
   if (!findingSink || typeof findingSink.add !== 'function') {
     throw new TypeError('Rule execution requires a finding sink.')
@@ -22,7 +22,7 @@ export function runFileRules(
 
   for (const file of files) {
     const repoPath = projectContext.toRepoPath(file)
-    const content = readText(file)
+    const content = sourceReader.readText(file)
     const classification = classify(repoPath, projectContext)
     const nodeId = `file:${repoPath}`
 

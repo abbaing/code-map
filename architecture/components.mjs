@@ -97,8 +97,8 @@ export const components = [
     files: ['scan-utils.mjs'],
     contracts: ['SourceReader', 'SourceWalker'],
     compositionRoot: false,
-    design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'gap'),
-    decision: 'Pure analysis is isolated; replace direct filesystem access with the source capability.'
+    design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'pass'),
+    decision: 'Keep bounded filesystem reads behind the injected SourceReader capability.'
   },
   {
     id: 'endpoints',
@@ -147,8 +147,8 @@ export const components = [
     files: ['scan-front.mjs'],
     contracts: ['Scanner'],
     compositionRoot: false,
-    design: designStatus('pass', 'gap', 'pass', 'pass', 'gap'),
-    decision: 'The scanner honors the capability contract but still imports concrete classifiers and resolution.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Add frontend technologies as registered scanners receiving explicit source capabilities.'
   },
   {
     id: 'backend-analysis-session',
@@ -167,7 +167,7 @@ export const components = [
     files: ['scan-back.mjs'],
     contracts: ['Scanner', 'BackendAnalysisSession'],
     compositionRoot: false,
-    design: designStatus('gap', 'gap', 'gap', 'pass', 'gap'),
+    design: designStatus('gap', 'gap', 'gap', 'pass', 'pass'),
     decision: 'Backend indexes are execution-scoped; split scanner families before adding more backend technologies.'
   },
   {
@@ -177,8 +177,8 @@ export const components = [
     files: ['rules/rule-runner.mjs', 'rules/frontend-guardrails.mjs', 'rules/architecture-guardrails.mjs'],
     contracts: ['Rule'],
     compositionRoot: false,
-    design: designStatus('pass', 'pass', 'pass', 'pass', 'gap'),
-    decision: 'Rules receive an isolated FindingSink; inject source access before adding more rule families.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Rules receive isolated finding and source capabilities through registered enrichers.'
   },
   {
     id: 'findings',

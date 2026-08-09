@@ -27,6 +27,21 @@ export function readText(filePath, maxBytes = maxSourceFileBytes, displayPath = 
   return fs.readFileSync(filePath, 'utf8')
 }
 
+export function createSourceReader(fileSystem, displayPath = toRepoPath, maxBytes = maxSourceFileBytes) {
+  if (!fileSystem || typeof fileSystem.stat !== 'function' || typeof fileSystem.readText !== 'function') {
+    throw new TypeError('SourceReader requires stat and readText filesystem capabilities.')
+  }
+  return Object.freeze({
+    readText(filePath) {
+      const size = fileSystem.stat(filePath).size
+      if (size > maxBytes) {
+        throw new SourceFileTooLargeError(filePath, size, maxBytes, displayPath)
+      }
+      return fileSystem.readText(filePath)
+    }
+  })
+}
+
 export class SourceFileTooLargeError extends Error {
   constructor(filePath, size, limit, displayPath = toRepoPath) {
     super(`Source file exceeds the ${formatBytes(limit)} scan limit: ${displayPath(filePath)}`)

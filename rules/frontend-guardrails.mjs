@@ -155,8 +155,17 @@ export const RULES = [
   }
 ]
 
-export function runFrontendGuardrails(files, defaultRules, projectContext, findingSink) {
-  runFileRules(files, RULES, defaultRules, projectContext.projectMap.rules, projectContext, findingSink)
+export function runFrontendGuardrails(files, defaultRules, projectContext, findingSink, sourceReader) {
+  runFileRules(
+    files,
+    RULES,
+    defaultRules,
+    projectContext.projectMap.rules,
+    projectContext,
+    findingSink,
+    undefined,
+    sourceReader
+  )
 }
 
 export function getFrontendGuardrailMetadata() {

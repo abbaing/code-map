@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { readText, walk, maxSourceFileBytes } from './scan-utils.mjs'
+import { createSourceReader, readText, walk, maxSourceFileBytes } from './scan-utils.mjs'
 import { findComponentDirIndex, isBackTestFile, isTestFile, normalizePath, tsExtensions } from './source-analysis.mjs'
 import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
 import { Graph } from './graph.mjs'
@@ -541,6 +541,7 @@ function mergeById(left = [], right = []) {
 
 function createScanContext(graph, projectContext, registry, files, findingSink, findingSource) {
   const { projectMap, toRepoPath } = projectContext
+  const sourceReader = createSourceReader(projectContext.platform.fileSystem, toRepoPath)
   return {
     graph,
     projectMap,
@@ -549,6 +550,7 @@ function createScanContext(graph, projectContext, registry, files, findingSink, 
     files,
     findingSink,
     findingSource,
+    sourceReader,
     frontEndpointIds: [],
     controllerEndpoints: [],
     controllerFiles: () =>

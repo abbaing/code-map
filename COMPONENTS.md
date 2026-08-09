@@ -53,6 +53,7 @@ Contracts are structural JavaScript objects or functions. Their exact signatures
 | `Graph` / `GraphDocument`       | In-memory graph operations and serialized graph shape                           |
 | `SourceClassifier`              | Classify one repository-relative source path                                    |
 | `SourceAnalyzer`                | Analyze source text and normalized paths without external state                 |
+| `SourceReader`                  | Read bounded source text through an injected filesystem capability              |
 | `ImportResolver`                | Resolve one import from a source file                                           |
 | `ScanPhase`                     | Transform declared scan inputs into declared outputs in an ordered pipeline     |
 | `Scanner`                       | Add one bounded category of evidence to a scan session                          |

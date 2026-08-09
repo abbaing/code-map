@@ -1,13 +1,12 @@
 import path from 'node:path'
-import { readText } from './scan-utils.mjs'
 import { displayLabel, escapeRegExp, stripCSharpComments, stripCSharpStringLiterals } from './source-analysis.mjs'
 import { classifyBack, featureFromRepoPath } from './classify.mjs'
 import { addEndpoint, normalizeEndpoint } from './endpoints.mjs'
 import { createBackendAnalysisSession } from './backend-analysis-session.mjs'
 
-export function createBackScanSession(allBackFiles) {
+export function createBackScanSession(allBackFiles, sourceReader) {
   const entries = allBackFiles.map((file) => {
-    const content = stripCSharpComments(stripCSharpStringLiterals(readText(file)))
+    const content = stripCSharpComments(stripCSharpStringLiterals(sourceReader.readText(file)))
     return { file, fileName: path.basename(file), declarations: csharpTypeDeclarations(content) }
   })
   return createBackendAnalysisSession(entries)
@@ -29,22 +28,22 @@ export function findBackFileByName(session, fileName, preferModule, projectConte
   return bucket[0]
 }
 
-export function scanBackFiles(graph, files, projectContext, session) {
+export function scanBackFiles(graph, files, projectContext, session, sourceReader) {
   const { toRepoPath } = projectContext
   for (const file of files) {
     const repoPath = toRepoPath(file)
     let [type, layer] = classifyBack(repoPath, projectContext)
     ;[type, layer] = semanticBackendRole(repoPath, type, layer)
-    if (type === 'handler' && !isRequestHandlerFile(file)) {
+    if (type === 'handler' && !isRequestHandlerFile(file, sourceReader)) {
       ;[type, layer] = semanticSupportRole(repoPath)
     }
-    if (isDbContextFile(file)) {
+    if (isDbContextFile(file, sourceReader)) {
       ;[type, layer] = ['data-context', 'backend-repository']
     }
     if (type === 'repository' && isImplementedRepositoryInterface(file, session)) {
       ;[type, layer] = ['auxiliary', 'auxiliary']
     }
-    if ((type === 'command' || type === 'query') && isMarkerInterfaceFile(file)) {
+    if ((type === 'command' || type === 'query') && isMarkerInterfaceFile(file, sourceReader)) {
       ;[type, layer] = ['auxiliary', 'auxiliary']
     }
     graph.addNode(`file:${repoPath}`, {
@@ -57,8 +56,8 @@ export function scanBackFiles(graph, files, projectContext, session) {
   }
 }
 
-function isDbContextFile(file) {
-  const content = stripCSharpComments(stripCSharpStringLiterals(readText(file)))
+function isDbContextFile(file, sourceReader) {
+  const content = stripCSharpComments(stripCSharpStringLiterals(sourceReader.readText(file)))
   return (
     /\bclass\s+\w+\s*(?:\([^)]*\))?\s*:\s*DbContext\b/.test(content) || /\bDbSet<\w+>\s+\w+\s*(?:\{|=>)/.test(content)
   )
@@ -69,9 +68,9 @@ function isImplementedRepositoryInterface(file, session) {
   return /^I[A-Z]/.test(stem) && session.implementationsOf(stem).length > 0
 }
 
-function isRequestHandlerFile(file) {
+function isRequestHandlerFile(file, sourceReader) {
   const stem = path.basename(file, '.cs')
-  const content = stripCSharpComments(stripCSharpStringLiterals(readText(file)))
+  const content = stripCSharpComments(stripCSharpStringLiterals(sourceReader.readText(file)))
   return /\bIRequestHandler\s*</.test(content) || /(?:Command|Query)Handler$/.test(stem)
 }
 
@@ -115,23 +114,23 @@ function semanticSupportRole(repoPath) {
   return ['auxiliary', 'auxiliary']
 }
 
-function isMarkerInterfaceFile(file) {
+function isMarkerInterfaceFile(file, sourceReader) {
   const stem = path.basename(file, '.cs')
   const looksLikeInterface = /^I[A-Z]/.test(stem)
   if (!looksLikeInterface) {
     return false
   }
-  return new RegExp(`\\binterface\\s+${escapeRegExp(stem)}\\b`).test(readText(file))
+  return new RegExp(`\\binterface\\s+${escapeRegExp(stem)}\\b`).test(sourceReader.readText(file))
 }
 
-export function scanControllers(graph, files, projectContext, session) {
+export function scanControllers(graph, files, projectContext, session, sourceReader) {
   const { toRepoPath } = projectContext
   const endpoints = []
   const controllerRoutePattern = /\[Route\("([^"]+)"\)\][\s\S]*?class\s+(\w+)/m
 
   for (const file of files) {
     const repoPath = toRepoPath(file)
-    const content = readText(file)
+    const content = sourceReader.readText(file)
     const module = featureFromRepoPath(repoPath, projectContext)
     const id = `file:${repoPath}`
     const routeMatch = content.match(controllerRoutePattern)
@@ -369,7 +368,7 @@ function linkRequest(graph, sourceId, requestName, module, confidence, source, p
   graph.addEdge(sourceId, target, 'sends', { confidence, label: source ? `dispatches in ${source}` : 'sends' })
 }
 
-export function scanBackDependencies(graph, files, projectContext, session) {
+export function scanBackDependencies(graph, files, projectContext, session, sourceReader) {
   const { toRepoPath } = projectContext
   for (const file of files) {
     const repoPath = toRepoPath(file)
@@ -377,7 +376,7 @@ export function scanBackDependencies(graph, files, projectContext, session) {
     if (!graph.hasNode(sourceId)) {
       continue
     }
-    const content = stripCSharpComments(stripCSharpStringLiterals(readText(file)))
+    const content = stripCSharpComments(stripCSharpStringLiterals(sourceReader.readText(file)))
     const declaration = csharpTypeDeclarations(content).find((item) => item.kind === 'class')
     if (!declaration) {
       continue
@@ -499,7 +498,7 @@ function csharpTypeDeclarations(content) {
   return declarations
 }
 
-export function scanRequestDispatches(graph, files, projectContext, session) {
+export function scanRequestDispatches(graph, files, projectContext, session, sourceReader) {
   const { toRepoPath } = projectContext
   const controllerFragment = projectContext.projectMap.backend?.controllerPathFragment ?? '/Controllers/'
   for (const file of files) {
@@ -512,7 +511,7 @@ export function scanRequestDispatches(graph, files, projectContext, session) {
       continue
     }
     const module = featureFromRepoPath(repoPath, projectContext)
-    const content = stripCSharpComments(stripCSharpStringLiterals(readText(file)))
+    const content = stripCSharpComments(stripCSharpStringLiterals(sourceReader.readText(file)))
     const ownRequest = path.basename(file, '.cs').replace(/Handler$/, '')
     for (const match of content.matchAll(/new\s+([A-Z]\w+(?:Query|Command))\b/g)) {
       const requestName = match[1]
@@ -543,23 +542,29 @@ export function scanRequestHandlers(graph, files, projectContext, session) {
   }
 }
 
-export function scanDatabase(graph, files, projectContext, session) {
-  const { entityNodeByName, dbSetByEntity, tableByEntity } = extractDbSets(graph, files, projectContext, session)
-  const entityPropertiesByName = extractEntityProperties(graph, entityNodeByName, session)
+export function scanDatabase(graph, files, projectContext, session, sourceReader) {
+  const { entityNodeByName, dbSetByEntity, tableByEntity } = extractDbSets(
+    graph,
+    files,
+    projectContext,
+    session,
+    sourceReader
+  )
+  const entityPropertiesByName = extractEntityProperties(graph, entityNodeByName, session, sourceReader)
   const tableNodeByEntity = extractTableNodes(graph, entityNodeByName, dbSetByEntity, tableByEntity, projectContext)
   extractEntityRelationships(graph, entityNodeByName, entityPropertiesByName)
-  extractEntityUsage(graph, files, entityNodeByName, dbSetByEntity, tableNodeByEntity, projectContext)
+  extractEntityUsage(graph, files, entityNodeByName, dbSetByEntity, tableNodeByEntity, projectContext, sourceReader)
 }
 
-function extractDbSets(graph, files, projectContext, session) {
+function extractDbSets(graph, files, projectContext, session, sourceReader) {
   const { toRepoPath } = projectContext
   const entityNodeByName = new Map()
   const dbSetByEntity = new Map()
   const tableByEntity = new Map()
 
-  for (const dbContextPath of findDbContextFiles(files)) {
+  for (const dbContextPath of findDbContextFiles(files, sourceReader)) {
     const dbId = `file:${toRepoPath(dbContextPath)}`
-    const content = readText(dbContextPath)
+    const content = sourceReader.readText(dbContextPath)
     for (const match of content.matchAll(/DbSet<(\w+)>\s+(\w+)/g)) {
       const [, entity, dbSet] = match
       dbSetByEntity.set(entity, dbSet)
@@ -581,7 +586,7 @@ function extractDbSets(graph, files, projectContext, session) {
   for (const file of files.filter((file) =>
     toRepoPath(file).includes(projectContext.projectMap.backend.entityConfigurationPathFragment)
   )) {
-    const content = readText(file)
+    const content = sourceReader.readText(file)
     const configName = path.basename(file, '.cs')
     const entity = configName.replace(/Configuration$/, '')
     const tableMatch = content.match(/\.ToTable\("([^"]+)"\)/)
@@ -593,7 +598,7 @@ function extractDbSets(graph, files, projectContext, session) {
   return { entityNodeByName, dbSetByEntity, tableByEntity }
 }
 
-function extractEntityProperties(graph, entityNodeByName, session) {
+function extractEntityProperties(graph, entityNodeByName, session, sourceReader) {
   const entityPropertiesByName = new Map()
   for (const [entity, entityId] of entityNodeByName) {
     if (!entityId.startsWith('file:')) {
@@ -604,7 +609,7 @@ function extractEntityProperties(graph, entityNodeByName, session) {
     if (!fullPath) {
       continue
     }
-    const properties = parseEntityProperties(readText(fullPath))
+    const properties = parseEntityProperties(sourceReader.readText(fullPath))
     entityPropertiesByName.set(entity, properties)
     graph.addNode(entityId, { meta: { domain: { properties } } })
   }
@@ -649,14 +654,22 @@ function extractEntityRelationships(graph, entityNodeByName, entityPropertiesByN
   }
 }
 
-function extractEntityUsage(graph, files, entityNodeByName, dbSetByEntity, tableNodeByEntity, projectContext) {
+function extractEntityUsage(
+  graph,
+  files,
+  entityNodeByName,
+  dbSetByEntity,
+  tableNodeByEntity,
+  projectContext,
+  sourceReader
+) {
   const { toRepoPath } = projectContext
   const usageFiles = files.filter((file) =>
     ['handler', 'repository', 'service', 'data-context'].includes(graph.getNode(`file:${toRepoPath(file)}`)?.type)
   )
   for (const file of usageFiles) {
     const repoPath = toRepoPath(file)
-    const content = stripCSharpStringLiterals(readText(file))
+    const content = stripCSharpStringLiterals(sourceReader.readText(file))
     for (const [entity, entityId] of entityNodeByName) {
       const dbSet = dbSetByEntity.get(entity)
       const usage = detectEntityUsage(content, entity, dbSet)
@@ -689,9 +702,9 @@ function extractEntityUsage(graph, files, entityNodeByName, dbSetByEntity, table
   }
 }
 
-function findDbContextFiles(files) {
+function findDbContextFiles(files, sourceReader) {
   return files.filter((file) => {
-    const content = readText(file)
+    const content = sourceReader.readText(file)
     return (
       /\bclass\s+\w+\s*(?:\([^)]*\))?\s*:\s*DbContext\b/.test(content) || /\bDbSet<\w+>\s+\w+\s*(?:\{|=>)/.test(content)
     )

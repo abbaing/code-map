@@ -14,7 +14,12 @@ import {
   stripTsComments,
   tsExtensions
 } from '../source-analysis.mjs'
-import { importsOf as compatibleImportsOf, normalizePath as compatibleNormalizePath } from '../scan-utils.mjs'
+import {
+  SourceFileTooLargeError,
+  createSourceReader,
+  importsOf as compatibleImportsOf,
+  normalizePath as compatibleNormalizePath
+} from '../scan-utils.mjs'
 
 assert.equal(normalizePath('src\\features\\orders\\index.ts'), 'src/features/orders/index.ts')
 assert.equal(displayLabel('src/features/orders/index.ts'), 'orders')
@@ -28,6 +33,26 @@ assert.equal(findComponentDirIndex(['src', 'pages', 'home', 'components', 'card'
 assert.equal(kebab('OrderHistory_View'), 'order-history-view')
 assert.equal(escapeRegExp('orders[0].id'), 'orders\\[0\\]\\.id')
 assert.equal(Object.isFrozen(tsExtensions), true)
+
+const requestedFiles = []
+const sourceReader = createSourceReader(
+  {
+    stat: (filePath) => ({ size: filePath === 'large.ts' ? 11 : 4 }),
+    readText(filePath) {
+      requestedFiles.push(filePath)
+      return 'text'
+    }
+  },
+  (filePath) => `source/${filePath}`,
+  10
+)
+assert.equal(sourceReader.readText('small.ts'), 'text')
+assert.deepEqual(requestedFiles, ['small.ts'])
+assert.throws(
+  () => sourceReader.readText('large.ts'),
+  (error) => error instanceof SourceFileTooLargeError && error.message.includes('source/large.ts')
+)
+assert.throws(() => createSourceReader({ stat() {} }), /requires stat and readText/u)
 assert.equal(Object.isFrozen(componentContainerDirs), true)
 assert.equal(compatibleImportsOf, importsOf, 'the source adapter must preserve analysis re-exports')
 assert.equal(compatibleNormalizePath, normalizePath)
