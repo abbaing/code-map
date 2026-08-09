@@ -6,6 +6,7 @@ import { writeGraph } from './scan.mjs'
 import { listTemplates, loadTemplatePlugins } from './templates/registry.mjs'
 import { writeJsonFileAtomic } from './json-io.mjs'
 import { nodePlatform } from './platform/node.mjs'
+import { nodeSubmapRepository } from './submap/io.mjs'
 
 const { environment, fileSystem } = nodePlatform
 const repoRoot = environment.cwd()
@@ -15,7 +16,9 @@ const hasFlag = (flag) => args.includes(flag)
 
 if (args[0] === 'submap') {
   const { runSubmapCli } = await import('./submap/cli.mjs')
-  environment.exit(await runSubmapCli(args.slice(1), { cwd: repoRoot, platform: nodePlatform }))
+  environment.exit(
+    await runSubmapCli(args.slice(1), { cwd: repoRoot, platform: nodePlatform, repository: nodeSubmapRepository })
+  )
 }
 
 if (hasFlag('--help') || hasFlag('-h')) {

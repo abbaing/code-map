@@ -2,6 +2,7 @@ import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { getConfigPathFromArgs, loadProjectContext } from '../config.mjs'
 import { nodePlatform } from '../platform/node.mjs'
+import { assertSubmapRepository } from './repository.mjs'
 import {
   assertOnlyOptions,
   createOptionNames,
@@ -18,16 +19,15 @@ import {
   createSubmap,
   defaultSubmapFilename,
   inspectSubmap,
-  listSubmapFiles,
   readJson,
   readJsonStdin,
   validateSubmap,
-  validateSubmapAgainstGraph,
-  writeJsonAtomic
+  validateSubmapAgainstGraph
 } from './index.mjs'
 
 export async function runSubmapCli(args, context = {}) {
   const platform = context.platform ?? nodePlatform
+  const repository = assertSubmapRepository(context.repository)
   const optionsForErrors = args.includes('--json-errors')
   try {
     const command = args[0]
@@ -38,19 +38,19 @@ export async function runSubmapCli(args, context = {}) {
     const parsed = parseArgs(args.slice(1))
     const cwd = context.cwd ?? platform.environment.cwd()
     if (command === 'create') {
-      return createCommand(parsed, cwd, platform)
+      return createCommand(parsed, cwd, platform, repository)
     }
     if (command === 'inspect') {
-      return inspectCommand(parsed)
+      return inspectCommand(parsed, repository)
     }
     if (command === 'validate') {
-      return validateCommand(parsed)
+      return validateCommand(parsed, repository)
     }
     if (command === 'diff') {
-      return diffCommand(parsed)
+      return diffCommand(parsed, repository)
     }
     if (command === 'list') {
-      return listCommand(parsed, cwd, platform)
+      return listCommand(parsed, cwd, platform, repository)
     }
     throw new SubmapError('SUBMAP_UNKNOWN_COMMAND', `Unknown submap command: ${command}`, { command })
   } catch (error) {
@@ -58,7 +58,7 @@ export async function runSubmapCli(args, context = {}) {
   }
 }
 
-function createCommand(options, cwd, platform) {
+function createCommand(options, cwd, platform, repository) {
   assertOnlyOptions(options, createOptionNames())
   if (options.stdout && options.output) {
     throw new SubmapError('SUBMAP_OUTPUT_CONFLICT', '--stdout and --output are mutually exclusive.')
@@ -112,7 +112,7 @@ function createCommand(options, cwd, platform) {
   const outputPath = options.output
     ? path.resolve(cwd, last(options.output))
     : path.join(resolveSubmapsDirectory(options, cwd, platform), defaultSubmapFilename(submap))
-  const written = writeJsonAtomic(outputPath, submap, { force: Boolean(options.force) })
+  const written = repository.write(outputPath, submap, { force: Boolean(options.force) })
   log(
     options,
     `Created ${path.relative(cwd, written)} (${submap.statistics.nodes} nodes, ${submap.statistics.edges} edges).`
@@ -120,10 +120,10 @@ function createCommand(options, cwd, platform) {
   return 0
 }
 
-function inspectCommand(options) {
+function inspectCommand(options, repository) {
   assertOnlyOptions(options, new Set(['json', 'quiet', 'json-errors', 'non-interactive']))
   const input = requiredPositional(options, 0, 'SUBMAP_INPUT_REQUIRED', 'inspect requires a submap file.')
-  const summary = inspectSubmap(readJson(path.resolve(input), 'submap'))
+  const summary = inspectSubmap(repository.read(path.resolve(input)))
   if (options.json) {
     writeJsonStdout(summary)
   } else {
@@ -132,10 +132,10 @@ function inspectCommand(options) {
   return 0
 }
 
-function validateCommand(options) {
+function validateCommand(options, repository) {
   assertOnlyOptions(options, new Set(['against', 'json', 'quiet', 'json-errors', 'non-interactive']))
   const input = requiredPositional(options, 0, 'SUBMAP_INPUT_REQUIRED', 'validate requires a submap file.')
-  const submap = readJson(path.resolve(input), 'submap')
+  const submap = repository.read(path.resolve(input))
   const internal = validateSubmap(submap)
   const result =
     options.against && internal.valid
@@ -152,14 +152,11 @@ function validateCommand(options) {
   return 0
 }
 
-function diffCommand(options) {
+function diffCommand(options, repository) {
   assertOnlyOptions(options, new Set(['json', 'quiet', 'json-errors', 'non-interactive']))
   const previousPath = requiredPositional(options, 0, 'SUBMAP_INPUT_REQUIRED', 'diff requires two submap files.')
   const currentPath = requiredPositional(options, 1, 'SUBMAP_INPUT_REQUIRED', 'diff requires two submap files.')
-  const result = compareSubmaps(
-    readJson(path.resolve(previousPath), 'previous submap'),
-    readJson(path.resolve(currentPath), 'current submap')
-  )
+  const result = compareSubmaps(repository.read(path.resolve(previousPath)), repository.read(path.resolve(currentPath)))
   if (options.json) {
     writeJsonStdout(result)
   } else {
@@ -168,12 +165,12 @@ function diffCommand(options) {
   return 0
 }
 
-function listCommand(options, cwd, platform) {
+function listCommand(options, cwd, platform, repository) {
   assertOnlyOptions(options, new Set(['dir', 'config', 'json', 'quiet', 'json-errors', 'non-interactive']))
   const directory = options.dir ? path.resolve(cwd, last(options.dir)) : resolveSubmapsDirectory(options, cwd, platform)
-  const entries = listSubmapFiles(directory).map((filePath) => ({
+  const entries = repository.list(directory).map((filePath) => ({
     file: filePath,
-    ...inspectSubmap(readJson(filePath, 'submap'))
+    ...inspectSubmap(repository.read(filePath))
   }))
   if (options.json) {
     writeJsonStdout(entries)

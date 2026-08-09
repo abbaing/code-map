@@ -118,6 +118,12 @@ export interface SubmapStrategies {
   access: AccessStrategy
 }
 
+export interface SubmapRepository {
+  read(filePath: string): Submap
+  list(directory: string): string[]
+  write(filePath: string, submap: Submap, options?: { force?: boolean }): string
+}
+
 export interface SubmapBoundary {
   edgeId: string
   insideNodeId: string
@@ -203,6 +209,9 @@ export function writeSubmap(filePath: string, submap: Submap, options?: { force?
 export function writeJsonAtomic(filePath: string, value: unknown, options?: { force?: boolean }): string
 export function defaultSubmapFilename(submap: Submap): string
 export function listSubmapFiles(directory: string): string[]
+export const nodeSubmapRepository: Readonly<SubmapRepository>
+export const submapRepositoryContract: readonly ['read', 'list', 'write']
+export function assertSubmapRepository(repository: unknown): SubmapRepository
 
 export class SubmapError extends Error {
   code: string

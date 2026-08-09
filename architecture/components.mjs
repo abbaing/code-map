@@ -289,8 +289,18 @@ export const components = [
     files: ['submap/io.mjs'],
     contracts: ['SubmapRepository'],
     compositionRoot: false,
-    design: designStatus('pass', 'gap', 'not-applicable', 'pass', 'gap'),
-    decision: 'Implement a repository port while keeping filesystem behavior in this adapter.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Provide the frozen Node repository while keeping filesystem behavior contained in this adapter.'
+  },
+  {
+    id: 'submap-repository-contract',
+    responsibility: 'Validate the minimal persistence capability required by submap consumers.',
+    role: 'core',
+    files: ['submap/repository.mjs'],
+    contracts: ['SubmapRepository'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep the repository contract structural and verify implementations with a shared behavior suite.'
   },
   {
     id: 'submap-cli',

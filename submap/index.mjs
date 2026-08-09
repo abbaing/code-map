@@ -50,6 +50,8 @@ export {
   readJsonStdin,
   writeJsonAtomic,
   defaultSubmapFilename,
-  listSubmapFiles
+  listSubmapFiles,
+  nodeSubmapRepository
 } from './io.mjs'
+export { assertSubmapRepository, submapRepositoryContract } from './repository.mjs'
 export { SubmapError } from './errors.mjs'

@@ -55,3 +55,9 @@ export function listSubmapFiles(directory) {
     .map((entry) => path.join(directory, entry.name))
     .sort()
 }
+
+export const nodeSubmapRepository = Object.freeze({
+  read: readSubmap,
+  list: listSubmapFiles,
+  write: writeSubmap
+})
