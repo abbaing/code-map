@@ -251,8 +251,18 @@ export const components = [
     files: ['server.mjs'],
     contracts: ['ServerApplication', 'Route'],
     compositionRoot: true,
-    design: designStatus('pass', 'gap', 'not-applicable', 'pass', 'gap'),
-    decision: 'Inject the application and route registry instead of closing over a process-wide concrete instance.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Assemble secure default routes and accept validated application and route registry implementations.'
+  },
+  {
+    id: 'http-routing',
+    responsibility: 'Define, validate, and resolve transport route implementations.',
+    role: 'core',
+    files: ['http-routes.mjs'],
+    contracts: ['Route', 'RouteRegistry'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep route matching independent from Node HTTP and validate extensions before server startup.'
   },
   {
     id: 'cli',

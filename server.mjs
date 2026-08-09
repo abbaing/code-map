@@ -9,6 +9,7 @@ import { ApplicationInputError, assertServerApplication, createServerApplication
 import { nodeServerApplicationServices } from './server-app-node.mjs'
 import { SubmapError } from './submap/errors.mjs'
 import { nodePlatform } from './platform/node.mjs'
+import { assertRoute, assertRouteRegistry, createRouteRegistry, defineRoute } from './http-routes.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const viewerRoot = path.join(__dirname, 'viewer')
@@ -167,33 +168,21 @@ async function readJsonRequest(request) {
   }
 }
 
-async function handleScan(request, response, application) {
-  try {
-    const graph = application.scan()
-    sendJson(response, 200, { ok: true, stats: graph.stats, generatedAt: graph.generatedAt })
-  } catch (error) {
-    sendApiError(response, error)
-  }
+function handleScan(response, application) {
+  const graph = application.scan()
+  sendJson(response, 200, { ok: true, stats: graph.stats, generatedAt: graph.generatedAt })
 }
 
 async function handleProjectMap(request, response, application) {
-  try {
-    const input = await readJsonRequest(request)
-    const result = application.saveProjectMap(input)
-    sendJson(response, 200, { ok: true, ...result })
-  } catch (error) {
-    sendApiError(response, error)
-  }
+  const input = await readJsonRequest(request)
+  const result = application.saveProjectMap(input)
+  sendJson(response, 200, { ok: true, ...result })
 }
 
 async function handleTraceSubmap(request, response, application) {
-  try {
-    const input = await readJsonRequest(request)
-    const result = application.createTraceSubmap(input)
-    sendJson(response, 200, { ok: true, ...result })
-  } catch (error) {
-    sendApiError(response, error)
-  }
+  const input = await readJsonRequest(request)
+  const result = application.createTraceSubmap(input)
+  sendJson(response, 200, { ok: true, ...result })
 }
 
 function sendApiError(response, error) {
@@ -227,41 +216,48 @@ function publicError(error) {
 
 function createRoutes(sessionToken, application) {
   return [
-    {
+    defineRoute({
+      id: 'viewer.index',
       method: 'GET',
-      test: (pathname) => pathname === '/',
-      handler: (request, response) => sendFile(response, indexPath, { 'Set-Cookie': sessionCookie(sessionToken) })
-    },
-    {
+      matches: (pathname) => pathname === '/',
+      handle: ({ response }) => sendFile(response, indexPath, { 'Set-Cookie': sessionCookie(sessionToken) })
+    }),
+    defineRoute({
+      id: 'viewer.graph',
       method: 'GET',
-      test: (pathname) => pathname === '/graph.json',
-      handler: (request, response) => sendFile(response, application.graphPath())
-    },
-    {
+      matches: (pathname) => pathname === '/graph.json',
+      handle: ({ response }) => sendFile(response, application.graphPath())
+    }),
+    defineRoute({
+      id: 'viewer.project-map',
       method: 'GET',
-      test: (pathname) => pathname === '/project-map.json',
-      handler: (request, response) => sendJson(response, 200, application.projectMap())
-    },
-    {
+      matches: (pathname) => pathname === '/project-map.json',
+      handle: ({ response }) => sendJson(response, 200, application.projectMap())
+    }),
+    defineRoute({
+      id: 'viewer.assets',
       method: 'GET',
-      test: (pathname) => viewerAssets.has(pathname),
-      handler: (request, response, url) => sendFile(response, viewerAssets.get(url.pathname))
-    },
-    {
+      matches: (pathname) => viewerAssets.has(pathname),
+      handle: ({ response, url }) => sendFile(response, viewerAssets.get(url.pathname))
+    }),
+    defineRoute({
+      id: 'api.scan',
       method: 'POST',
-      test: (pathname) => pathname === '/api/scan',
-      handler: (request, response) => handleScan(request, response, application)
-    },
-    {
+      matches: (pathname) => pathname === '/api/scan',
+      handle: ({ response }) => handleScan(response, application)
+    }),
+    defineRoute({
+      id: 'api.project-map',
       method: 'POST',
-      test: (pathname) => pathname === '/api/project-map',
-      handler: (request, response) => handleProjectMap(request, response, application)
-    },
-    {
+      matches: (pathname) => pathname === '/api/project-map',
+      handle: ({ request, response }) => handleProjectMap(request, response, application)
+    }),
+    defineRoute({
+      id: 'api.trace-submap',
       method: 'POST',
-      test: (pathname) => pathname === '/api/submaps/from-trace',
-      handler: (request, response) => handleTraceSubmap(request, response, application)
-    }
+      matches: (pathname) => pathname === '/api/submaps/from-trace',
+      handle: ({ request, response }) => handleTraceSubmap(request, response, application)
+    })
   ]
 }
 
@@ -280,14 +276,16 @@ export function startServer(options = {}) {
         services: options.applicationServices ?? nodeServerApplicationServices
       })
   )
-  const routes = createRoutes(sessionToken, application)
+  const routeRegistry = assertRouteRegistry(
+    options.routeRegistry ?? createRouteRegistry(createRoutes(sessionToken, application))
+  )
   const server = http.createServer(
     {
       requestTimeout: options.requestTimeout ?? requestTimeoutMs,
       headersTimeout: options.headersTimeout ?? headersTimeoutMs,
       keepAliveTimeout: options.keepAliveTimeout ?? keepAliveTimeoutMs
     },
-    (request, response) => {
+    async (request, response) => {
       const authority = trustedAuthority(request, serverHost, server.address())
       if (!authority) {
         return sendJson(response, 400, { ok: false, error: 'Invalid Host header.' })
@@ -296,10 +294,10 @@ export function startServer(options = {}) {
       if (request.method === 'POST' && !authorizedMutation(request, authority.origin, sessionToken, platform.random)) {
         return sendJson(response, 403, { ok: false, error: 'A same-origin viewer session is required.' })
       }
-      const route = routes.find((candidate) => candidate.method === request.method && candidate.test(url.pathname))
       try {
+        const route = routeRegistry.find(request.method, url.pathname)
         if (route) {
-          route.handler(request, response, url)
+          await assertRoute(route).handle(Object.freeze({ request, response, url, application }))
         } else {
           send(response, 404, 'Not found')
         }

@@ -23,6 +23,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Injectable selection, traversal, and access strategies for portable submaps.
 - An injectable submap repository with a filesystem-backed Node implementation.
 - A validated server application contract backed by injectable use-case capabilities.
+- A validated and injectable HTTP route registry with asynchronous dispatch.
 
 ### Changed
 
