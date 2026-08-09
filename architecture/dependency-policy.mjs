@@ -10,9 +10,7 @@ export const legacyDependencyEdges = Object.freeze([
   'index.mjs -> submap/index.mjs',
   'scan.mjs -> templates/registry.mjs',
   'scan.mjs -> templates/contracts.mjs',
-  'server-app-node.mjs -> submap/index.mjs',
-  'cli-commands.mjs -> templates/registry.mjs',
-  'cli-commands.mjs -> server.mjs'
+  'server-app-node.mjs -> submap/index.mjs'
 ])
 
 export function dependencyEdge(source, target) {

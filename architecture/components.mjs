@@ -300,7 +300,7 @@ export const components = [
     responsibility: 'Adapt command-line arguments and process IO to application commands.',
     role: 'composition-root',
     files: ['cli.mjs'],
-    contracts: ['Command'],
+    contracts: ['Command', 'ProjectDetector', 'ScanExecution', 'TemplateCatalog', 'ServerLauncher'],
     compositionRoot: true,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision: 'Assemble validated command implementations with Node platform and repository adapters.'
@@ -310,10 +310,10 @@ export const components = [
     responsibility: 'Implement root command-line use cases through injected runtime capabilities.',
     role: 'adapter',
     files: ['cli-commands.mjs'],
-    contracts: ['Command'],
+    contracts: ['Command', 'ProjectDetector', 'ScanExecution', 'TemplateCatalog', 'ServerLauncher'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Keep command matching declarative and runtime dependencies explicit at command construction.'
+    decision: 'Keep command matching declarative and receive all runtime operations through focused capabilities.'
   },
   {
     id: 'command-registry',

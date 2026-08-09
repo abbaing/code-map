@@ -50,8 +50,16 @@ const cliRegistry = createCommandRegistry(
     },
     repository: { read() {}, list: () => [], write() {} },
     writer: { writeText() {} },
+    detector: { detect() {}, summarize() {} },
+    scanner: { scan() {} },
+    templates: {
+      list: () => [{ id: 'test-template', stage: 'test', description: 'Injected template' }],
+      load() {}
+    },
+    viewerServer: { start() {} },
     output: { log: (message) => messages.push(message), error: (message) => messages.push(message) },
     submapCli: {
+      run() {},
       documents: { read() {}, readStdin() {} },
       git: { metadata() {} },
       output: { writeStdout() {}, writeStderr() {} }
@@ -67,5 +75,10 @@ assert.deepEqual(await cliRegistry.execute({ args: ['--help'], repoRoot: '.' }),
   exitCode: 0
 })
 assert.match(messages[0], /code-map - architectural graph generator/u)
+assert.deepEqual(await cliRegistry.execute({ args: ['--templates'], repoRoot: '.' }), {
+  commandId: 'templates',
+  exitCode: 0
+})
+assert.equal(messages[1], 'test-template\ttest\tInjected template')
 
 console.log('command registry contract tests passed')

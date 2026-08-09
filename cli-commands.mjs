@@ -1,13 +1,20 @@
 import path from 'node:path'
 import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
 import { defineCommand } from './command-registry.mjs'
-import { detect, detectSummary } from './detect-node.mjs'
-import { writeGraph } from './scan.mjs'
-import { listTemplates, loadTemplatePlugins } from './templates/registry.mjs'
 import { assertTextWriter } from './writer-contract.mjs'
 
-export function createCliCommands({ platform, repository, output, submapCli, writer }) {
-  assertDependencies(platform, repository, output, submapCli, writer)
+export function createCliCommands({
+  platform,
+  repository,
+  output,
+  submapCli,
+  writer,
+  detector,
+  scanner,
+  templates,
+  viewerServer
+}) {
+  assertDependencies({ platform, repository, output, submapCli, writer, detector, scanner, templates, viewerServer })
   return Object.freeze([
     defineCommand({ id: 'submap', matches: ({ args }) => args[0] === 'submap', execute: runSubmap }),
     defineCommand({
@@ -26,8 +33,14 @@ export function createCliCommands({ platform, repository, output, submapCli, wri
   ])
 
   async function runSubmap({ args, repoRoot }) {
-    const { runSubmapCli } = await import('./submap/cli.mjs')
-    const exitCode = await runSubmapCli(args.slice(1), { cwd: repoRoot, platform, repository, ...submapCli })
+    const exitCode = await submapCli.run(args.slice(1), {
+      cwd: repoRoot,
+      platform,
+      repository,
+      documents: submapCli.documents,
+      git: submapCli.git,
+      output: submapCli.output
+    })
     return { exitCode }
   }
 
@@ -37,18 +50,18 @@ export function createCliCommands({ platform, repository, output, submapCli, wri
   }
 
   function showTemplates() {
-    for (const template of listTemplates()) {
+    for (const template of templates.list()) {
       output.log(`${template.id}\t${template.stage}\t${template.description}`)
     }
     return { exitCode: 0 }
   }
 
   function initialize({ args, repoRoot }) {
-    const summary = detectSummary(repoRoot, { fileSystem: platform.fileSystem })
+    const summary = detector.summarize(repoRoot, { fileSystem: platform.fileSystem })
     output.log(
       `Detected: ${summary.frontendFramework ?? 'unknown'} frontend, ${summary.backendStack ?? 'none'} backend, ${summary.moduleCount} modules`
     )
-    const config = detect(repoRoot, { fileSystem: platform.fileSystem })
+    const config = detector.detect(repoRoot, { fileSystem: platform.fileSystem })
     const outIndex = args.indexOf('--out')
     const outDir = outIndex >= 0 ? path.resolve(repoRoot, args[outIndex + 1]) : repoRoot
     const projectSlug = (config.project?.name ?? 'project').toLowerCase().replace(/[^a-z0-9]+/g, '-')
@@ -68,7 +81,7 @@ export function createCliCommands({ platform, repository, output, submapCli, wri
     const outIndex = args.indexOf('--out')
     const outputPath =
       outIndex >= 0 ? path.resolve(repoRoot, args[outIndex + 1]) : projectContext.resolveGraphOutputPath()
-    const result = writeGraph(outputPath, projectContext, { writer })
+    const result = scanner.scan(outputPath, projectContext)
     const displayOutput = path.relative(repoRoot, outputPath).replaceAll(path.sep, '/')
     output.log(
       `Scan complete: ${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.findings} findings -> ${displayOutput}`
@@ -81,9 +94,8 @@ export function createCliCommands({ platform, repository, output, submapCli, wri
     if (!projectContext) {
       return { exitCode: 1 }
     }
-    writeGraph(projectContext.resolveGraphOutputPath(), projectContext, { writer })
-    const { startServer } = await import('./server.mjs')
-    startServer({ projectContext })
+    scanner.scan(projectContext.resolveGraphOutputPath(), projectContext)
+    await viewerServer.start({ projectContext })
     return { exitCode: null }
   }
 
@@ -114,16 +126,16 @@ export function createCliCommands({ platform, repository, output, submapCli, wri
       projectContext = loadProjectContext(configPath, { repoRoot, platform })
       output.log(`Using config: ${path.relative(repoRoot, configPath)}`)
     } else {
-      const summary = detectSummary(repoRoot, { fileSystem })
+      const summary = detector.summarize(repoRoot, { fileSystem })
       output.log(
         `Auto-detected: ${summary.frontendFramework ?? 'unknown'} + ${summary.backendStack ?? 'none'}, ${summary.moduleCount} modules`
       )
       output.log('Tip: run with --init to generate a project-map.json you can customize.')
-      projectContext = loadProjectContext(detect(repoRoot, { fileSystem }), { repoRoot, platform })
+      projectContext = loadProjectContext(detector.detect(repoRoot, { fileSystem }), { repoRoot, platform })
       pluginBasePath = path.join(repoRoot, 'project-map.json')
     }
     try {
-      await loadTemplatePlugins(projectContext.projectMap, pluginBasePath ?? path.join(repoRoot, 'project-map.json'), {
+      await templates.load(projectContext.projectMap, pluginBasePath ?? path.join(repoRoot, 'project-map.json'), {
         allow: args.includes('--allow-plugins')
       })
     } catch (error) {
@@ -134,7 +146,17 @@ export function createCliCommands({ platform, repository, output, submapCli, wri
   }
 }
 
-function assertDependencies(platform, repository, output, submapCli, writer) {
+function assertDependencies({
+  platform,
+  repository,
+  output,
+  submapCli,
+  writer,
+  detector,
+  scanner,
+  templates,
+  viewerServer
+}) {
   if (!platform?.environment || !platform?.fileSystem) {
     throw new TypeError('CLI commands require platform environment and filesystem capabilities.')
   }
@@ -149,10 +171,15 @@ function assertDependencies(platform, repository, output, submapCli, writer) {
   if (!output || typeof output.log !== 'function' || typeof output.error !== 'function') {
     throw new TypeError('CLI commands require log and error output capabilities.')
   }
+  assertOperations(submapCli, ['run'], 'Submap CLI')
   assertOperations(submapCli?.documents, ['read', 'readStdin'], 'Submap document input')
   assertOperations(submapCli?.git, ['metadata'], 'Submap Git metadata')
   assertOperations(submapCli?.output, ['writeStdout', 'writeStderr'], 'Submap output')
   assertTextWriter(writer)
+  assertOperations(detector, ['detect', 'summarize'], 'project detector')
+  assertOperations(scanner, ['scan'], 'scanner')
+  assertOperations(templates, ['list', 'load'], 'template catalog')
+  assertOperations(viewerServer, ['start'], 'viewer server')
 }
 
 function assertOperations(implementation, operations, label) {

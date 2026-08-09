@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 import { createCliCommands } from './cli-commands.mjs'
 import { createCommandRegistry } from './command-registry.mjs'
+import { detect, detectSummary } from './detect-node.mjs'
 import { nodePlatform } from './platform/node.mjs'
 import { nodeTextWriter } from './json-io.mjs'
+import { writeGraph } from './scan.mjs'
 import { nodeSubmapRepository } from './submap/io.mjs'
 import { nodeSubmapCliCapabilities } from './submap/cli-node.mjs'
+import { listTemplates, loadTemplatePlugins } from './templates/registry.mjs'
 
 const { environment } = nodePlatform
 const registry = createCommandRegistry(
@@ -13,7 +16,26 @@ const registry = createCommandRegistry(
     writer: nodeTextWriter,
     repository: nodeSubmapRepository,
     output: console,
-    submapCli: nodeSubmapCliCapabilities
+    detector: Object.freeze({ detect, summarize: detectSummary }),
+    scanner: Object.freeze({
+      scan(outputPath, projectContext) {
+        return writeGraph(outputPath, projectContext, { writer: nodeTextWriter })
+      }
+    }),
+    templates: Object.freeze({ list: listTemplates, load: loadTemplatePlugins }),
+    viewerServer: Object.freeze({
+      async start(options) {
+        const { startServer } = await import('./server.mjs')
+        return startServer(options)
+      }
+    }),
+    submapCli: Object.freeze({
+      ...nodeSubmapCliCapabilities,
+      async run(args, options) {
+        const { runSubmapCli } = await import('./submap/cli.mjs')
+        return runSubmapCli(args, options)
+      }
+    })
   })
 )
 const result = await registry.execute({
