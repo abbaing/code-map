@@ -6,8 +6,9 @@ export const components = [
     files: ['index.mjs'],
     contracts: ['PackageExports'],
     compositionRoot: false,
-    design: designStatus('pass', 'gap', 'not-applicable', 'pass', 'pass'),
-    decision: 'New public capabilities still require editing the barrel export; preserve its inward-only dependencies.'
+    design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'pass'),
+    decision:
+      'Keep supported entry points explicit and extend behavior behind their validated registries and contracts.'
   },
   {
     id: 'graph',
