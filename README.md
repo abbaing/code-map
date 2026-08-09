@@ -1,44 +1,55 @@
-# >> c0de::map
+# code-map
 
 [![CI](https://github.com/abbaing/code-map/actions/workflows/ci.yml/badge.svg)](https://github.com/abbaing/code-map/actions/workflows/ci.yml)
 
-Codebases don't break all at once. They drift.
+**Explore how your codebase is connected, find architectural drift, and understand the impact of a change.**
 
-A feature imports from another feature's internals. A repository pulls in a UI component. A domain layer references infrastructure. A controller grows business logic. Each violation is small. Together they compound into a codebase nobody wants to touch.
+code-map scans React and .NET source trees and turns them into a local, interactive dependency graph. It highlights boundary violations, coupling hotspots, orphaned files, missing test signals, and frontend-to-backend execution paths without building or instrumenting the application.
 
-code-map scans your source tree and surfaces what's wrong: orphaned files, broken layer boundaries, high-coupling hotspots, undertested modules, cross-feature leaks. Before they become someone else's problem.
+[Quick start](#quick-start) · [Supported stacks](#supported-stacks) · [Configuration](#project-mapjson) · [CLI](#cli) · [Submaps](#submaps)
+
+## Quick start
+
+Requires Node.js 20 or later and has no runtime dependencies.
 
 ```bash
-pnpm add -D github:abbaing/code-map
-pnpm exec code-map --init
-pnpm exec code-map --config my-app.project-map.json
+npm install --save-dev @abbaing/code-map
+npx code-map --init
+npx code-map --config my-app.project-map.json
 ```
 
-Open `http://localhost:1133` and inspect a live dependency graph with detected architecture findings, quality scores, and orphan signals attached to their source files.
+Open `http://localhost:1133` to inspect the graph. Everything runs locally; source code and graph data never leave your machine.
 
----
+## What you get
+
+| Capability         | What it provides                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------------- |
+| Architecture graph | A navigable view of files, modules, layers, and their relationships.                                 |
+| Findings           | Boundary violations, cross-feature imports, oversized components, and other configurable rules.      |
+| Quality signals    | Explainable cohesion, coupling, orphan, and test-presence indicators.                                |
+| Execution traces   | Focused paths from React routes and components to .NET endpoints, handlers, persistence, and tables. |
+| Portable submaps   | Bounded graph slices for reviews, automation, and external tools.                                    |
+| Local viewer       | A loopback-only interface with no telemetry or hosted service.                                       |
 
 ## Why code-map
 
 **For tech leads**
 
-- Enforce layer boundaries with rules. Violations surface as findings on every scan
-- See coupling and cohesion scores per module. Know which areas are accumulating debt
-- Catch architectural drift in code review before it merges
+- Enforce layer boundaries with findings on every scan.
+- See which modules are accumulating coupling and cohesion problems.
+- Catch architectural drift during review, before it becomes established structure.
 
 **For developers**
 
-- Know exactly where a file sits in the architecture before you touch it
-- Find orphaned files, duplicated responsibilities, and missing test coverage at a glance
-- Understand the blast radius of a change without running the app
-
----
+- Understand where a file sits before changing it.
+- Find orphaned files, duplicated responsibilities, and missing test signals.
+- Explore the likely impact of a change without running the application.
 
 ## How it works
 
-code-map scans supported source trees statically. No build or instrumentation is required. Its React and .NET templates read imports, classify files by architectural role, match frontend calls to backend endpoints, and score modules by cohesion and coupling. Individual source files larger than 2 MiB are skipped and reported in the generated graph warnings.
+code-map performs static analysis over supported source trees. Its React and .NET templates read imports, classify files by architectural role, match frontend calls to backend endpoints, and calculate cohesion and coupling signals. Files larger than 2 MiB are skipped and reported in the generated graph warnings.
 
-The result is a `.code-map/graph.json` and a local viewer served at port 1133. Discovered file paths are repository-relative, and generated graphs do not embed code-map's absolute workspace root. Everything runs on your machine. Nothing leaves your repo.
+The scan produces `.code-map/graph.json` and serves the viewer on port `1133`. Discovered paths remain repository-relative, and generated graphs do not contain code-map's workspace path.
 
 ### React + .NET execution traces
 
@@ -50,77 +61,47 @@ The viewer's **Management → Create submap from trace** action writes the curre
 
 Quality badges use `Q n/10`. Q is a maintainability heuristic derived from cohesion and coupling, not correctness or coverage. Expand **How this score is calculated** in the selected-component inspector to see the formula and exact relation counts used for that node.
 
----
-
-## Requirements
-
-Node.js 20 or later. No runtime dependencies.
-
 ## Supported stacks
 
 Specialized source analysis currently covers:
 
-- React frontends written in JavaScript or TypeScript, including routes, components, hooks, imports, tests, and HTTP calls;
-- .NET APIs written in C#, including controllers, CQRS requests and handlers, services, repositories, Entity Framework entities, and tables;
-- frontend-only React repositories, with `sourceRoots.backend` omitted.
+- React frontends written in JavaScript or TypeScript, including routes, components, hooks, imports, tests, and HTTP calls.
+- .NET APIs written in C#, including controllers, CQRS requests and handlers, services, repositories, Entity Framework entities, and tables.
+- React repositories without a backend, with `sourceRoots.backend` omitted.
 
 Project detection can recognize Vue, Angular, Node.js, Go, and Python markers to report the discovered stack and propose repository structure. Recognition does not enable a specialized source analyzer for those stacks. Add a trusted custom template when a repository needs capabilities beyond React and .NET.
 
----
+## Configuration discovery
 
-## Getting started
+`npx code-map --init` detects source roots, import aliases, and modules, then writes a `<project>.project-map.json` in the current directory. Review `sourceRoots`, `modules.labels`, and `imports.aliases` before the first scan.
 
-**1. Install it in your repo**
-
-```bash
-pnpm add -D github:abbaing/code-map
-```
-
-**2. Generate a config**
-
-```bash
-pnpm exec code-map --init
-```
-
-Detects your source roots, import aliases, and modules. Writes a `<project>.project-map.json` in the current directory. Review it and adjust `sourceRoots`, `modules.labels`, and `imports.aliases` to match your project.
-
-**3. Open the viewer**
-
-```bash
-pnpm exec code-map --config <project>.project-map.json
-```
-
-`http://localhost:1133` is now live.
-
-You can also run `pnpm exec code-map` without a config. It first discovers `project-map.json` or `*.project-map.json` in the repository root and `.code-map`; when none exists, code-map auto-detects the repository and writes `.code-map/graph.json`. After a successful scan, a legacy root `graph.json` is removed only when its structure identifies it as generated code-map output. Use `--init` when you want a committed, reviewable config. The packaged preset in `presets/starter.project-map.json` is only a starter template.
+You can also run `npx code-map` without a config. It first discovers `project-map.json` or `*.project-map.json` in the repository root and `.code-map`; when none exists, code-map auto-detects the repository and writes `.code-map/graph.json`. After a successful scan, a legacy root `graph.json` is removed only when its structure identifies it as generated code-map output. Use `--init` when you want a committed, reviewable config. The packaged preset in `presets/starter.project-map.json` is only a starter template.
 
 The config can live anywhere in your repository:
 
 ```bash
-pnpm exec code-map --config code-map/project-map.json
-CODE_MAP_CONFIG=code-map/project-map.json pnpm exec code-map --scan
+npx code-map --config code-map/project-map.json
+CODE_MAP_CONFIG=code-map/project-map.json npx code-map --scan
 ```
 
 Plugin paths in `templates.plugins` are resolved relative to the `project-map.json` file and execute only with `--allow-plugins`. Source roots remain repository-relative. A bare `project.graphOutput` filename is written beside the config, so a config stored in `.code-map` with `"graphOutput": "graph.json"` produces `.code-map/graph.json`; output paths containing directories remain repository-relative.
 
----
-
-## Add it to an existing React + .NET repo
+## Recommended React + .NET setup
 
 This is the clean setup when the project owns only its config, optional local rules, and package scripts.
 
-**1. Install the tool**
+### 1. Install the tool
 
 ```bash
-pnpm add -D github:abbaing/code-map
+npm install --save-dev @abbaing/code-map
 ```
 
-**2. Generate an initial config**
+### 2. Generate an initial config
 
 From the repository root:
 
 ```bash
-pnpm exec code-map --init --out code-map
+npx code-map --init --out code-map
 ```
 
 This writes a detected config such as `code-map/my-app.project-map.json`. Rename it if you want a stable path:
@@ -129,7 +110,7 @@ This writes a detected config such as `code-map/my-app.project-map.json`. Rename
 code-map/project-map.json
 ```
 
-**3. Review the important paths**
+### 3. Review the important paths
 
 ```json
 {
@@ -148,7 +129,7 @@ code-map/project-map.json
 
 `sourceRoots.frontend` is required. `sourceRoots.backend` is optional. `graphOutput` is generated by scans. `runtimeLinks` is where you can add relationships static analysis cannot infer. `submapsDirectory` stores portable partial graphs created for external tools and automation.
 
-**4. Create runtime links**
+### 4. Create runtime links
 
 ```json
 {
@@ -162,7 +143,7 @@ Save it at the path configured in `project.runtimeLinks`, for example:
 code-map/runtime-links.json
 ```
 
-**5. Add package scripts**
+### 5. Add package scripts
 
 ```json
 {
@@ -173,7 +154,7 @@ code-map/runtime-links.json
 }
 ```
 
-**6. Ignore the generated graph**
+### 6. Ignore the generated graph
 
 ```gitignore
 code-map/graph.json
@@ -181,20 +162,16 @@ code-map/graph.json
 
 Commit the config. Usually do not commit `graph.json`; it contains your repository topology and is regenerated on demand.
 
-**7. Scan and open the viewer**
+### 7. Scan and open the viewer
 
 ```bash
-pnpm codemap:scan
-pnpm codemap
+npm run codemap:scan
+npm run codemap
 ```
 
-Open:
+Open `http://localhost:1133`.
 
-```txt
-http://localhost:1133
-```
-
-**8. Add local rules when needed**
+### 8. Add local rules when needed
 
 Example files:
 
@@ -232,12 +209,10 @@ Load the plugin from `project-map.json`:
 Then start with explicit trust:
 
 ```bash
-pnpm codemap --allow-plugins
+npm run codemap -- --allow-plugins
 ```
 
 Plugins are resolved relative to `project-map.json`. Review them before starting code-map with `--allow-plugins`; plugin modules execute with the same filesystem and process permissions as code-map. Source roots and runtime links are repository-relative. A bare `project.graphOutput` filename is resolved beside the config; paths containing directories are repository-relative.
-
----
 
 ## CLI
 
@@ -261,8 +236,6 @@ code-map --help                   Show help
 | `CODE_MAP_PORT`   | `1133`      | Viewer server port                               |
 
 The viewer is intended as a local development tool. Mutating HTTP requests require a same-origin browser session, requests with an unexpected `Host` header are rejected, and request bodies are limited to 1 MiB. HTTP connections and requests use bounded timeouts. Setting `CODE_MAP_HOST` to a non-loopback address should only be done on a trusted network; it does not turn the viewer into a public multi-user service.
-
----
 
 ## project-map.json
 
@@ -296,8 +269,6 @@ The config file controls what gets scanned, how files are classified, and which 
   }
 }
 ```
-
----
 
 ## Templates
 
@@ -333,8 +304,6 @@ Define your own architectural rules and load them as plugins:
 ```
 
 Plugin paths are relative to the `project-map.json` file. They are disabled by default because JavaScript plugins execute with the same permissions as code-map. Review the modules and pass `--allow-plugins` when you intend to trust them. The viewer cannot add, remove, or replace trusted plugin paths; edit the file directly and restart after review.
-
----
 
 ## Rules
 
@@ -373,8 +342,6 @@ Suppress known findings without removing them from the report:
   }
 }
 ```
-
----
 
 ## Submaps
 
@@ -513,8 +480,6 @@ Public JSON Schemas are exported at `@abbaing/code-map/schemas/submap` and `@abb
 
 Submaps describe access intent but do not enforce filesystem permissions. External tools remain responsible for controlling writes.
 
----
-
 ## FAQ
 
 **Does it work without a backend?**
@@ -528,8 +493,6 @@ No. It contains your full repository topology. Add it to `.gitignore`.
 
 **Can I use it in CI?**
 Yes. `code-map --scan --config <path>` writes the configured graph output and exits with code 0. In zero-config mode the default is `.code-map/graph.json`.
-
----
 
 ## License
 
