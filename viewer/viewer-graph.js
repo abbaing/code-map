@@ -1,3 +1,4 @@
+import { createEdgeRendererRegistry, createLayoutRegistry, createNodeRendererRegistry } from './rendering-contracts.mjs'
 import { colors, DOMAIN_RENDER_LIMIT, els, layerOrder, NODE_RENDER_LIMIT, state } from './viewer-state.js'
 import {
   applyTraceFocusLayout,
@@ -7,6 +8,40 @@ import {
   nodeHeight
 } from './viewer-trace.js'
 import { escapeHtml, formatLayer, formatModule, formatType, truncate, unique } from './viewer-utils.js'
+
+const layoutRegistry = createLayoutRegistry([
+  { id: 'system', layout: ({ nodes, width, height }) => layoutSystemModules(nodes, width, height) },
+  { id: 'graph', layout: ({ nodes, width, height }) => layoutNodes(nodes, width, height) },
+  { id: 'domain', layout: ({ nodes, width, height }) => layoutNodes(nodes, width, height) }
+])
+const nodeRendererRegistry = createNodeRendererRegistry([
+  { id: 'system', render: ({ node }) => systemModuleNodeSvg(node) },
+  {
+    id: 'graph',
+    render: ({ node, orphan, dimmed, focused }) => nodeGraphSvg(node, orphan, dimmed, focused)
+  },
+  {
+    id: 'domain',
+    render: ({ node, orphan, dimmed, focused }) => nodeDomainSvg(node, orphan, dimmed, focused)
+  }
+])
+const edgeRendererRegistry = createEdgeRendererRegistry([
+  { id: 'system', render: ({ edge, nodeById }) => systemModuleEdgeSvg(edge, nodeById) },
+  {
+    id: 'graph',
+    render: ({ edge, nodeById, highlighted, dimmed, focused }) => edgeSvg(edge, nodeById, highlighted, dimmed, focused)
+  },
+  {
+    id: 'domain',
+    render: ({ edge, nodeById, highlighted, dimmed, focused }) => edgeSvg(edge, nodeById, highlighted, dimmed, focused)
+  }
+])
+
+const renderingStrategies = Object.freeze({
+  layouts: layoutRegistry.ids,
+  nodes: nodeRendererRegistry.ids,
+  edges: edgeRendererRegistry.ids
+})
 
 function render() {
   const svg = els.graph
@@ -38,7 +73,7 @@ function render() {
     els.nodeLimitBanner.classList.add('hidden')
   }
 
-  let layout = layoutNodes(nodesToRender, width, height)
+  let layout = layoutRegistry.layout(state.view, { nodes: nodesToRender, width, height })
   if (state.trace) {
     layout = applyTraceFocusLayout(layout, state.trace, width, height, state.view)
   }
@@ -59,7 +94,7 @@ function render() {
 
 function renderSystemModuleGraph(svg, width, height, viewportWidth, viewportHeight) {
   const systemGraph = buildSystemModuleGraph(state.graph, state.filteredNodes, formatModule)
-  const layout = layoutSystemModules(systemGraph.nodes, width, height)
+  const layout = layoutRegistry.layout('system', { nodes: systemGraph.nodes, width, height })
   const nodeById = new Map(layout.nodes.map((node) => [node.id, node]))
   const visibleEdges = systemGraph.edges.filter((edge) => nodeById.has(edge.from) && nodeById.has(edge.to))
   els.nodeLimitBanner.textContent = `System map · ${layout.nodes.length} modules · ${visibleEdges.length} module flows · Select a module for complete paths.`
@@ -78,10 +113,10 @@ function renderSystemModuleGraph(svg, width, height, viewportWidth, viewportHeig
       </marker>
     </defs>
     <g class="module-overview-edges">
-      ${visibleEdges.map((edge) => systemModuleEdgeSvg(edge, nodeById)).join('')}
+      ${visibleEdges.map((edge) => edgeRendererRegistry.render('system', { edge, nodeById })).join('')}
     </g>
     <g class="module-overview-nodes">
-      ${layout.nodes.map(systemModuleNodeSvg).join('')}
+      ${layout.nodes.map((node) => nodeRendererRegistry.render('system', { node })).join('')}
     </g>
   `
 }
@@ -209,10 +244,29 @@ function renderGraphView(svg, layout) {
       )
       .join('')}
     <g class="edges">
-      ${edges.map((edge) => edgeSvg(edge, nodeById, selectedEdges.has(edge.id), isDimmedEdge(edge, focusedIds), isFocusedEdge(edge, focusedIds))).join('')}
+      ${edges
+        .map((edge) =>
+          edgeRendererRegistry.render('graph', {
+            edge,
+            nodeById,
+            highlighted: selectedEdges.has(edge.id),
+            dimmed: isDimmedEdge(edge, focusedIds),
+            focused: isFocusedEdge(edge, focusedIds)
+          })
+        )
+        .join('')}
     </g>
     <g class="nodes">
-      ${nodes.map((node) => nodeGraphSvg(node, orphanIds.has(node.id), isDimmedNode(node, focusedIds), isFocusedNode(node, focusedIds))).join('')}
+      ${nodes
+        .map((node) =>
+          nodeRendererRegistry.render('graph', {
+            node,
+            orphan: orphanIds.has(node.id),
+            dimmed: isDimmedNode(node, focusedIds),
+            focused: isFocusedNode(node, focusedIds)
+          })
+        )
+        .join('')}
     </g>
   `
 }
@@ -243,10 +297,29 @@ function renderDomainView(svg, layout) {
       )
       .join('')}
     <g class="edges">
-      ${edges.map((edge) => edgeSvg(edge, nodeById, selectedEdges.has(edge.id), isDimmedEdge(edge, focusedIds), isFocusedEdge(edge, focusedIds))).join('')}
+      ${edges
+        .map((edge) =>
+          edgeRendererRegistry.render('domain', {
+            edge,
+            nodeById,
+            highlighted: selectedEdges.has(edge.id),
+            dimmed: isDimmedEdge(edge, focusedIds),
+            focused: isFocusedEdge(edge, focusedIds)
+          })
+        )
+        .join('')}
     </g>
     <g class="nodes">
-      ${nodes.map((node) => nodeDomainSvg(node, orphanIds.has(node.id), isDimmedNode(node, focusedIds), isFocusedNode(node, focusedIds))).join('')}
+      ${nodes
+        .map((node) =>
+          nodeRendererRegistry.render('domain', {
+            node,
+            orphan: orphanIds.has(node.id),
+            dimmed: isDimmedNode(node, focusedIds),
+            focused: isFocusedNode(node, focusedIds)
+          })
+        )
+        .join('')}
     </g>
   `
 }
@@ -1255,4 +1328,4 @@ function scoreColor(score) {
   return `hsl(${hue}, 72%, 42%)`
 }
 
-export { layoutSystemModules, nodesForRender, render, scoreColor }
+export { layoutSystemModules, nodesForRender, render, renderingStrategies, scoreColor }

@@ -487,8 +487,8 @@ export const components = [
     files: ['viewer/rendering-contracts.mjs', 'viewer/viewer-graph.js'],
     contracts: ['LayoutStrategy', 'NodeRenderer', 'EdgeRenderer'],
     compositionRoot: false,
-    design: designStatus('gap', 'pass', 'pass', 'pass', 'gap'),
-    decision: 'Split layouts, simulation, SVG primitives, and view dispatch into substitutable strategies.'
+    design: designStatus('gap', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Move registered layout algorithms and SVG primitives out of the remaining graph view coordinator.'
   },
   {
     id: 'viewer-ui',

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { populateSettingsTab } from '../viewer/viewer-actions.js'
 import { renderFindingsTable } from '../viewer/viewer-findings.js'
-import { layoutSystemModules, nodesForRender, render } from '../viewer/viewer-graph.js'
+import { layoutSystemModules, nodesForRender, render, renderingStrategies } from '../viewer/viewer-graph.js'
 import {
   colors,
   configureViewerElements,
@@ -23,6 +23,11 @@ assert.match(
   /<link rel="stylesheet" href="\/tailwind\.css" \/>/u,
   'the viewer must load the compiled local utility stylesheet'
 )
+assert.deepEqual(renderingStrategies, {
+  layouts: ['system', 'graph', 'domain'],
+  nodes: ['system', 'graph', 'domain'],
+  edges: ['system', 'graph', 'domain']
+})
 assert.doesNotMatch(
   viewerHtml,
   /<(?:script|link)\b[^>]*(?:src|href)=["']https?:\/\//iu,
