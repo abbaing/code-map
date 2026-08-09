@@ -18,6 +18,7 @@ graph.json → viewer
 - `scan.mjs` composes an ordered pipeline whose phases declare their required inputs and produced outputs; only immutable named scanner results cross into enrichment.
 - Project detection evaluates registered stack detectors over an injected repository inspection capability; `detect-node.mjs` selects the default Node adapter.
 - Backend indexes belong to an immutable analysis session created for each scan execution.
+- Backend constructor dependency parsing and resolution is isolated as an independent scanner family.
 - Deterministic source-text and path analysis is isolated from filesystem-backed source acquisition; scanners and rules receive a bounded source reader explicitly.
 - Source discovery and bounded reads operate through project-scoped filesystem and path capabilities without ambient runtime access.
 - Each scan owns a finding collector; rules receive its write capability while graph finalization receives its read capability.

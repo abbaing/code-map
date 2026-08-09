@@ -183,13 +183,24 @@ export const components = [
   },
   {
     id: 'backend-scanner',
-    responsibility: 'Extract .NET files, controllers, CQRS, dependencies, and persistence evidence.',
+    responsibility: 'Extract .NET files, controllers, CQRS, and persistence evidence.',
     role: 'extension',
     files: ['scan-back.mjs'],
     contracts: ['Scanner', 'BackendAnalysisSession'],
     compositionRoot: false,
     design: designStatus('gap', 'gap', 'gap', 'pass', 'pass'),
     decision: 'Backend indexes are execution-scoped; split scanner families before adding more backend technologies.'
+  },
+  {
+    id: 'backend-dependency-scanner',
+    responsibility: 'Resolve backend constructor dependencies to concrete or logical graph nodes.',
+    role: 'extension',
+    files: ['scan-back-dependencies.mjs'],
+    contracts: ['Scanner', 'BackendAnalysisSession'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision:
+      'Extend dependency recognition through focused parsing and resolution helpers without changing orchestration.'
   },
   {
     id: 'rules',

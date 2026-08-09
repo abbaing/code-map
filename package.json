@@ -71,6 +71,7 @@
     "scan-node.mjs",
     "scan-pipeline.mjs",
     "scan-back.mjs",
+    "scan-back-dependencies.mjs",
     "scan-front.mjs",
     "scan-utils.mjs",
     "source-analysis.mjs",
