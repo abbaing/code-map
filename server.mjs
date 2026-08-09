@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url'
 import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
 import { detect } from './detect.mjs'
 import { loadTemplatePlugins } from './templates/registry.mjs'
-import { ApplicationInputError, createServerApplication } from './server-app.mjs'
+import { ApplicationInputError, assertServerApplication, createServerApplication } from './server-app.mjs'
+import { nodeServerApplicationServices } from './server-app-node.mjs'
 import { SubmapError } from './submap/errors.mjs'
 import { nodePlatform } from './platform/node.mjs'
 
@@ -271,12 +272,14 @@ export function startServer(options = {}) {
   const serverHost = options.host ?? (platform.environment.variable('CODE_MAP_HOST')?.trim() || '127.0.0.1')
   const log = options.log ?? console.log
   const sessionToken = options.sessionToken ?? platform.random.token(32)
-  const application =
+  const application = assertServerApplication(
     options.application ??
-    createServerApplication({
-      projectContext: options.projectContext ?? loadProjectContext(undefined, { repoRoot, platform }),
-      repoRoot
-    })
+      createServerApplication({
+        projectContext: options.projectContext ?? loadProjectContext(undefined, { repoRoot, platform }),
+        repoRoot,
+        services: options.applicationServices ?? nodeServerApplicationServices
+      })
+  )
   const routes = createRoutes(sessionToken, application)
   const server = http.createServer(
     {
@@ -407,7 +410,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   await loadTemplatePlugins(projectContext.projectMap, configPath ?? path.join(repoRoot, 'project-map.json'), {
     allow: argv.includes('--allow-plugins')
   })
-  const application = createServerApplication({ projectContext, repoRoot })
+  const application = createServerApplication({
+    projectContext,
+    repoRoot,
+    services: nodeServerApplicationServices
+  })
   application.scan()
   startServer({ application, projectContext })
 }

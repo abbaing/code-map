@@ -163,7 +163,13 @@ assert.doesNotMatch(
 const localServerMessages = []
 const localServer = startServer({
   port: 0,
-  application: {},
+  application: {
+    graphPath: () => arbitraryGraphPath,
+    projectMap: () => arbitraryGraph.projectMap,
+    scan: () => arbitraryGraph,
+    saveProjectMap: () => ({ projectMap: arbitraryGraph.projectMap, stats: arbitraryGraph.stats }),
+    createTraceSubmap: () => ({ file: '', uid: '', statistics: {} })
+  },
   log: (message) => localServerMessages.push(message)
 })
 await new Promise((resolve, reject) => {

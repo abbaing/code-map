@@ -1,31 +1,35 @@
 import path from 'node:path'
-import { writeGraph } from './scan.mjs'
-import { loadProjectContext, validateProjectMap } from './config.mjs'
-import { writeFileAtomic, writeJsonFileAtomic } from './json-io.mjs'
-import { createSubmap, defaultSubmapFilename, writeSubmap } from './submap/index.mjs'
 
 export class ApplicationInputError extends Error {}
 
-export function createServerApplication({ projectContext, repoRoot } = {}) {
+const applicationOperations = ['graphPath', 'projectMap', 'scan', 'saveProjectMap', 'createTraceSubmap']
+const serviceOperations = Object.freeze({
+  scanner: Object.freeze(['scan']),
+  projectMaps: Object.freeze(['validate', 'load', 'write', 'restore']),
+  submaps: Object.freeze(['create', 'filename', 'write'])
+})
+
+export function createServerApplication({ projectContext, repoRoot, services: providedServices } = {}) {
   if (!projectContext) {
     throw new TypeError('createServerApplication requires a ProjectContext.')
   }
+  const services = assertServerApplicationServices(providedServices)
   repoRoot ??= projectContext.repoRoot
   const { fileSystem } = projectContext.platform
   const projectRoot = canonicalPath(repoRoot, fileSystem)
   let context = projectContext
 
-  return {
+  return Object.freeze({
     graphPath: () => projectPath(context.resolveGraphOutputPath(), 'project.graphOutput'),
     projectMap: () => context.projectMap,
     scan,
     saveProjectMap,
     createTraceSubmap
-  }
+  })
 
   function scan() {
     assertProjectMapPaths(context.projectMap, context.configPath)
-    return writeGraph(projectPath(context.resolveGraphOutputPath(), 'project.graphOutput'), context)
+    return services.scanner.scan(projectPath(context.resolveGraphOutputPath(), 'project.graphOutput'), context)
   }
 
   function saveProjectMap(input) {
@@ -39,7 +43,7 @@ export function createServerApplication({ projectContext, repoRoot } = {}) {
 
     let document
     try {
-      validateProjectMap(input, projectMapPath, { repoRoot })
+      services.projectMaps.validate(input, projectMapPath, { repoRoot })
       document = structuredClone(input)
       delete document.configPath
     } catch (error) {
@@ -49,15 +53,15 @@ export function createServerApplication({ projectContext, repoRoot } = {}) {
     assertPluginConfigurationUnchanged(document, context.projectMap)
 
     const previousDocument = fileSystem.readText(projectMapPath)
-    writeJsonFileAtomic(projectMapPath, document)
+    services.projectMaps.write(projectMapPath, document)
     try {
-      context = loadProjectContext(projectMapPath, { repoRoot, platform: projectContext.platform })
+      context = services.projectMaps.load(projectMapPath, { repoRoot, platform: projectContext.platform })
       const graph = scan()
       return { projectMap: context.projectMap, stats: graph.stats }
     } catch (error) {
       try {
-        writeFileAtomic(projectMapPath, previousDocument)
-        context = loadProjectContext(projectMapPath, { repoRoot, platform: projectContext.platform })
+        services.projectMaps.restore(projectMapPath, previousDocument)
+        context = services.projectMaps.load(projectMapPath, { repoRoot, platform: projectContext.platform })
       } catch (rollbackError) {
         throw new AggregateError([error, rollbackError], 'Project map update and rollback both failed.')
       }
@@ -80,13 +84,13 @@ export function createServerApplication({ projectContext, repoRoot } = {}) {
         traceEdgeIds: Array.isArray(input.edgeIds) ? [...new Set(input.edgeIds)] : []
       }
     }
-    const submap = createSubmap(graph, request)
+    const submap = services.submaps.create(graph, request)
     const directory = projectPath(
       path.resolve(repoRoot, context.projectMap.project.submapsDirectory ?? '.code-map/submaps'),
       'project.submapsDirectory'
     )
-    const output = path.join(directory, defaultSubmapFilename(submap))
-    writeSubmap(output, submap)
+    const output = path.join(directory, services.submaps.filename(submap))
+    services.submaps.write(output, submap)
     return {
       file: path.relative(repoRoot, output),
       uid: submap.uid,
@@ -144,6 +148,23 @@ export function createServerApplication({ projectContext, repoRoot } = {}) {
     return path.resolve(candidate)
   }
 }
+
+export function assertServerApplication(application) {
+  return assertOperations(application, applicationOperations, 'Server application')
+}
+
+export function assertServerApplicationServices(services) {
+  if (!services || typeof services !== 'object') {
+    throw new TypeError('Server application services are required.')
+  }
+  for (const [capability, operations] of Object.entries(serviceOperations)) {
+    assertOperations(services[capability], operations, `Server application capability ${capability}`)
+  }
+  return services
+}
+
+export const serverApplicationContract = Object.freeze([...applicationOperations])
+export const serverApplicationServicesContract = serviceOperations
 
 function assertPluginConfigurationUnchanged(candidate, current) {
   const candidatePlugins = candidate.templates?.plugins ?? []
@@ -219,4 +240,16 @@ function canonicalPath(candidate, fileSystem) {
   }
   const real = fileSystem.realPath(existing)
   return path.resolve(real, ...missing)
+}
+
+function assertOperations(implementation, operations, label) {
+  if (!implementation || typeof implementation !== 'object') {
+    throw new TypeError(`${label} implementation is required.`)
+  }
+  for (const operation of operations) {
+    if (typeof implementation[operation] !== 'function') {
+      throw new TypeError(`${label} must implement ${operation}().`)
+    }
+  }
+  return implementation
 }

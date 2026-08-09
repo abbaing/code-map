@@ -31,10 +31,36 @@ try {
 
   const { loadProjectContext } = await import('../config.mjs')
   const { nodePlatform } = await import('../platform/node.mjs')
-  const { ApplicationInputError, createServerApplication } = await import('../server-app.mjs')
+  const {
+    ApplicationInputError,
+    assertServerApplication,
+    assertServerApplicationServices,
+    createServerApplication,
+    serverApplicationContract,
+    serverApplicationServicesContract
+  } = await import('../server-app.mjs')
+  const { nodeServerApplicationServices } = await import('../server-app-node.mjs')
 
   const projectContext = loadProjectContext(configPath, { repoRoot: tempRoot, platform: nodePlatform })
-  const application = createServerApplication({ projectContext })
+  const delegatedCalls = []
+  const delegatedServices = delegateServices(nodeServerApplicationServices, delegatedCalls)
+  assert.equal(assertServerApplicationServices(nodeServerApplicationServices), nodeServerApplicationServices)
+  assert.equal(assertServerApplicationServices(delegatedServices), delegatedServices)
+  assert.deepEqual(serverApplicationServicesContract, {
+    scanner: ['scan'],
+    projectMaps: ['validate', 'load', 'write', 'restore'],
+    submaps: ['create', 'filename', 'write']
+  })
+  const application = createServerApplication({ projectContext, services: delegatedServices })
+  assert.equal(Object.isFrozen(application), true)
+  assert.equal(assertServerApplication(application), application)
+  assert.deepEqual(serverApplicationContract, [
+    'graphPath',
+    'projectMap',
+    'scan',
+    'saveProjectMap',
+    'createTraceSubmap'
+  ])
   const graphPath = path.join(tempRoot, '.code-map', 'graph.json')
   assert.equal(application.graphPath(), graphPath)
   assert.equal(application.projectMap().project.name, config.project.name)
@@ -98,14 +124,52 @@ try {
   )
 
   const autoDetectedContext = loadProjectContext(changedConfig, { repoRoot: tempRoot, platform: nodePlatform })
-  const autoDetectedApplication = createServerApplication({ projectContext: autoDetectedContext })
+  const autoDetectedApplication = createServerApplication({
+    projectContext: autoDetectedContext,
+    services: delegatedServices
+  })
   assert.throws(
     () => autoDetectedApplication.saveProjectMap(changedConfig),
     (error) => error instanceof ApplicationInputError && /Cannot save an auto-detected project map/u.test(error.message)
   )
+  assert.deepEqual(
+    new Set(delegatedCalls),
+    new Set([
+      'scanner.scan',
+      'projectMaps.validate',
+      'projectMaps.load',
+      'projectMaps.write',
+      'submaps.create',
+      'submaps.filename',
+      'submaps.write'
+    ])
+  )
+  assert.throws(() => createServerApplication({ projectContext }), /services are required/u)
+  assert.throws(() => assertServerApplication({}), /must implement graphPath/u)
 } finally {
   process.chdir(originalCwd)
   fs.rmSync(tempRoot, { recursive: true, force: true })
 }
 
 console.log('server application tests passed')
+
+function delegateServices(services, calls) {
+  return Object.freeze(
+    Object.fromEntries(
+      Object.entries(services).map(([capability, implementation]) => [
+        capability,
+        Object.freeze(
+          Object.fromEntries(
+            Object.entries(implementation).map(([operation, execute]) => [
+              operation,
+              (...args) => {
+                calls.push(`${capability}.${operation}`)
+                return execute(...args)
+              }
+            ])
+          )
+        )
+      ])
+    )
+  )
+}

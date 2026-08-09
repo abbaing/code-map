@@ -71,6 +71,7 @@
     "source-analysis.mjs",
     "server.mjs",
     "server-app.mjs",
+    "server-app-node.mjs",
     "architecture/",
     "platform/",
     "submap/",

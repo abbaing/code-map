@@ -230,9 +230,19 @@ export const components = [
     files: ['server-app.mjs'],
     contracts: ['ServerApplication'],
     compositionRoot: false,
-    design: designStatus('pass', 'gap', 'gap', 'pass', 'gap'),
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision:
-      'Inject use cases and persistence ports so a ServerApplication implementation can be substituted in adapters.'
+      'Coordinate validated use-case capabilities and expose a frozen application contract to delivery adapters.'
+  },
+  {
+    id: 'node-application-services',
+    responsibility: 'Assemble Node-backed scanning, configuration persistence, and submap services.',
+    role: 'adapter',
+    files: ['server-app-node.mjs'],
+    contracts: ['ServerApplicationServices'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep concrete service selection outside the application and expose only its declared capabilities.'
   },
   {
     id: 'http',
