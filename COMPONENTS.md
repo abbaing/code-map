@@ -102,4 +102,4 @@ A new or materially changed component is complete only when:
 7. architecture, contract, behavior, and coverage tests pass;
 8. documentation names any public contract or compatibility impact.
 
-Existing `gap` entries are the controlled remediation baseline for S16. S17 will turn the target dependency rules into automated fitness functions, and S18 will require every remaining applicable status to be `pass`.
+S17 will turn the target dependency rules into automated fitness functions, and S18 will close the remaining controlled gaps before requiring every applicable status to be `pass`.

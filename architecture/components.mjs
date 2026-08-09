@@ -393,10 +393,10 @@ export const components = [
     id: 'viewer-rendering',
     responsibility: 'Lay out graph views and render graph primitives as SVG.',
     role: 'adapter',
-    files: ['viewer/viewer-graph.js'],
+    files: ['viewer/rendering-contracts.mjs', 'viewer/viewer-graph.js'],
     contracts: ['LayoutStrategy', 'NodeRenderer', 'EdgeRenderer'],
     compositionRoot: false,
-    design: designStatus('gap', 'gap', 'gap', 'gap', 'gap'),
+    design: designStatus('gap', 'pass', 'pass', 'pass', 'gap'),
     decision: 'Split layouts, simulation, SVG primitives, and view dispatch into substitutable strategies.'
   },
   {
@@ -404,6 +404,7 @@ export const components = [
     responsibility: 'Coordinate browser interactions and render overview, selection, findings, and management views.',
     role: 'composition-root',
     files: [
+      'viewer/view-controller.mjs',
       'viewer/viewer-actions.js',
       'viewer/viewer-findings.js',
       'viewer/viewer-init.js',
@@ -412,7 +413,7 @@ export const components = [
     ],
     contracts: ['ViewerStore', 'ViewController', 'GraphGateway'],
     compositionRoot: true,
-    design: designStatus('gap', 'gap', 'gap', 'gap', 'gap'),
+    design: designStatus('gap', 'pass', 'pass', 'pass', 'gap'),
     decision: 'Make viewer-init the only composition root and split controllers, views, and effects into ES modules.'
   }
 ]
