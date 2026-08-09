@@ -81,14 +81,24 @@ export const components = [
     decision: 'Resolution still reads global configuration and the concrete filesystem.'
   },
   {
+    id: 'source-analysis',
+    responsibility: 'Analyze source text and repository-relative paths without runtime or filesystem access.',
+    role: 'core',
+    files: ['source-analysis.mjs'],
+    contracts: ['SourceAnalyzer'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep deterministic path, comment, import, and naming analysis independent from source acquisition.'
+  },
+  {
     id: 'source-files',
-    responsibility: 'Provide bounded source reading, walking, parsing helpers, and path normalization.',
+    responsibility: 'Provide bounded source reading and deterministic filesystem walking.',
     role: 'adapter',
     files: ['scan-utils.mjs'],
     contracts: ['SourceReader', 'SourceWalker'],
     compositionRoot: false,
-    design: designStatus('gap', 'pass', 'not-applicable', 'pass', 'gap'),
-    decision: 'Split pure text helpers from filesystem-backed source access and inject the latter as ports.'
+    design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'gap'),
+    decision: 'Pure analysis is isolated; replace direct filesystem access with the source capability.'
   },
   {
     id: 'endpoints',

@@ -1,4 +1,5 @@
-import { displayLabel, importsOf, readText, stripTsComments } from './scan-utils.mjs'
+import { readText } from './scan-utils.mjs'
+import { displayLabel, importsOf, stripTsComments } from './source-analysis.mjs'
 import { classifyFront, featureFromRepoPath } from './classify.mjs'
 import { addEndpoint, extractFrontendEndpoints } from './endpoints.mjs'
 import { resolveTsImport } from './resolve.mjs'

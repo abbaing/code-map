@@ -1,0 +1,62 @@
+import assert from 'node:assert/strict'
+import {
+  componentContainerDirs,
+  displayLabel,
+  escapeRegExp,
+  findComponentDirIndex,
+  importsOf,
+  isBackTestFile,
+  isTestFile,
+  kebab,
+  normalizePath,
+  stripCSharpComments,
+  stripCSharpStringLiterals,
+  stripTsComments,
+  tsExtensions
+} from '../source-analysis.mjs'
+import { importsOf as compatibleImportsOf, normalizePath as compatibleNormalizePath } from '../scan-utils.mjs'
+
+assert.equal(normalizePath('src\\features\\orders\\index.ts'), 'src/features/orders/index.ts')
+assert.equal(displayLabel('src/features/orders/index.ts'), 'orders')
+assert.equal(displayLabel('src/features/orders/service.ts'), 'service.ts')
+assert.equal(displayLabel('index.ts'), 'index.ts')
+assert.equal(isTestFile('src/order.spec.tsx'), true)
+assert.equal(isTestFile('src/order.tsx'), false)
+assert.equal(isBackTestFile('src/Demo.Tests/OrderTests.cs'), true)
+assert.equal(isBackTestFile('src\\Demo.Tests\\OrderTests.cs'), true)
+assert.equal(findComponentDirIndex(['src', 'pages', 'home', 'components', 'card']), 3)
+assert.equal(kebab('OrderHistory_View'), 'order-history-view')
+assert.equal(escapeRegExp('orders[0].id'), 'orders\\[0\\]\\.id')
+assert.equal(Object.isFrozen(tsExtensions), true)
+assert.equal(Object.isFrozen(componentContainerDirs), true)
+assert.equal(compatibleImportsOf, importsOf, 'the source adapter must preserve analysis re-exports')
+assert.equal(compatibleNormalizePath, normalizePath)
+
+const typeScriptSource = `
+// import ignored from './ignored.js'
+import value from './value.js'
+/* export { hidden } from './hidden.js' */
+export { item } from './item.js'
+const url = 'https://example.test/path'
+`
+assert.deepEqual(
+  importsOf(typeScriptSource).map(({ specifier }) => specifier),
+  ['./value.js', './item.js']
+)
+assert.match(stripTsComments(typeScriptSource), /https:\/\/example\.test/u)
+assert.doesNotMatch(stripTsComments(typeScriptSource), /ignored/u)
+
+const csharpSource = `
+// new IgnoredCommand();
+var url = "https://example.test/path";
+var interpolated = $"new {name} Command";
+/* new HiddenQuery(); */
+new VisibleCommand();
+`
+const withoutStrings = stripCSharpStringLiterals(csharpSource)
+assert.doesNotMatch(withoutStrings, /example\.test|new \{name\} Command/u)
+const withoutComments = stripCSharpComments(csharpSource)
+assert.doesNotMatch(withoutComments, /IgnoredCommand|HiddenQuery/u)
+assert.match(withoutComments, /VisibleCommand/u)
+
+console.log('source analysis tests passed')

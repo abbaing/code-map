@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { tsExtensions } from './scan-utils.mjs'
+import { tsExtensions } from './source-analysis.mjs'
 
 export function aliases(projectContext) {
   return projectContext.projectMap.imports.aliases.map((alias) => [

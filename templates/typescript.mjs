@@ -1,4 +1,4 @@
-import { isTestFile, tsExtensions } from '../scan-utils.mjs'
+import { isTestFile, tsExtensions } from '../source-analysis.mjs'
 import { pickRuleMetadata } from './rule-metadata.mjs'
 
 export const typescriptTemplate = {

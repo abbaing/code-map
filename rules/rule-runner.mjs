@@ -1,4 +1,5 @@
-import { importsOf, readText } from '../scan-utils.mjs'
+import { readText } from '../scan-utils.mjs'
+import { importsOf } from '../source-analysis.mjs'
 import { classifyFront } from '../classify.mjs'
 
 export function runFileRules(files, rules, defaultRules, repoRules, projectContext, classify = classifySource) {

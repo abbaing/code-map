@@ -1,34 +1,23 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { normalizePath } from './source-analysis.mjs'
 
-export const tsExtensions = ['.ts', '.tsx', '.js', '.jsx']
 export const maxSourceFileBytes = 2 * 1024 * 1024
-
-export const componentContainerDirs = ['components', 'pages']
-
-export function findComponentDirIndex(segments) {
-  return Math.max(...componentContainerDirs.map((dir) => segments.indexOf(dir)))
-}
-
-export function isTestFile(filePath) {
-  return /\.(spec|test)\.[cm]?[jt]sx?$/u.test(filePath)
-}
-
-export function isBackTestFile(repoPath) {
-  return /\/[^/]*\.Tests\//i.test(repoPath)
-}
-
-export function displayLabel(repoPath) {
-  const parsed = path.posix.parse(repoPath)
-  if (parsed.name === 'index') {
-    return path.posix.basename(parsed.dir)
-  }
-  return parsed.base
-}
-
-export function normalizePath(input) {
-  return input.replaceAll('\\', '/')
-}
+export {
+  componentContainerDirs,
+  displayLabel,
+  escapeRegExp,
+  findComponentDirIndex,
+  importsOf,
+  isBackTestFile,
+  isTestFile,
+  kebab,
+  normalizePath,
+  stripCSharpComments,
+  stripCSharpStringLiterals,
+  stripTsComments,
+  tsExtensions
+} from './source-analysis.mjs'
 
 export function readText(filePath, maxBytes = maxSourceFileBytes, displayPath = toRepoPath) {
   const size = fs.statSync(filePath).size
@@ -46,39 +35,6 @@ export class SourceFileTooLargeError extends Error {
     this.size = size
     this.limit = limit
   }
-}
-
-export function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-export function stripCSharpStringLiterals(content) {
-  return content
-    .replace(/\$?"""[\s\S]*?"""/g, '""')
-    .replace(/@(?:"(?:""|[^"])*")/g, '""')
-    .replace(/\$?"(?:\\.|[^"\\])*"/g, '""')
-    .replace(/'(?:\\.|[^'\\])'/g, "''")
-}
-
-export function stripCSharpComments(content) {
-  return content.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
-}
-
-export function stripTsComments(content) {
-  return content.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
-}
-
-export function importsOf(content) {
-  return [...stripTsComments(content).matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]/g)].map(
-    (match) => ({ specifier: match[1], index: match.index ?? 0 })
-  )
-}
-
-export function kebab(value) {
-  return value
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/[_\s]+/g, '-')
-    .toLowerCase()
 }
 
 export function walk(dir, predicate = () => true, options = {}) {
@@ -128,5 +84,5 @@ function formatBytes(bytes) {
 }
 
 export function toRepoPath(filePath) {
-  return path.relative(process.cwd(), filePath).replaceAll(path.sep, '/')
+  return normalizePath(path.relative(process.cwd(), filePath))
 }

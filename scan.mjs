@@ -1,15 +1,7 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import {
-  readText,
-  normalizePath,
-  walk,
-  isTestFile,
-  isBackTestFile,
-  tsExtensions,
-  findComponentDirIndex,
-  maxSourceFileBytes
-} from './scan-utils.mjs'
+import { readText, walk, maxSourceFileBytes } from './scan-utils.mjs'
+import { findComponentDirIndex, isBackTestFile, isTestFile, normalizePath, tsExtensions } from './source-analysis.mjs'
 import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
 import { Graph } from './graph.mjs'
 import { resolveTsImport } from './resolve.mjs'

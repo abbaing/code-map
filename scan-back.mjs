@@ -1,5 +1,6 @@
 import path from 'node:path'
-import { displayLabel, escapeRegExp, readText, stripCSharpComments, stripCSharpStringLiterals } from './scan-utils.mjs'
+import { readText } from './scan-utils.mjs'
+import { displayLabel, escapeRegExp, stripCSharpComments, stripCSharpStringLiterals } from './source-analysis.mjs'
 import { classifyBack, featureFromRepoPath } from './classify.mjs'
 import { addEndpoint, normalizeEndpoint } from './endpoints.mjs'
 import { createBackendAnalysisSession } from './backend-analysis-session.mjs'

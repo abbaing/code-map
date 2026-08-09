@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { kebab, findComponentDirIndex } from './scan-utils.mjs'
+import { kebab, findComponentDirIndex } from './source-analysis.mjs'
 
 export function featureFromRepoPath(repoPath, projectContext) {
   const projectMap = projectContext.projectMap

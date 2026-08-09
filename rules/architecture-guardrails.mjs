@@ -1,4 +1,4 @@
-import { escapeRegExp } from '../scan-utils.mjs'
+import { escapeRegExp } from '../source-analysis.mjs'
 import { addFinding } from './findings.mjs'
 import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from './rule-runner.mjs'
 
