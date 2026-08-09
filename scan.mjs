@@ -1,14 +1,11 @@
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { createSourceReader, readText, walk, maxSourceFileBytes } from './scan-utils.mjs'
 import { findComponentDirIndex, isBackTestFile, isTestFile, normalizePath, tsExtensions } from './source-analysis.mjs'
-import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
 import { Graph } from './graph.mjs'
 import { resolveTsImport } from './resolve.mjs'
 import { isEntryPoint } from './quality.mjs'
 import { createFindingCollector } from './rules/findings.mjs'
-import { buildTemplateRegistry, loadTemplatePlugins } from './templates/registry.mjs'
-import { detect } from './detect.mjs'
+import { buildTemplateRegistry } from './templates/registry.mjs'
 import { writeJsonFileAtomic } from './json-io.mjs'
 import { createScanPipeline, defineScanPhase } from './scan-pipeline.mjs'
 import { capabilityInput } from './templates/contracts.mjs'
@@ -612,29 +609,4 @@ function removeLegacyDefaultGraph(outputPath, projectContext) {
   } catch {
     /* preserve files that are not recognizable code-map output */
   }
-}
-
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const { nodePlatform } = await import('./platform/node.mjs')
-  const { environment, fileSystem } = nodePlatform
-  const argv = environment.args()
-  const projectRoot = environment.cwd()
-  const configPath = getConfigPathFromArgs(argv, {
-    cwd: projectRoot,
-    configPath: environment.variable('CODE_MAP_CONFIG'),
-    fileSystem
-  })
-  const projectContext = loadProjectContext(configPath ?? detect(projectRoot), {
-    repoRoot: projectRoot,
-    platform: nodePlatform
-  })
-  await loadTemplatePlugins(projectContext.projectMap, configPath ?? path.join(projectRoot, 'project-map.json'), {
-    allow: argv.includes('--allow-plugins')
-  })
-  const outArgIndex = argv.indexOf('--out')
-  const outputPath = outArgIndex >= 0 ? path.resolve(argv[outArgIndex + 1]) : projectContext.resolveGraphOutputPath()
-  const result = writeGraph(outputPath, projectContext)
-  console.log(
-    `Code map written to ${projectContext.toRepoPath(outputPath)} (${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.orphans} orphans).`
-  )
 }

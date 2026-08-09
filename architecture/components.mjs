@@ -57,8 +57,18 @@ export const components = [
     files: ['detect.mjs'],
     contracts: ['ProjectDetector'],
     compositionRoot: false,
-    design: designStatus('pass', 'gap', 'not-applicable', 'pass', 'gap'),
-    decision: 'Technology detectors are hard-coded and filesystem access is concrete.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Compose ordered stack detectors over an injected, bounded filesystem capability.'
+  },
+  {
+    id: 'node-detection',
+    responsibility: 'Adapt Node filesystem capabilities to project detection.',
+    role: 'adapter',
+    files: ['detect-node.mjs'],
+    contracts: ['ProjectDetector'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'pass'),
+    decision: 'Keep the default Node filesystem selection outside detection policy.'
   },
   {
     id: 'classification',
@@ -139,6 +149,16 @@ export const components = [
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'gap', 'gap'),
     decision: 'Pipeline phases declare focused inputs and outputs; scanner capabilities still receive a broad context.'
+  },
+  {
+    id: 'node-scan',
+    responsibility: 'Compose Node adapters for a direct scan execution.',
+    role: 'composition-root',
+    files: ['scan-node.mjs'],
+    contracts: ['ScanExecution'],
+    compositionRoot: true,
+    design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'pass'),
+    decision: 'Keep executable environment and adapter selection outside the scan application.'
   },
   {
     id: 'frontend-scanner',

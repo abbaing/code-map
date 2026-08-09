@@ -1,23 +1,36 @@
-import fs from 'node:fs'
 import path from 'node:path'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function exists(filePath) {
-  return fs.existsSync(filePath)
+export function createDetectionFiles(fileSystem) {
+  if (
+    !fileSystem ||
+    typeof fileSystem.exists !== 'function' ||
+    typeof fileSystem.readText !== 'function' ||
+    typeof fileSystem.readDirectory !== 'function' ||
+    typeof fileSystem.stat !== 'function'
+  ) {
+    throw new TypeError('ProjectDetector requires bounded filesystem capabilities.')
+  }
+  return Object.freeze({
+    exists: (filePath) => fileSystem.exists(filePath),
+    readText: (filePath) => fileSystem.readText(filePath),
+    readDirectory: (directory, options) => fileSystem.readDirectory(directory, options),
+    stat: (filePath) => fileSystem.stat(filePath)
+  })
 }
 
-function readJson(filePath) {
+function readJson(filePath, files) {
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'))
+    return JSON.parse(files.readText(filePath))
   } catch {
     return null
   }
 }
 
-function extractTsconfigPaths(filePath) {
+function extractTsconfigPaths(filePath, files) {
   try {
-    const raw = fs.readFileSync(filePath, 'utf8')
+    const raw = files.readText(filePath)
     // Extract the paths block with a targeted regex instead of full JSON parse
     const pathsMatch = raw.match(/"paths"\s*:\s*\{([^}]+)\}/s)
     if (!pathsMatch) {
@@ -38,14 +51,14 @@ function extractTsconfigPaths(filePath) {
   }
 }
 
-function listDirs(dirPath) {
-  if (!exists(dirPath)) {
+function listDirs(dirPath, files) {
+  if (!files.exists(dirPath)) {
     return []
   }
   try {
-    return fs.readdirSync(dirPath).filter((name) => {
+    return files.readDirectory(dirPath).filter((name) => {
       try {
-        return fs.statSync(path.join(dirPath, name)).isDirectory()
+        return files.stat(path.join(dirPath, name)).isDirectory()
       } catch {
         return false
       }
@@ -57,12 +70,12 @@ function listDirs(dirPath) {
 
 const DETECT_IGNORED_DIRS = new Set(['.git', 'node_modules', 'dist', 'build', 'coverage', 'bin', 'obj', '.cache'])
 
-function globFirst(base, pattern) {
+function globFirst(base, pattern, files) {
   try {
     const stack = [base]
     while (stack.length > 0) {
       const current = stack.pop()
-      for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      for (const entry of files.readDirectory(current, { withFileTypes: true })) {
         const fullPath = path.join(current, entry.name)
         if (entry.isDirectory()) {
           if (!DETECT_IGNORED_DIRS.has(entry.name)) {
@@ -103,39 +116,82 @@ const GO_MARKER = 'go.mod'
 const PYTHON_MARKER = 'requirements.txt'
 const NODE_BACKEND_MARKERS = ['express', 'fastify', 'koa', 'hapi', 'nestjs', '@nestjs/core']
 
-function detectFrontendFramework(pkg) {
-  const deps = { ...(pkg?.dependencies ?? {}), ...(pkg?.devDependencies ?? {}) }
-  if (REACT_DEPS.some((d) => deps[d])) {
-    return 'react'
-  }
-  if (VUE_DEPS.some((d) => deps[d])) {
-    return 'vue'
-  }
-  if (ANGULAR_DEPS.some((d) => deps[d])) {
-    return 'angular'
+function detectFrontendFramework(pkg, detectors) {
+  const context = { dependencies: { ...(pkg?.dependencies ?? {}), ...(pkg?.devDependencies ?? {}) } }
+  for (const detector of detectors.frontend) {
+    if (detector.detect(context)) {
+      return detector.id
+    }
   }
   return null
 }
 
-function detectBackendStack(repoRoot, backendRoot) {
+export function createStackDetectorRegistry({
+  frontend = defaultFrontendDetectors,
+  backend = defaultBackendDetectors
+} = {}) {
+  return Object.freeze({
+    frontend: validateDetectors(frontend, 'frontend'),
+    backend: validateDetectors(backend, 'backend')
+  })
+}
+
+const defaultFrontendDetectors = [
+  dependencyDetector('react', REACT_DEPS),
+  dependencyDetector('vue', VUE_DEPS),
+  dependencyDetector('angular', ANGULAR_DEPS)
+]
+
+const defaultBackendDetectors = [
+  {
+    id: 'dotnet',
+    detect: ({ backendPath, repoRoot, files }) =>
+      Boolean(globFirst(backendPath, DOTNET_MARKER, files) ?? globFirst(repoRoot, DOTNET_MARKER, files))
+  },
+  { id: 'go', detect: ({ repoRoot, files }) => files.exists(path.join(repoRoot, GO_MARKER)) },
+  { id: 'python', detect: ({ repoRoot, files }) => files.exists(path.join(repoRoot, PYTHON_MARKER)) },
+  {
+    id: 'node',
+    detect: ({ backendPkg }) => {
+      const dependencies = { ...(backendPkg?.dependencies ?? {}), ...(backendPkg?.devDependencies ?? {}) }
+      return NODE_BACKEND_MARKERS.some((dependency) => dependencies[dependency])
+    }
+  }
+]
+
+function dependencyDetector(id, dependencies) {
+  return { id, detect: (context) => dependencies.some((dependency) => context.dependencies[dependency]) }
+}
+
+function validateDetectors(detectors, kind) {
+  if (!Array.isArray(detectors)) {
+    throw new TypeError(`${kind} detectors must be an array.`)
+  }
+  const ids = new Set()
+  return Object.freeze(
+    detectors.map((detector) => {
+      if (!detector || typeof detector.id !== 'string' || typeof detector.detect !== 'function') {
+        throw new TypeError(`${kind} detectors must declare id and detect(context).`)
+      }
+      if (ids.has(detector.id)) {
+        throw new TypeError(`Duplicate ${kind} detector id: ${detector.id}.`)
+      }
+      ids.add(detector.id)
+      return Object.freeze({ id: detector.id, detect: detector.detect.bind(detector) })
+    })
+  )
+}
+
+function detectBackendStack(repoRoot, backendRoot, files, detectors) {
   const backendPath = backendRoot ? path.join(repoRoot, backendRoot) : repoRoot
-  if (globFirst(backendPath, DOTNET_MARKER) ?? globFirst(repoRoot, DOTNET_MARKER)) {
-    return 'dotnet'
-  }
-  if (exists(path.join(repoRoot, GO_MARKER))) {
-    return 'go'
-  }
-  if (exists(path.join(repoRoot, PYTHON_MARKER))) {
-    return 'python'
-  }
   const backendPkg =
-    readJson(path.join(repoRoot, 'backend', 'package.json')) ??
-    readJson(path.join(repoRoot, 'server', 'package.json')) ??
-    readJson(path.join(repoRoot, 'api', 'package.json'))
-  if (backendPkg) {
-    const deps = { ...(backendPkg.dependencies ?? {}), ...(backendPkg.devDependencies ?? {}) }
-    if (NODE_BACKEND_MARKERS.some((d) => deps[d])) {
-      return 'node'
+    readJson(path.join(repoRoot, 'backend', 'package.json'), files) ??
+    readJson(path.join(repoRoot, 'server', 'package.json'), files) ??
+    readJson(path.join(repoRoot, 'api', 'package.json'), files)
+  const context = { repoRoot, backendPath, backendPkg, files }
+  for (const detector of detectors.backend) {
+    if (detector.detect(context)) {
+      return detector.id
     }
   }
   return null
@@ -143,7 +199,7 @@ function detectBackendStack(repoRoot, backendRoot) {
 
 // ── Source root detection ─────────────────────────────────────────────────────
 
-export function detectSourceRoots(repoRoot) {
+export function detectSourceRoots(repoRoot, files) {
   const candidates = [
     { front: 'front/src', back: 'back' },
     { front: 'frontend/src', back: 'backend' },
@@ -154,10 +210,10 @@ export function detectSourceRoots(repoRoot) {
   ]
 
   for (const candidate of candidates) {
-    if (exists(path.join(repoRoot, candidate.front))) {
+    if (files.exists(path.join(repoRoot, candidate.front))) {
       return {
         frontend: candidate.front,
-        backend: candidate.back && exists(path.join(repoRoot, candidate.back)) ? candidate.back : null
+        backend: candidate.back && files.exists(path.join(repoRoot, candidate.back)) ? candidate.back : null
       }
     }
   }
@@ -167,11 +223,11 @@ export function detectSourceRoots(repoRoot) {
 
 // ── Alias detection ───────────────────────────────────────────────────────────
 
-export function detectAliases(repoRoot, frontendRoot) {
+export function detectAliases(repoRoot, frontendRoot, files) {
   const frontDir = path.dirname(path.join(repoRoot, frontendRoot))
   const rawPaths =
-    extractTsconfigPaths(path.join(frontDir, 'tsconfig.json')) ??
-    extractTsconfigPaths(path.join(frontDir, 'tsconfig.app.json')) ??
+    extractTsconfigPaths(path.join(frontDir, 'tsconfig.json'), files) ??
+    extractTsconfigPaths(path.join(frontDir, 'tsconfig.app.json'), files) ??
     {}
   const aliases = []
 
@@ -200,20 +256,20 @@ export function detectAliases(repoRoot, frontendRoot) {
 
 const FEATURE_FOLDER_NAMES = ['features', 'modules', 'domains', 'pages', 'views']
 
-export function detectModules(repoRoot, frontendRoot, backendRoot) {
+export function detectModules(repoRoot, frontendRoot, backendRoot, files) {
   const srcDir = path.join(repoRoot, frontendRoot)
   let featureFolder = null
 
   for (const candidate of FEATURE_FOLDER_NAMES) {
-    if (exists(path.join(srcDir, candidate))) {
+    if (files.exists(path.join(srcDir, candidate))) {
       featureFolder = candidate
       break
     }
   }
 
   const modules = featureFolder
-    ? listDirs(path.join(srcDir, featureFolder))
-    : listDirs(srcDir).filter((d) => !INFRA_FOLDERS.has(d))
+    ? listDirs(path.join(srcDir, featureFolder), files)
+    : listDirs(srcDir, files).filter((d) => !INFRA_FOLDERS.has(d))
 
   const labels = {}
   for (const mod of modules) {
@@ -235,7 +291,7 @@ export function detectModules(repoRoot, frontendRoot, backendRoot) {
 
   if (backendRoot) {
     const backDir = path.join(repoRoot, backendRoot)
-    const backDirs = listDirs(backDir)
+    const backDirs = listDirs(backDir, files)
     const projectFolders = backDirs.filter((d) => !d.startsWith('.') && d !== 'node_modules')
     if (projectFolders.length > 0) {
       result.backendProjectFolderPattern = `^${backendRoot}/[^/]+/([^/]+)`
@@ -360,7 +416,7 @@ const KNOWN_FOLDER_CLASSIFIERS = [
   { contains: '/lib/', type: 'auxiliary', layer: 'auxiliary' }
 ]
 
-export function detectFrontend(repoRoot, frontendRoot) {
+export function detectFrontend(repoRoot, frontendRoot, files) {
   const srcDir = path.join(repoRoot, frontendRoot)
   const entryPoints = []
 
@@ -375,23 +431,23 @@ export function detectFrontend(repoRoot, frontendRoot) {
     'index.ts'
   ]) {
     const full = path.join(srcDir, candidate)
-    if (exists(full)) {
+    if (files.exists(full)) {
       entryPoints.push(toRelative(repoRoot, full))
       break
     }
   }
 
   const routesEntry = path.join(srcDir, 'routes')
-  if (exists(routesEntry)) {
+  if (files.exists(routesEntry)) {
     const routeFile = ['AppRoutes/index.tsx', 'AppRoutes.tsx', 'index.tsx']
       .map((f) => path.join(routesEntry, f))
-      .find(exists)
+      .find((file) => files.exists(file))
     if (routeFile) {
       entryPoints.push(toRelative(repoRoot, routeFile))
     }
   }
 
-  const featureFolder = FEATURE_FOLDER_NAMES.find((f) => exists(path.join(srcDir, f)))
+  const featureFolder = FEATURE_FOLDER_NAMES.find((f) => files.exists(path.join(srcDir, f)))
   const featureFolderPattern = featureFolder ? `/${featureFolder}/{module}/` : '/features/{module}/'
 
   return {
@@ -502,12 +558,12 @@ const DEFAULT_TYPES = {
 
 // ── Project detection ─────────────────────────────────────────────────────────
 
-export function detectProject(repoRoot) {
+export function detectProject(repoRoot, files) {
   const pkg =
-    readJson(path.join(repoRoot, 'front', 'package.json')) ??
-    readJson(path.join(repoRoot, 'frontend', 'package.json')) ??
-    readJson(path.join(repoRoot, 'client', 'package.json')) ??
-    readJson(path.join(repoRoot, 'package.json'))
+    readJson(path.join(repoRoot, 'front', 'package.json'), files) ??
+    readJson(path.join(repoRoot, 'frontend', 'package.json'), files) ??
+    readJson(path.join(repoRoot, 'client', 'package.json'), files) ??
+    readJson(path.join(repoRoot, 'package.json'), files)
 
   const rawName = pkg?.name ?? path.basename(repoRoot)
   const name = titleCase(rawName.replace(/^@[^/]+\//, ''))
@@ -521,21 +577,22 @@ export function detectProject(repoRoot) {
 
 // ── Main entry point ──────────────────────────────────────────────────────────
 
-export function detect(repoRoot) {
-  const { frontend: frontendRoot, backend: backendRoot } = detectSourceRoots(repoRoot)
+export function detect(repoRoot, { files, detectors = createStackDetectorRegistry() } = {}) {
+  assertDetectionFiles(files)
+  const { frontend: frontendRoot, backend: backendRoot } = detectSourceRoots(repoRoot, files)
 
   const frontendPkgDir = path.dirname(path.join(repoRoot, frontendRoot))
   const frontendPkg =
-    readJson(path.join(frontendPkgDir, 'package.json')) ?? readJson(path.join(repoRoot, 'package.json'))
+    readJson(path.join(frontendPkgDir, 'package.json'), files) ?? readJson(path.join(repoRoot, 'package.json'), files)
 
-  const frontendFramework = detectFrontendFramework(frontendPkg)
-  const backendStack = backendRoot ? detectBackendStack(repoRoot, backendRoot) : null
+  const frontendFramework = detectFrontendFramework(frontendPkg, detectors)
+  const backendStack = backendRoot ? detectBackendStack(repoRoot, backendRoot, files, detectors) : null
 
-  const project = detectProject(repoRoot)
-  const aliases = detectAliases(repoRoot, frontendRoot)
-  const modules = detectModules(repoRoot, frontendRoot, backendRoot)
+  const project = detectProject(repoRoot, files)
+  const aliases = detectAliases(repoRoot, frontendRoot, files)
+  const modules = detectModules(repoRoot, frontendRoot, backendRoot, files)
   const layers = detectLayers(frontendFramework, backendStack)
-  const frontend = detectFrontend(repoRoot, frontendRoot)
+  const frontend = detectFrontend(repoRoot, frontendRoot, files)
   const backend = detectBackend(repoRoot, backendRoot, backendStack)
 
   const config = {
@@ -588,14 +645,15 @@ export function detect(repoRoot) {
   return config
 }
 
-export function detectSummary(repoRoot) {
-  const { frontend: frontendRoot, backend: backendRoot } = detectSourceRoots(repoRoot)
+export function detectSummary(repoRoot, { files, detectors = createStackDetectorRegistry() } = {}) {
+  assertDetectionFiles(files)
+  const { frontend: frontendRoot, backend: backendRoot } = detectSourceRoots(repoRoot, files)
   const frontendPkgDir = path.dirname(path.join(repoRoot, frontendRoot))
   const frontendPkg =
-    readJson(path.join(frontendPkgDir, 'package.json')) ?? readJson(path.join(repoRoot, 'package.json'))
-  const frontendFramework = detectFrontendFramework(frontendPkg)
-  const backendStack = backendRoot ? detectBackendStack(repoRoot, backendRoot) : null
-  const modules = detectModules(repoRoot, frontendRoot, backendRoot)
+    readJson(path.join(frontendPkgDir, 'package.json'), files) ?? readJson(path.join(repoRoot, 'package.json'), files)
+  const frontendFramework = detectFrontendFramework(frontendPkg, detectors)
+  const backendStack = backendRoot ? detectBackendStack(repoRoot, backendRoot, files, detectors) : null
+  const modules = detectModules(repoRoot, frontendRoot, backendRoot, files)
 
   return {
     frontendRoot,
@@ -603,5 +661,11 @@ export function detectSummary(repoRoot) {
     frontendFramework,
     backendStack,
     moduleCount: Object.keys(modules.labels).length
+  }
+}
+
+function assertDetectionFiles(files) {
+  if (!files || typeof files.exists !== 'function' || typeof files.readText !== 'function') {
+    throw new TypeError('ProjectDetector requires detection files.')
   }
 }

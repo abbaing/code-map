@@ -3,7 +3,7 @@ import http from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
-import { detect } from './detect.mjs'
+import { detect } from './detect-node.mjs'
 import { loadTemplatePlugins } from './templates/registry.mjs'
 import { ApplicationInputError, assertServerApplication, createServerApplication } from './server-app.mjs'
 import { nodeServerApplicationServices } from './server-app-node.mjs'
@@ -401,7 +401,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     configPath: environment.variable('CODE_MAP_CONFIG'),
     fileSystem
   })
-  const projectContext = loadProjectContext(configPath ?? detect(repoRoot), {
+  const projectContext = loadProjectContext(configPath ?? detect(repoRoot, { fileSystem }), {
     repoRoot,
     platform: nodePlatform
   })

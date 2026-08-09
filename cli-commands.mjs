@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
 import { defineCommand } from './command-registry.mjs'
-import { detect, detectSummary } from './detect.mjs'
+import { detect, detectSummary } from './detect-node.mjs'
 import { writeJsonFileAtomic } from './json-io.mjs'
 import { writeGraph } from './scan.mjs'
 import { listTemplates, loadTemplatePlugins } from './templates/registry.mjs'
@@ -44,11 +44,11 @@ export function createCliCommands({ platform, repository, output, submapCli }) {
   }
 
   function initialize({ args, repoRoot }) {
-    const summary = detectSummary(repoRoot)
+    const summary = detectSummary(repoRoot, { fileSystem: platform.fileSystem })
     output.log(
       `Detected: ${summary.frontendFramework ?? 'unknown'} frontend, ${summary.backendStack ?? 'none'} backend, ${summary.moduleCount} modules`
     )
-    const config = detect(repoRoot)
+    const config = detect(repoRoot, { fileSystem: platform.fileSystem })
     const outIndex = args.indexOf('--out')
     const outDir = outIndex >= 0 ? path.resolve(repoRoot, args[outIndex + 1]) : repoRoot
     const projectSlug = (config.project?.name ?? 'project').toLowerCase().replace(/[^a-z0-9]+/g, '-')
@@ -114,12 +114,12 @@ export function createCliCommands({ platform, repository, output, submapCli }) {
       projectContext = loadProjectContext(configPath, { repoRoot, platform })
       output.log(`Using config: ${path.relative(repoRoot, configPath)}`)
     } else {
-      const summary = detectSummary(repoRoot)
+      const summary = detectSummary(repoRoot, { fileSystem })
       output.log(
         `Auto-detected: ${summary.frontendFramework ?? 'unknown'} + ${summary.backendStack ?? 'none'}, ${summary.moduleCount} modules`
       )
       output.log('Tip: run with --init to generate a project-map.json you can customize.')
-      projectContext = loadProjectContext(detect(repoRoot), { repoRoot, platform })
+      projectContext = loadProjectContext(detect(repoRoot, { fileSystem }), { repoRoot, platform })
       pluginBasePath = path.join(repoRoot, 'project-map.json')
     }
     try {
