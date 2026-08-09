@@ -71,6 +71,7 @@
     "scan-node.mjs",
     "scan-pipeline.mjs",
     "scan-back.mjs",
+    "scan-back-classification.mjs",
     "scan-back-dependencies.mjs",
     "scan-back-persistence.mjs",
     "scan-back-requests.mjs",

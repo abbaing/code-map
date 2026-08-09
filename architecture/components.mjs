@@ -183,13 +183,23 @@ export const components = [
   },
   {
     id: 'backend-scanner',
-    responsibility: 'Expose backend scanning compatibility and extract backend file classifications.',
+    responsibility: 'Expose the stable backend scanner module surface.',
     role: 'extension',
     files: ['scan-back.mjs'],
+    contracts: ['BackendScannerApi'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'pass'),
+    decision: 'Keep this facade free of implementation logic while scanner families evolve independently.'
+  },
+  {
+    id: 'backend-classification-scanner',
+    responsibility: 'Classify backend source files using configured and semantic evidence.',
+    role: 'extension',
+    files: ['scan-back-classification.mjs'],
     contracts: ['Scanner', 'BackendAnalysisSession'],
     compositionRoot: false,
-    design: designStatus('gap', 'gap', 'gap', 'pass', 'pass'),
-    decision: 'Backend indexes are execution-scoped; split scanner families before adding more backend technologies.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Extend semantic role recognition without coupling classification to other backend scanners.'
   },
   {
     id: 'backend-persistence-scanner',

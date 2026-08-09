@@ -61,6 +61,7 @@ Contracts are structural JavaScript objects or functions. Their exact signatures
 | `Scanner`                       | Add one bounded category of evidence to a scan session                          |
 | `ScannerResults`                | Immutable named outputs passed from scanners to later scan phases               |
 | `BackendAnalysisSession`        | Query backend files, declarations, and implementations for one scan execution   |
+| `BackendScannerApi`             | Stable facade over independently evolving backend scanner families              |
 | `GraphEnricher`                 | Derive metadata from an already populated graph                                 |
 | `QualityScoringPolicy`          | Convert immutable graph evidence into scores and auditable calculation details  |
 | `Rule`                          | Evaluate one policy against a documented rule context                           |
