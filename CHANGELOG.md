@@ -34,6 +34,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Generated graphs use repository-relative paths and omit workstation-specific roots.
 - Large source files are skipped with explicit statistics and warnings.
 - CLI help uses the installed `code-map` command instead of an internal repository path.
+- The viewer server exposes every browser module required by the rendering graph.
 
 ### Security
 

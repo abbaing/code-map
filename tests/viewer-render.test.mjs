@@ -24,6 +24,7 @@ assert.match(
   /<link rel="stylesheet" href="\/tailwind\.css" \/>/u,
   'the viewer must load the compiled local utility stylesheet'
 )
+assert.match(viewerHtml, /<link rel="icon" href="data:," \/>/u, 'the viewer must suppress implicit favicon requests')
 assert.deepEqual(renderingStrategies, {
   layouts: ['system', 'graph', 'domain'],
   nodes: ['system', 'graph', 'domain'],

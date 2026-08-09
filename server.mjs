@@ -27,6 +27,7 @@ const viewerAssets = new Map(
     'tailwind.css',
     'viewer.css',
     'graph-gateway.mjs',
+    'rendering-contracts.mjs',
     'viewer-actions.js',
     'viewer-data.js',
     'viewer-findings.js',

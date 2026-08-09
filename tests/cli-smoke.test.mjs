@@ -319,6 +319,23 @@ async function waitForServer(port) {
   throw new Error(`server did not start on port ${port}`)
 }
 
+function viewerRuntimeModuleNames() {
+  const modules = new Set()
+  visit('viewer-init.js')
+  return [...modules].sort()
+
+  function visit(moduleName) {
+    if (modules.has(moduleName)) {
+      return
+    }
+    modules.add(moduleName)
+    const source = fs.readFileSync(path.join(packageRoot, 'viewer', moduleName), 'utf8')
+    for (const match of source.matchAll(/(?:from\s+|import\s*\()['"]#viewer\/([^'"]+)['"]/gu)) {
+      visit(match[1])
+    }
+  }
+}
+
 await withServer(['--config', arbitraryConfigPath, '--allow-plugins'], arbitraryRoot, async (port, session) => {
   const current = JSON.parse((await request(port, 'GET', '/project-map.json')).body)
   const securedViewer = await request(port, 'GET', '/', null)
@@ -351,7 +368,7 @@ await withServer(['--config', arbitraryConfigPath, '--allow-plugins'], arbitrary
   assert.equal(viewerInteractions.status, 200, 'the viewer interaction module must be served locally')
   assert.match(viewerInteractions.headers['content-type'], /^text\/javascript/u)
   assert.match(viewerInteractions.body, /export function createViewerUiController/u)
-  for (const moduleName of ['graph-gateway.mjs', 'viewer-layouts.js', 'viewer-store.mjs', 'viewer-svg.js']) {
+  for (const moduleName of viewerRuntimeModuleNames()) {
     const viewerModule = await request(port, 'GET', `/${moduleName}`, null)
     assert.equal(viewerModule.status, 200, `${moduleName} must be served for the viewer module graph`)
     assert.match(viewerModule.headers['content-type'], /^text\/javascript/u)
