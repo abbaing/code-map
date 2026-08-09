@@ -10,7 +10,6 @@ export const legacyDependencyEdges = Object.freeze([
   'index.mjs -> submap/index.mjs',
   'scan.mjs -> scan-utils.mjs',
   'scan.mjs -> templates/registry.mjs',
-  'scan.mjs -> json-io.mjs',
   'scan.mjs -> templates/contracts.mjs',
   'server-app-node.mjs -> submap/index.mjs',
   'cli-commands.mjs -> templates/registry.mjs',

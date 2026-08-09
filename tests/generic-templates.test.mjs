@@ -8,6 +8,7 @@ import { writeGraph } from '../scan.mjs'
 import { maxSourceFileBytes, readText } from '../scan-utils.mjs'
 import { escapeRegExp } from '../source-analysis.mjs'
 import { nodePlatform } from '../platform/node.mjs'
+import { nodeTextWriter } from '../json-io.mjs'
 import { architectureFixture, createFixtureTree, typescriptFixture } from './fixtures.mjs'
 
 const fixtureRoot = createFixtureTree(typescriptFixture, architectureFixture)
@@ -36,7 +37,7 @@ function scanTypeScriptFixture(name) {
     },
     { platform: nodePlatform }
   )
-  return writeGraph(path.join(fixtureRoot, `${name}.graph.json`), projectContext)
+  return writeGraph(path.join(fixtureRoot, `${name}.graph.json`), projectContext, { writer: nodeTextWriter })
 }
 
 function scanArchitectureFixture(name) {
@@ -126,7 +127,7 @@ function scanArchitectureFixture(name) {
     },
     { platform: nodePlatform }
   )
-  return writeGraph(path.join(fixtureRoot, `${name}.graph.json`), projectContext)
+  return writeGraph(path.join(fixtureRoot, `${name}.graph.json`), projectContext, { writer: nodeTextWriter })
 }
 
 const typescriptGraph = scanTypeScriptFixture('typescript-template-fixture')
@@ -399,7 +400,9 @@ const frontendOnlyContext = loadProjectContext(
   { platform: nodePlatform }
 )
 
-const frontendOnlyGraph = writeGraph(path.join(tempRoot, 'frontend-only.graph.json'), frontendOnlyContext)
+const frontendOnlyGraph = writeGraph(path.join(tempRoot, 'frontend-only.graph.json'), frontendOnlyContext, {
+  writer: nodeTextWriter
+})
 assert.equal(frontendOnlyGraph.stats.backFiles, 0, 'frontend-only scan should not require sourceRoots.backend')
 assert.equal(
   frontendOnlyGraph.stats.skippedFiles,
@@ -430,7 +433,9 @@ const templateDefaultsContext = loadProjectContext(
   { platform: nodePlatform }
 )
 
-const templateDefaultsGraph = writeGraph(path.join(tempRoot, 'template-defaults.graph.json'), templateDefaultsContext)
+const templateDefaultsGraph = writeGraph(path.join(tempRoot, 'template-defaults.graph.json'), templateDefaultsContext, {
+  writer: nodeTextWriter
+})
 assert.equal(
   templateDefaultsGraph.projectMap.layers.some((layer) => layer.id === 'ui-route'),
   true,

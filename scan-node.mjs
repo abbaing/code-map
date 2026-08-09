@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
 import { detect } from './detect-node.mjs'
 import { nodePlatform } from './platform/node.mjs'
+import { nodeTextWriter } from './json-io.mjs'
 import { writeGraph } from './scan.mjs'
 import { loadTemplatePlugins } from './templates/registry.mjs'
 
@@ -24,7 +25,7 @@ export async function runNodeScan({ platform = nodePlatform } = {}) {
   })
   const outArgIndex = argv.indexOf('--out')
   const outputPath = outArgIndex >= 0 ? path.resolve(argv[outArgIndex + 1]) : projectContext.resolveGraphOutputPath()
-  const result = writeGraph(outputPath, projectContext)
+  const result = writeGraph(outputPath, projectContext, { writer: nodeTextWriter })
   return { outputPath, projectContext, result }
 }
 

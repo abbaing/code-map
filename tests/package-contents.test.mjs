@@ -34,7 +34,8 @@ for (const required of [
   'viewer/tailwind.css',
   'viewer/viewer.html',
   'viewer/viewer-init.js',
-  'viewer/viewer-interactions.mjs'
+  'viewer/viewer-interactions.mjs',
+  'writer-contract.mjs'
 ]) {
   assert.equal(paths.includes(required), true, `published package must include ${required}`)
 }

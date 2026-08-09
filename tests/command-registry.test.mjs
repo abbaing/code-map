@@ -49,6 +49,7 @@ const cliRegistry = createCommandRegistry(
       fileSystem: { exists: () => false }
     },
     repository: { read() {}, list: () => [], write() {} },
+    writer: { writeText() {} },
     output: { log: (message) => messages.push(message), error: (message) => messages.push(message) },
     submapCli: {
       documents: { read() {}, readStdin() {} },

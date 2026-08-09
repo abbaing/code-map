@@ -1,6 +1,9 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
+import { createTextWriter } from './writer-contract.mjs'
+
+export const nodeTextWriter = createTextWriter({ writeText: writeFileAtomic })
 
 export function writeJsonFileAtomic(filePath, value) {
   const document = `${JSON.stringify(value, null, 2)}\n`

@@ -2,12 +2,12 @@ import path from 'node:path'
 import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
 import { defineCommand } from './command-registry.mjs'
 import { detect, detectSummary } from './detect-node.mjs'
-import { writeJsonFileAtomic } from './json-io.mjs'
 import { writeGraph } from './scan.mjs'
 import { listTemplates, loadTemplatePlugins } from './templates/registry.mjs'
+import { assertTextWriter } from './writer-contract.mjs'
 
-export function createCliCommands({ platform, repository, output, submapCli }) {
-  assertDependencies(platform, repository, output, submapCli)
+export function createCliCommands({ platform, repository, output, submapCli, writer }) {
+  assertDependencies(platform, repository, output, submapCli, writer)
   return Object.freeze([
     defineCommand({ id: 'submap', matches: ({ args }) => args[0] === 'submap', execute: runSubmap }),
     defineCommand({
@@ -53,7 +53,7 @@ export function createCliCommands({ platform, repository, output, submapCli }) {
     const outDir = outIndex >= 0 ? path.resolve(repoRoot, args[outIndex + 1]) : repoRoot
     const projectSlug = (config.project?.name ?? 'project').toLowerCase().replace(/[^a-z0-9]+/g, '-')
     const outFile = path.join(outDir, `${projectSlug}.project-map.json`)
-    writeJsonFileAtomic(outFile, config)
+    writer.writeText(outFile, `${JSON.stringify(config, null, 2)}\n`)
     output.log(`Written to ${path.relative(repoRoot, outFile)}`)
     output.log(`Review and adjust the file, then run: npx code-map --config ${path.relative(repoRoot, outFile)}`)
     return { exitCode: 0 }
@@ -68,7 +68,7 @@ export function createCliCommands({ platform, repository, output, submapCli }) {
     const outIndex = args.indexOf('--out')
     const outputPath =
       outIndex >= 0 ? path.resolve(repoRoot, args[outIndex + 1]) : projectContext.resolveGraphOutputPath()
-    const result = writeGraph(outputPath, projectContext)
+    const result = writeGraph(outputPath, projectContext, { writer })
     const displayOutput = path.relative(repoRoot, outputPath).replaceAll(path.sep, '/')
     output.log(
       `Scan complete: ${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.findings} findings -> ${displayOutput}`
@@ -81,7 +81,7 @@ export function createCliCommands({ platform, repository, output, submapCli }) {
     if (!projectContext) {
       return { exitCode: 1 }
     }
-    writeGraph(projectContext.resolveGraphOutputPath(), projectContext)
+    writeGraph(projectContext.resolveGraphOutputPath(), projectContext, { writer })
     const { startServer } = await import('./server.mjs')
     startServer({ projectContext })
     return { exitCode: null }
@@ -134,7 +134,7 @@ export function createCliCommands({ platform, repository, output, submapCli }) {
   }
 }
 
-function assertDependencies(platform, repository, output, submapCli) {
+function assertDependencies(platform, repository, output, submapCli, writer) {
   if (!platform?.environment || !platform?.fileSystem) {
     throw new TypeError('CLI commands require platform environment and filesystem capabilities.')
   }
@@ -152,6 +152,7 @@ function assertDependencies(platform, repository, output, submapCli) {
   assertOperations(submapCli?.documents, ['read', 'readStdin'], 'Submap document input')
   assertOperations(submapCli?.git, ['metadata'], 'Submap Git metadata')
   assertOperations(submapCli?.output, ['writeStdout', 'writeStderr'], 'Submap output')
+  assertTextWriter(writer)
 }
 
 function assertOperations(implementation, operations, label) {

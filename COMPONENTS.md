@@ -47,6 +47,7 @@ Contracts are structural JavaScript objects or functions. Their exact signatures
 | `ProjectContext`                | Immutable normalized configuration and repository-relative path policy          |
 | `ProjectDetector`               | Compose ordered stack detectors over bounded repository inspection              |
 | `FileSystemPort`                | Bounded reads, walking, existence, canonical paths, and atomic writes           |
+| `TextWriter`                    | Atomically persist a text document at a requested path                          |
 | `EnvironmentPort`               | Working directory, arguments, environment values, and process exit boundary     |
 | `ClockPort`                     | Current timestamp generation                                                    |
 | `HashPort`                      | Stable SHA-256 digest generation                                                |

@@ -2,6 +2,7 @@
 import { createCliCommands } from './cli-commands.mjs'
 import { createCommandRegistry } from './command-registry.mjs'
 import { nodePlatform } from './platform/node.mjs'
+import { nodeTextWriter } from './json-io.mjs'
 import { nodeSubmapRepository } from './submap/io.mjs'
 import { nodeSubmapCliCapabilities } from './submap/cli-node.mjs'
 
@@ -9,6 +10,7 @@ const { environment } = nodePlatform
 const registry = createCommandRegistry(
   createCliCommands({
     platform: nodePlatform,
+    writer: nodeTextWriter,
     repository: nodeSubmapRepository,
     output: console,
     submapCli: nodeSubmapCliCapabilities

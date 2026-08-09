@@ -6,9 +6,9 @@ import { resolveTsImport } from './resolve.mjs'
 import { isEntryPoint } from './quality.mjs'
 import { createFindingCollector } from './rules/findings.mjs'
 import { buildTemplateRegistry } from './templates/registry.mjs'
-import { writeJsonFileAtomic } from './json-io.mjs'
 import { createScanPipeline, defineScanPhase } from './scan-pipeline.mjs'
 import { capabilityInput } from './templates/contracts.mjs'
+import { assertTextWriter } from './writer-contract.mjs'
 
 // ── Phase functions ───────────────────────────────────────────────────────────
 
@@ -574,13 +574,14 @@ function phaseRunRegisteredEnrichers(context) {
   }
 }
 
-export function writeGraph(outputPath, projectContext, { pipeline = createDefaultScanPipeline() } = {}) {
+export function writeGraph(outputPath, projectContext, { pipeline = createDefaultScanPipeline(), writer } = {}) {
   if (!projectContext) {
     throw new TypeError('writeGraph requires a ProjectContext.')
   }
+  assertTextWriter(writer)
   const targetPath = outputPath ?? projectContext.resolveGraphOutputPath()
   const result = buildGraph(projectContext, pipeline)
-  writeJsonFileAtomic(targetPath, result)
+  writer.writeText(targetPath, `${JSON.stringify(result, null, 2)}\n`)
   removeLegacyDefaultGraph(targetPath, projectContext)
   return result
 }

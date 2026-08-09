@@ -146,7 +146,7 @@ export const components = [
     responsibility: 'Compose source discovery, scanners, enrichers, and graph serialization.',
     role: 'application',
     files: ['scan.mjs'],
-    contracts: ['ScanPhase', 'Scanner', 'GraphEnricher'],
+    contracts: ['ScanPhase', 'Scanner', 'GraphEnricher', 'TextWriter'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'gap', 'gap'),
     decision: 'Pipeline phases declare focused inputs and outputs; scanner capabilities still receive a broad context.'
@@ -235,14 +235,24 @@ export const components = [
     decision: 'Validate capabilities at registration and project only their declared required and optional inputs.'
   },
   {
+    id: 'persistence-contracts',
+    responsibility: 'Validate the minimal capability required to persist text documents.',
+    role: 'core',
+    files: ['writer-contract.mjs'],
+    contracts: ['TextWriter'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep the writing capability structural, immutable, and limited to text persistence.'
+  },
+  {
     id: 'json-persistence',
     responsibility: 'Persist text and JSON atomically.',
     role: 'adapter',
     files: ['json-io.mjs'],
     contracts: ['TextWriter'],
     compositionRoot: false,
-    design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'gap'),
-    decision: 'Keep this as the filesystem adapter and expose it through a port to inward components.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Implement the text writing contract while retaining atomic Node filesystem behavior.'
   },
   {
     id: 'application',

@@ -1,6 +1,7 @@
 export { Graph } from './graph.mjs'
 import { createProjectContext as createContext, loadProjectContext as loadContext } from './config.mjs'
 import { writeGraph as writeGraphWithContext } from './scan.mjs'
+import { nodeTextWriter } from './json-io.mjs'
 import { createNodePlatform, nodePlatform } from './platform/node.mjs'
 
 export { createNodePlatform, nodePlatform }
@@ -16,7 +17,7 @@ export function loadProjectContext(source, options = {}) {
 }
 
 export function writeGraph(outputPath, projectContext = loadProjectContext(), options = {}) {
-  return writeGraphWithContext(outputPath, projectContext, options)
+  return writeGraphWithContext(outputPath, projectContext, { writer: nodeTextWriter, ...options })
 }
 
 export * from './submap/index.mjs'

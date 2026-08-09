@@ -66,6 +66,10 @@ export interface FileSystemPort {
   remove(filePath: string, options?: unknown): void
 }
 
+export interface TextWriter {
+  writeText(filePath: string, contents: string): string | void
+}
+
 export interface EnvironmentPort {
   cwd(): string
   args(): string[]
@@ -149,5 +153,5 @@ export function createDefaultScanPipeline(): ScanPipeline
 export function writeGraph(
   outputPath?: string,
   projectContext?: ProjectContext,
-  options?: { pipeline?: ScanPipeline }
+  options?: { pipeline?: ScanPipeline; writer?: TextWriter }
 ): CodeMapGraph
