@@ -37,6 +37,8 @@ export interface ProjectContext {
   readonly projectMap: ProjectMap
   readonly platform: Platform
   resolveRepoPath(repoPath: string): string
+  resolvePathFrom(basePath: string, ...segments: string[]): string
+  resolveChildPath(basePath: string, ...segments: string[]): string
   toRepoPath(filePath: string): string
   resolveGraphOutputPath(outputPath?: string): string
 }

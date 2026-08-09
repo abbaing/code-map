@@ -87,8 +87,8 @@ export const components = [
     files: ['resolve.mjs'],
     contracts: ['ImportResolver'],
     compositionRoot: false,
-    design: designStatus('pass', 'gap', 'not-applicable', 'pass', 'gap'),
-    decision: 'Resolution still reads global configuration and the concrete filesystem.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Compose ordered import strategies over ProjectContext path policy and an injected existence capability.'
   },
   {
     id: 'source-analysis',

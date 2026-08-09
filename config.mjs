@@ -153,6 +153,8 @@ export function createProjectContext(
     projectMap: normalizedProjectMap,
     platform,
     resolveRepoPath: (repoPath) => path.resolve(root, repoPath),
+    resolvePathFrom: (basePath, ...segments) => path.resolve(path.dirname(basePath), ...segments),
+    resolveChildPath: (basePath, ...segments) => path.resolve(basePath, ...segments),
     toRepoPath: (filePath) => relativeProjectPath(root, filePath),
     resolveGraphOutputPath(outputPath = normalizedProjectMap.project.graphOutput) {
       if (path.isAbsolute(outputPath)) {
