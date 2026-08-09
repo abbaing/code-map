@@ -1,4 +1,4 @@
-import { ACCESS_LEVELS } from './selectors.mjs'
+import { ACCESS_LEVELS } from '#submap/selectors.mjs'
 
 export function compareSubmaps(previous, current) {
   const nodes = compareIds(previous.nodes, current.nodes)

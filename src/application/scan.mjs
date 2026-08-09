@@ -1,13 +1,19 @@
 import path from 'node:path'
-import { createSourceReader, readText, walk, maxSourceFileBytes } from './scan-utils.mjs'
-import { findComponentDirIndex, isBackTestFile, isTestFile, normalizePath, tsExtensions } from './source-analysis.mjs'
-import { Graph } from './graph.mjs'
-import { resolveTsImport } from './resolve.mjs'
-import { isEntryPoint } from './quality.mjs'
-import { createFindingCollector } from './rules/findings.mjs'
-import { createScanPipeline, defineScanPhase } from './scan-pipeline.mjs'
-import { assertCapabilityRegistry, capabilityInput, deepFreeze } from './templates/contracts.mjs'
-import { assertTextWriter } from './writer-contract.mjs'
+import { createSourceReader, readText, walk, maxSourceFileBytes } from '#core/scan-utils.mjs'
+import {
+  findComponentDirIndex,
+  isBackTestFile,
+  isTestFile,
+  normalizePath,
+  tsExtensions
+} from '#core/source-analysis.mjs'
+import { Graph } from '#core/graph.mjs'
+import { resolveTsImport } from '#core/resolve.mjs'
+import { isEntryPoint } from '#core/quality.mjs'
+import { createFindingCollector } from '#rules/findings.mjs'
+import { createScanPipeline, defineScanPhase } from '#core/scan-pipeline.mjs'
+import { assertCapabilityRegistry, capabilityInput, deepFreeze } from '#templates/contracts.mjs'
+import { assertTextWriter } from '#core/writer-contract.mjs'
 
 // ── Phase functions ───────────────────────────────────────────────────────────
 

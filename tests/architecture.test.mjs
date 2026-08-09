@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { allowedDependencyRoles, dependencyEdge, legacyDependencyEdges } from '../architecture/dependency-policy.mjs'
-import { components } from '../architecture/components.mjs'
+import { allowedDependencyRoles, dependencyEdge, legacyDependencyEdges } from '#architecture/dependency-policy.mjs'
+import { components } from '#architecture/components.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const productionFiles = listSourceFiles(root)
@@ -11,6 +11,15 @@ const dependencies = new Map(productionFiles.map((file) => [file, localDependenc
 const componentByFile = new Map(
   components.flatMap((component) => component.files.map((file) => [path.join(root, file), component]))
 )
+
+for (const file of productionFiles) {
+  const specifiers = importSpecifiers(fs.readFileSync(file, 'utf8'))
+  assert.equal(
+    specifiers.some((specifier) => /^\.{1,2}\//u.test(specifier)),
+    false,
+    `${relative(file)} must use a scoped module alias instead of a relative import`
+  )
+}
 
 for (const [file, imports] of dependencies) {
   assert.equal(
@@ -63,7 +72,7 @@ for (const file of productionFiles.filter((candidate) => relative(candidate).sta
 const coreFiles = productionFiles.filter((file) => {
   const name = relative(file)
   return (
-    name === 'graph.mjs' ||
+    name.startsWith('src/core/') ||
     name.startsWith('rules/') ||
     name.startsWith('templates/') ||
     /^submap\/(?:create|diff|digest|errors|selectors|validate|index)\.mjs$/u.test(name)
@@ -74,14 +83,17 @@ for (const file of coreFiles) {
   assert.equal(
     imports.some(
       (target) =>
-        target === 'cli.mjs' || target === 'server.mjs' || target === 'server-app.mjs' || target.startsWith('viewer/')
+        target === 'cli.mjs' ||
+        target === 'server.mjs' ||
+        target === 'src/application/server-app.mjs' ||
+        target.startsWith('viewer/')
     ),
     false,
     `${relative(file)} must not depend on delivery adapters`
   )
 }
 
-const graphSource = fs.readFileSync(path.join(root, 'graph.mjs'), 'utf8')
+const graphSource = fs.readFileSync(path.join(root, 'src/core/graph.mjs'), 'utf8')
 assert.deepEqual(
   importSpecifiers(graphSource),
   [],
@@ -89,15 +101,15 @@ assert.deepEqual(
 )
 
 const serverSource = fs.readFileSync(path.join(root, 'server.mjs'), 'utf8')
-assert.match(serverSource, /from '\.\/server-app\.mjs'/u, 'the HTTP adapter must delegate use cases to server-app')
+assert.match(serverSource, /from '#app\/server-app\.mjs'/u, 'the HTTP adapter must delegate use cases to server-app')
 assert.doesNotMatch(
-  fs.readFileSync(path.join(root, 'server-app.mjs'), 'utf8'),
+  fs.readFileSync(path.join(root, 'src/application/server-app.mjs'), 'utf8'),
   /node:http/u,
   'application use cases must not depend on HTTP'
 )
 assert.deepEqual(
   importSpecifiers(fs.readFileSync(path.join(root, 'submap/cli-args.mjs'), 'utf8')),
-  ['./errors.mjs'],
+  ['#submap/errors.mjs'],
   'the CLI parser must depend only on the error contract'
 )
 
@@ -127,12 +139,31 @@ function importSpecifiers(source) {
 
 function localDependencies(file) {
   return importSpecifiers(fs.readFileSync(file, 'utf8'))
-    .filter((specifier) => specifier.startsWith('.'))
-    .map((specifier) => {
-      const resolved = path.resolve(path.dirname(file), specifier)
-      return path.extname(resolved) ? resolved : `${resolved}.mjs`
-    })
+    .map(resolveLocalSpecifier)
+    .filter(Boolean)
     .filter((target) => fs.existsSync(target))
+}
+
+function resolveLocalSpecifier(specifier) {
+  const aliases = new Map([
+    ['#app/', 'src/application/'],
+    ['#architecture/', 'architecture/'],
+    ['#core/', 'src/core/'],
+    ['#entry/', ''],
+    ['#node/', 'src/adapters/node/'],
+    ['#platform/', 'platform/'],
+    ['#rules/', 'rules/'],
+    ['#scanners/', 'src/scanners/'],
+    ['#submap/', 'submap/'],
+    ['#templates/', 'templates/'],
+    ['#viewer/', 'viewer/']
+  ])
+  for (const [prefix, directory] of aliases) {
+    if (specifier.startsWith(prefix)) {
+      return path.join(root, directory, specifier.slice(prefix.length))
+    }
+  }
+  return null
 }
 
 function findCycles(graph) {

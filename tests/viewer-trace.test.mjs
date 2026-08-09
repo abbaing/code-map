@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { buildModuleTraceContext, buildSystemModuleGraph, buildTraceContext } from '../viewer/viewer-trace.js'
+import { buildModuleTraceContext, buildSystemModuleGraph, buildTraceContext } from '#viewer/viewer-trace.js'
 
 const nodes = [
   ['route', 'Routes', 'route'],

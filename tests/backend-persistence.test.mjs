@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
-import { Graph } from '../graph.mjs'
-import { createBackScanSession, scanDatabase } from '../scan-back.mjs'
+import { Graph } from '#core/graph.mjs'
+import { createBackScanSession, scanDatabase } from '#scanners/scan-back.mjs'
 
 const files = {
   'back/App/Data/AppDbContext.cs': `

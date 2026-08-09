@@ -1,5 +1,5 @@
-import { importsOf } from '../source-analysis.mjs'
-import { classifyFront } from '../classify.mjs'
+import { importsOf } from '#core/source-analysis.mjs'
+import { classifyFront } from '#core/classify.mjs'
 
 export function runFileRules(
   files,

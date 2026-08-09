@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
-import { createDetectionFiles, createStackDetectorRegistry, detectSummary } from '../detect.mjs'
+import { createDetectionFiles, createStackDetectorRegistry, detectSummary } from '#core/detect.mjs'
 
 const repoRoot = path.resolve('virtual-project')
 const directories = new Map([
@@ -51,7 +51,7 @@ assert.throws(
 assert.throws(() => createDetectionFiles({ exists() {} }), /bounded filesystem capabilities/u)
 assert.throws(() => detectSummary(repoRoot), /requires detection files/u)
 
-const readme = fs.readFileSync(new URL('../README.md', import.meta.url), 'utf8')
+const readme = fs.readFileSync(new URL(import.meta.resolve('#entry/README.md')), 'utf8')
 assert.match(readme, /Specialized source analysis currently covers:/u)
 assert.match(readme, /Recognition does not enable a specialized source analyzer/u)
 assert.doesNotMatch(readme, /Auto-detection covers React, Vue, Angular/u)

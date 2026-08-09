@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { createBackendAnalysisSession } from '../backend-analysis-session.mjs'
+import { createBackendAnalysisSession } from '#core/backend-analysis-session.mjs'
 
 const first = createBackendAnalysisSession([
   {

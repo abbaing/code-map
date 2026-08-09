@@ -1,4 +1,4 @@
-import { createBackScanSession, scanDatabase } from '../scan-back.mjs'
+import { createBackScanSession, scanDatabase } from '#scanners/scan-back.mjs'
 
 export const entityFrameworkTemplate = {
   id: 'entity-framework',

@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict'
 import http from 'node:http'
-import { assertRoute, assertRouteRegistry, createRouteRegistry, defineRoute, routeContract } from '../http-routes.mjs'
-import { startServer } from '../server.mjs'
+import {
+  assertRoute,
+  assertRouteRegistry,
+  createRouteRegistry,
+  defineRoute,
+  routeContract
+} from '#core/http-routes.mjs'
+import { startServer } from '#entry/server.mjs'
 
 const customRoute = defineRoute({
   id: 'test.custom',

@@ -1,11 +1,11 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
-import { detect } from './detect-node.mjs'
-import { nodePlatform } from './platform/node.mjs'
-import { nodeTextWriter } from './json-io.mjs'
-import { writeGraph } from './scan.mjs'
-import { buildTemplateRegistry, loadTemplatePlugins } from './templates/registry.mjs'
+import { getConfigPathFromArgs, loadProjectContext } from '#core/config.mjs'
+import { detect } from '#node/detect-node.mjs'
+import { nodePlatform } from '#platform/node.mjs'
+import { nodeTextWriter } from '#node/json-io.mjs'
+import { writeGraph } from '#app/scan.mjs'
+import { buildTemplateRegistry, loadTemplatePlugins } from '#templates/registry.mjs'
 
 export async function runNodeScan({ platform = nodePlatform } = {}) {
   const { environment, fileSystem } = platform

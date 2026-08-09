@@ -4,8 +4,8 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { assertCommand } from '../command-registry.mjs'
-import { submapCommands } from '../submap/cli.mjs'
+import { assertCommand } from '#core/command-registry.mjs'
+import { submapCommands } from '#submap/cli.mjs'
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const cliPath = path.join(packageRoot, 'cli.mjs')

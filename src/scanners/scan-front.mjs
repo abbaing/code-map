@@ -1,7 +1,7 @@
-import { displayLabel, importsOf, stripTsComments } from './source-analysis.mjs'
-import { classifyFront, featureFromRepoPath } from './classify.mjs'
-import { addEndpoint, extractFrontendEndpoints } from './endpoints.mjs'
-import { resolveTsImport } from './resolve.mjs'
+import { displayLabel, importsOf, stripTsComments } from '#core/source-analysis.mjs'
+import { classifyFront, featureFromRepoPath } from '#core/classify.mjs'
+import { addEndpoint, extractFrontendEndpoints } from '#core/endpoints.mjs'
+import { resolveTsImport } from '#core/resolve.mjs'
 
 export function detectFrontBehavior(content) {
   const checks = [

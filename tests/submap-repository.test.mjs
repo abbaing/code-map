@@ -2,16 +2,16 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { nodePlatform } from '../platform/node.mjs'
-import { runSubmapCli } from '../submap/cli.mjs'
-import { nodeSubmapCliCapabilities } from '../submap/cli-node.mjs'
+import { nodePlatform } from '#platform/node.mjs'
+import { runSubmapCli } from '#submap/cli.mjs'
+import { nodeSubmapCliCapabilities } from '#submap/cli-node.mjs'
 import {
   SubmapError,
   assertSubmapRepository,
   createSubmap,
   nodeSubmapRepository,
   submapRepositoryContract
-} from '../submap/index.mjs'
+} from '#submap/index.mjs'
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-map-submap-repository-'))
 const memoryRepository = createMemoryRepository()

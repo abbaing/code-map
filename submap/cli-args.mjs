@@ -1,4 +1,4 @@
-import { SubmapError } from './errors.mjs'
+import { SubmapError } from '#submap/errors.mjs'
 
 const BOOLEAN_OPTIONS = new Set(['stdout', 'quiet', 'force', 'json', 'json-errors', 'non-interactive', 'help'])
 

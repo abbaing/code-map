@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
-import { capabilityInput, assertTemplate } from '../templates/contracts.mjs'
-import { buildTemplateRegistry, registerTemplate } from '../templates/registry.mjs'
+import { capabilityInput, assertTemplate } from '#templates/contracts.mjs'
+import { buildTemplateRegistry, registerTemplate } from '#templates/registry.mjs'
 
 assert.throws(() => assertTemplate({}), /Template id must be a non-empty string/u)
 assert.throws(() => assertTemplate({ id: 'missing-description' }), /description must be a non-empty string/u)

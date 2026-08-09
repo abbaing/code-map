@@ -1,4 +1,4 @@
-import { tsExtensions } from './source-analysis.mjs'
+import { tsExtensions } from '#core/source-analysis.mjs'
 
 export function aliases(projectContext) {
   return projectContext.projectMap.imports.aliases.map((alias) => [

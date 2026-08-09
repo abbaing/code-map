@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
-import { createScanPipeline, defineScanPhase } from '../scan-pipeline.mjs'
-import { createDefaultScanPipeline } from '../scan.mjs'
+import { createScanPipeline, defineScanPhase } from '#core/scan-pipeline.mjs'
+import { createDefaultScanPipeline } from '#app/scan.mjs'
 
 const calls = []
 const pipeline = createScanPipeline([

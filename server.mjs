@@ -1,19 +1,27 @@
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
-import { detect } from './detect-node.mjs'
-import { loadTemplatePlugins } from './templates/registry.mjs'
-import { ApplicationInputError, assertServerApplication, createServerApplication } from './server-app.mjs'
-import { nodeServerApplicationServices } from './server-app-node.mjs'
-import { SubmapError } from './submap/errors.mjs'
-import { nodePlatform } from './platform/node.mjs'
-import { assertRoute, assertRouteRegistry, createRouteRegistry, defineRoute } from './http-routes.mjs'
+import { getConfigPathFromArgs, loadProjectContext } from '#core/config.mjs'
+import { detect } from '#node/detect-node.mjs'
+import { loadTemplatePlugins } from '#templates/registry.mjs'
+import { ApplicationInputError, assertServerApplication, createServerApplication } from '#app/server-app.mjs'
+import { nodeServerApplicationServices } from '#node/server-app-node.mjs'
+import { SubmapError } from '#submap/errors.mjs'
+import { nodePlatform } from '#platform/node.mjs'
+import { assertRoute, assertRouteRegistry, createRouteRegistry, defineRoute } from '#core/http-routes.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const viewerRoot = path.join(__dirname, 'viewer')
 const indexPath = path.join(viewerRoot, 'viewer.html')
+const viewerImportMapSource = fs
+  .readFileSync(indexPath, 'utf8')
+  .match(/<script type="importmap">([\s\S]*?)<\/script>/u)?.[1]
+if (!viewerImportMapSource) {
+  throw new Error('Viewer import map is missing')
+}
+const viewerImportMapHash = crypto.createHash('sha256').update(viewerImportMapSource).digest('base64')
 const viewerAssets = new Map(
   [
     'tailwind.css',
@@ -61,7 +69,7 @@ const contentTypes = {
 const securityHeaders = {
   'Content-Security-Policy': [
     "default-src 'none'",
-    "script-src 'self'",
+    `script-src 'self' 'sha256-${viewerImportMapHash}'`,
     "script-src-attr 'none'",
     "style-src 'self'",
     "style-src-elem 'self'",

@@ -1,6 +1,6 @@
 import path from 'node:path'
-import { classifyBack, featureFromRepoPath } from './classify.mjs'
-import { displayLabel, escapeRegExp, stripCSharpComments, stripCSharpStringLiterals } from './source-analysis.mjs'
+import { classifyBack, featureFromRepoPath } from '#core/classify.mjs'
+import { displayLabel, escapeRegExp, stripCSharpComments, stripCSharpStringLiterals } from '#core/source-analysis.mjs'
 
 export function scanBackFiles(graph, files, projectContext, session, sourceReader) {
   const { toRepoPath } = projectContext

@@ -20,6 +20,17 @@ export default [
       curly: 'error',
       eqeqeq: ['error', 'always', { null: 'ignore' }],
       'no-console': 'off',
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['./*', '../*'],
+              message: 'Use a scoped package alias for repository modules.'
+            }
+          ]
+        }
+      ],
       'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'no-var': 'error',
       'object-shorthand': 'error',

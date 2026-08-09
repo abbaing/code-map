@@ -1,11 +1,11 @@
-import { filesystemTemplate } from './core.mjs'
-import { typescriptTemplate } from './typescript.mjs'
-import { reactTemplate } from './react.mjs'
-import { httpEndpointsTemplate } from './http-endpoints.mjs'
-import { dotnetApiTemplate } from './dotnet-api.mjs'
-import { entityFrameworkTemplate } from './entity-framework.mjs'
-import { coverageTemplate, qualityTemplate } from './quality.mjs'
-import { architectureTemplates } from './architectures.mjs'
+import { filesystemTemplate } from '#templates/core.mjs'
+import { typescriptTemplate } from '#templates/typescript.mjs'
+import { reactTemplate } from '#templates/react.mjs'
+import { httpEndpointsTemplate } from '#templates/http-endpoints.mjs'
+import { dotnetApiTemplate } from '#templates/dotnet-api.mjs'
+import { entityFrameworkTemplate } from '#templates/entity-framework.mjs'
+import { coverageTemplate, qualityTemplate } from '#templates/quality.mjs'
+import { architectureTemplates } from '#templates/architectures.mjs'
 
 export const templateCatalog = [
   filesystemTemplate,

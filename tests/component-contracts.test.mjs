@@ -2,11 +2,11 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { componentRoles, components, componentStatusValues } from '../architecture/components.mjs'
-import { Graph } from '../graph.mjs'
-import { ARCHITECTURE_RULES } from '../rules/architecture-guardrails.mjs'
-import { RULES } from '../rules/frontend-guardrails.mjs'
-import { templateCatalog } from '../templates/catalog.mjs'
+import { componentRoles, components, componentStatusValues } from '#architecture/components.mjs'
+import { Graph } from '#core/graph.mjs'
+import { ARCHITECTURE_RULES } from '#rules/architecture-guardrails.mjs'
+import { RULES } from '#rules/frontend-guardrails.mjs'
+import { templateCatalog } from '#templates/catalog.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const statuses = new Set(componentStatusValues)

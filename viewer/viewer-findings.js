@@ -1,5 +1,13 @@
-import { els, state } from './viewer-state.js'
-import { capitalize, escapeHtml, fillSelect, formatModule, formatRuleId, pillHtml, unique } from './viewer-utils.js'
+import { els, state } from '#viewer/viewer-state.js'
+import {
+  capitalize,
+  escapeHtml,
+  fillSelect,
+  formatModule,
+  formatRuleId,
+  pillHtml,
+  unique
+} from '#viewer/viewer-utils.js'
 
 function initializeFindingsFilters() {
   const findings = state.graph?.findings ?? []

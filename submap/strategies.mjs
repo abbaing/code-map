@@ -1,5 +1,5 @@
-import { SubmapError } from './errors.mjs'
-import { ACCESS_LEVELS, resolveSelectorNodeIds } from './selectors.mjs'
+import { SubmapError } from '#submap/errors.mjs'
+import { ACCESS_LEVELS, resolveSelectorNodeIds } from '#submap/selectors.mjs'
 
 export const defaultSelectionStrategy = Object.freeze({
   id: 'selection.default',

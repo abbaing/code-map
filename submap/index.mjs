@@ -1,13 +1,13 @@
-import { createSubmap as createSubmapWithCapabilities } from './create.mjs'
+import { createSubmap as createSubmapWithCapabilities } from '#submap/create.mjs'
 import {
   validateSubmap as validateSubmapWithCapabilities,
   validateSubmapAgainstGraph as validateSubmapAgainstGraphWithCapabilities
-} from './validate.mjs'
+} from '#submap/validate.mjs'
 import {
   calculateGraphDigest as calculateGraphDigestWithCapability,
   calculateSubmapUid as calculateSubmapUidWithCapability
-} from './digest.mjs'
-import { nodePlatform } from '../platform/node.mjs'
+} from '#submap/digest.mjs'
+import { nodePlatform } from '#platform/node.mjs'
 
 export function createSubmap(graph, request, options = {}) {
   return createSubmapWithCapabilities(graph, request, {
@@ -33,15 +33,15 @@ export function calculateSubmapUid(submap, hash = nodePlatform.hash) {
   return calculateSubmapUidWithCapability(submap, hash)
 }
 
-export { compareSubmaps, inspectSubmap } from './diff.mjs'
-export { canonicalStringify } from './digest.mjs'
-export { normalizeRequest, globMatches, ACCESS_LEVELS } from './selectors.mjs'
+export { compareSubmaps, inspectSubmap } from '#submap/diff.mjs'
+export { canonicalStringify } from '#submap/digest.mjs'
+export { normalizeRequest, globMatches, ACCESS_LEVELS } from '#submap/selectors.mjs'
 export {
   defaultSelectionStrategy,
   defaultTraversalStrategy,
   defaultAccessStrategy,
   resolveSubmapStrategies
-} from './strategies.mjs'
+} from '#submap/strategies.mjs'
 export {
   readGraph,
   readSubmap,
@@ -52,6 +52,6 @@ export {
   defaultSubmapFilename,
   listSubmapFiles,
   nodeSubmapRepository
-} from './io.mjs'
-export { assertSubmapRepository, submapRepositoryContract } from './repository.mjs'
-export { SubmapError } from './errors.mjs'
+} from '#submap/io.mjs'
+export { assertSubmapRepository, submapRepositoryContract } from '#submap/repository.mjs'
+export { SubmapError } from '#submap/errors.mjs'

@@ -5,7 +5,7 @@ import {
   defaultSelectionStrategy,
   defaultTraversalStrategy,
   resolveSubmapStrategies
-} from '../submap/index.mjs'
+} from '#submap/index.mjs'
 
 const graph = {
   version: 1,

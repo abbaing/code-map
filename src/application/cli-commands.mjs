@@ -1,7 +1,7 @@
 import path from 'node:path'
-import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
-import { defineCommand } from './command-registry.mjs'
-import { assertTextWriter } from './writer-contract.mjs'
+import { getConfigPathFromArgs, loadProjectContext } from '#core/config.mjs'
+import { defineCommand } from '#core/command-registry.mjs'
+import { assertTextWriter } from '#core/writer-contract.mjs'
 
 export function createCliCommands({
   platform,

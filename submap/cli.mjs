@@ -1,12 +1,12 @@
 import path from 'node:path'
-import { createCommandRegistry, defineCommand } from '../command-registry.mjs'
-import { getConfigPathFromArgs, loadProjectContext } from '../config.mjs'
-import { assertSubmapRepository } from './repository.mjs'
-import { compareSubmaps, inspectSubmap } from './diff.mjs'
-import { createSubmap } from './create.mjs'
-import { SubmapError } from './errors.mjs'
-import { defaultSubmapFilename } from './io.mjs'
-import { validateSubmap, validateSubmapAgainstGraph } from './validate.mjs'
+import { createCommandRegistry, defineCommand } from '#core/command-registry.mjs'
+import { getConfigPathFromArgs, loadProjectContext } from '#core/config.mjs'
+import { assertSubmapRepository } from '#submap/repository.mjs'
+import { compareSubmaps, inspectSubmap } from '#submap/diff.mjs'
+import { createSubmap } from '#submap/create.mjs'
+import { SubmapError } from '#submap/errors.mjs'
+import { defaultSubmapFilename } from '#submap/io.mjs'
+import { validateSubmap, validateSubmapAgainstGraph } from '#submap/validate.mjs'
 import {
   assertOnlyOptions,
   createOptionNames,
@@ -16,7 +16,7 @@ import {
   requiredPositional,
   scalar,
   values
-} from './cli-args.mjs'
+} from '#submap/cli-args.mjs'
 
 export const submapCommands = Object.freeze([
   defineCommand({ id: 'submap.help', matches: ({ args }) => isHelp(args), execute: executeHelp }),

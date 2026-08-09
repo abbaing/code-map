@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 
-const packageDocument = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+const packageDocument = JSON.parse(fs.readFileSync(new URL(import.meta.resolve('#entry/package.json')), 'utf8'))
 assert.deepEqual(Object.keys(packageDocument.exports), [
   '.',
   './submap',

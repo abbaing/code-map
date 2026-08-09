@@ -1,9 +1,9 @@
-import { loadProjectContext, validateProjectMap } from './config.mjs'
-import { nodeTextWriter, writeFileAtomic, writeJsonFileAtomic } from './json-io.mjs'
-import { writeGraph } from './scan.mjs'
-import { createSubmap, defaultSubmapFilename } from './submap/index.mjs'
-import { nodeSubmapRepository } from './submap/io.mjs'
-import { buildTemplateRegistry } from './templates/registry.mjs'
+import { loadProjectContext, validateProjectMap } from '#core/config.mjs'
+import { nodeTextWriter, writeFileAtomic, writeJsonFileAtomic } from '#node/json-io.mjs'
+import { writeGraph } from '#app/scan.mjs'
+import { createSubmap, defaultSubmapFilename } from '#submap/index.mjs'
+import { nodeSubmapRepository } from '#submap/io.mjs'
+import { buildTemplateRegistry } from '#templates/registry.mjs'
 
 export const nodeServerApplicationServices = Object.freeze({
   scanner: Object.freeze({

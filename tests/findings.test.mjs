@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
-import { Graph } from '../graph.mjs'
-import { attachFindingsToNodes, createFindingCollector } from '../rules/findings.mjs'
-import { runFileRules } from '../rules/rule-runner.mjs'
+import { Graph } from '#core/graph.mjs'
+import { attachFindingsToNodes, createFindingCollector } from '#rules/findings.mjs'
+import { runFileRules } from '#rules/rule-runner.mjs'
 
 const first = createFindingCollector({
   rules: {

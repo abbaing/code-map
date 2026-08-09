@@ -13,7 +13,7 @@ export {
   stripCSharpStringLiterals,
   stripTsComments,
   tsExtensions
-} from './source-analysis.mjs'
+} from '#core/source-analysis.mjs'
 
 export function readText(filePath, fileSystem, maxBytes = maxSourceFileBytes, displayPath = String) {
   assertSourceReaderFileSystem(fileSystem)

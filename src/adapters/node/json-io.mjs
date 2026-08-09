@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { createTextWriter } from './writer-contract.mjs'
+import { createTextWriter } from '#core/writer-contract.mjs'
 
 export const nodeTextWriter = createTextWriter({ writeText: writeFileAtomic })
 

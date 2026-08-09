@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { templateCatalog } from './catalog.mjs'
-import { assertCapabilityRegistry, assertTemplate, deepFreeze } from './contracts.mjs'
+import { templateCatalog } from '#templates/catalog.mjs'
+import { assertCapabilityRegistry, assertTemplate, deepFreeze } from '#templates/contracts.mjs'
 
 const baseTemplate = {
   id: 'base',

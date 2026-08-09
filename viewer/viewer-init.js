@@ -12,16 +12,16 @@ import {
   setZoom,
   showToast,
   zoomAt
-} from './viewer-actions.js'
-import { applyFilters, configureViewerData, loadGraph } from './viewer-data.js'
-import { initializeFindingsFilters, renderFindings } from './viewer-findings.js'
-import { createGraphGateway } from './graph-gateway.mjs'
-import { render } from './viewer-graph.js'
-import { createViewerUiController } from './viewer-interactions.mjs'
-import { drillIntoModule, renderModuleDetail, renderOverview, updateViewUI } from './viewer-overview.js'
-import { clearSelectedNode, configureViewerSelection, hidePopover, selectNode } from './viewer-selection.js'
-import { els, state } from './viewer-state.js'
-import { debounce } from './viewer-utils.js'
+} from '#viewer/viewer-actions.js'
+import { applyFilters, configureViewerData, loadGraph } from '#viewer/viewer-data.js'
+import { initializeFindingsFilters, renderFindings } from '#viewer/viewer-findings.js'
+import { createGraphGateway } from '#viewer/graph-gateway.mjs'
+import { render } from '#viewer/viewer-graph.js'
+import { createViewerUiController } from '#viewer/viewer-interactions.mjs'
+import { drillIntoModule, renderModuleDetail, renderOverview, updateViewUI } from '#viewer/viewer-overview.js'
+import { clearSelectedNode, configureViewerSelection, hidePopover, selectNode } from '#viewer/viewer-selection.js'
+import { els, state } from '#viewer/viewer-state.js'
+import { debounce } from '#viewer/viewer-utils.js'
 
 configureViewerData({
   gateway: createGraphGateway(),

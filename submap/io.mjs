@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { writeJsonFileAtomic } from '../json-io.mjs'
-import { SubmapError } from './errors.mjs'
+import { writeJsonFileAtomic } from '#node/json-io.mjs'
+import { SubmapError } from '#submap/errors.mjs'
 
 export function readJson(filePath, kind = 'JSON document') {
   try {

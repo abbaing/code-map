@@ -1,8 +1,8 @@
-import { isCoverable } from './viewer-data.js'
-import { render } from './viewer-graph.js'
-import { els, state } from './viewer-state.js'
-import { scoreColor } from './viewer-svg.js'
-import { escapeHtml, formatModule, formatRuleId, formatType, healthPill, pillHtml } from './viewer-utils.js'
+import { isCoverable } from '#viewer/viewer-data.js'
+import { render } from '#viewer/viewer-graph.js'
+import { els, state } from '#viewer/viewer-state.js'
+import { scoreColor } from '#viewer/viewer-svg.js'
+import { escapeHtml, formatModule, formatRuleId, formatType, healthPill, pillHtml } from '#viewer/viewer-utils.js'
 
 let selectionOperations = null
 

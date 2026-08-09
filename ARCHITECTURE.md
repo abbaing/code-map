@@ -6,7 +6,7 @@
 
 ```text
 cli.mjs ───────────────┐
-server.mjs → server-app.mjs ─┐
+server.mjs → src/application/server-app.mjs ─┐
                               v
 config → scan → Graph → rules/templates
                     └→ submap
@@ -14,14 +14,14 @@ config → scan → Graph → rules/templates
 graph.json → viewer
 ```
 
-- `graph.mjs` owns only the in-memory graph model and has no dependencies.
-- `scan.mjs` composes an ordered pipeline whose phases declare their required inputs and produced outputs; only immutable named scanner results cross into enrichment.
-- Project detection evaluates registered stack detectors over an injected repository inspection capability; `detect-node.mjs` selects the default Node adapter.
+- `src/core/graph.mjs` owns only the in-memory graph model and has no dependencies.
+- `src/application/scan.mjs` composes an ordered pipeline whose phases declare their required inputs and produced outputs; only immutable named scanner results cross into enrichment.
+- Project detection evaluates registered stack detectors over an injected repository inspection capability; `src/adapters/node/detect-node.mjs` selects the default Node adapter.
 - Backend indexes belong to an immutable analysis session created for each scan execution.
 - Backend constructor dependency parsing and resolution is isolated as an independent scanner family.
 - Backend HTTP requests and execution-scoped session construction are isolated from file and persistence scanning.
 - Backend contexts, entities, table mappings, relationships, and ORM usage form an independent persistence scanner.
-- Backend file classification is isolated, while `scan-back.mjs` remains a compatibility-only facade.
+- Backend file classification is isolated, while `src/scanners/scan-back.mjs` remains a compatibility-only facade.
 - Deterministic source-text and path analysis is isolated from filesystem-backed source acquisition; scanners and rules receive a bounded source reader explicitly.
 - Source discovery and bounded reads operate through project-scoped filesystem and path capabilities without ambient runtime access.
 - Each scan owns a finding collector; rules receive its write capability while graph finalization receives its read capability.
@@ -29,7 +29,7 @@ graph.json → viewer
 - `templates/` extends scanning through validated capability objects that declare their required and optional inputs.
 - Executable and public composition boundaries build the effective template registry before invoking the scan orchestrator.
 - `submap/` keeps selection, traversal, access, digest, diff, and validation independent from its CLI adapter; its policies are validated strategies and persistence enters through a repository contract.
-- `server-app.mjs` coordinates injected scan, configuration, and submap capabilities; `server.mjs` selects Node adapters and dispatches through a validated route registry.
+- `src/application/server-app.mjs` coordinates injected scan, configuration, and submap capabilities; `server.mjs` selects Node adapters and dispatches through a validated route registry.
 - `viewer/` consumes the serialized graph and does not reach into Node.js modules.
 - `platform/` defines runtime capabilities and contains the Node adapter selected by executable boundaries.
 - `cli.mjs` assembles validated command implementations and selects detection, scanning, template, viewer, and submap capabilities; command selection and exit results are runtime-independent.

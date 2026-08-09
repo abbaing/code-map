@@ -1,8 +1,8 @@
 import path from 'node:path'
-import { featureFromRepoPath } from './classify.mjs'
-import { addEndpoint, normalizeEndpoint } from './endpoints.mjs'
-import { findBackFileByName } from './scan-back-session.mjs'
-import { displayLabel, escapeRegExp, stripCSharpComments, stripCSharpStringLiterals } from './source-analysis.mjs'
+import { featureFromRepoPath } from '#core/classify.mjs'
+import { addEndpoint, normalizeEndpoint } from '#core/endpoints.mjs'
+import { findBackFileByName } from '#scanners/scan-back-session.mjs'
+import { displayLabel, escapeRegExp, stripCSharpComments, stripCSharpStringLiterals } from '#core/source-analysis.mjs'
 
 export function scanControllers(graph, files, projectContext, session, sourceReader) {
   const { toRepoPath } = projectContext

@@ -1,5 +1,5 @@
-import { colors, state } from './viewer-state.js'
-import { escapeHtml, formatModule, formatType, truncate } from './viewer-utils.js'
+import { colors, state } from '#viewer/viewer-state.js'
+import { escapeHtml, formatModule, formatType, truncate } from '#viewer/viewer-utils.js'
 
 function systemModuleEdgeSvg(edge, nodeById) {
   const from = nodeById.get(edge.from)

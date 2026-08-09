@@ -1,4 +1,4 @@
-import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from './rule-runner.mjs'
+import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from '#rules/rule-runner.mjs'
 
 // Rule interface: { id, defaultEnabled, meta, check(nodeId, repoPath, content, type, projectMap) }
 

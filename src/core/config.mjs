@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { assertPlatform } from './platform/contracts.mjs'
+import { assertPlatform } from '#platform/contracts.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export const defaultProjectMapPath = path.join(__dirname, 'presets/starter.project-map.json')

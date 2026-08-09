@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
-import { Graph } from '../graph.mjs'
-import { applyQualityMetrics, createQualityScoringPolicy, defaultQualityScoringPolicy } from '../quality.mjs'
+import { Graph } from '#core/graph.mjs'
+import { applyQualityMetrics, createQualityScoringPolicy, defaultQualityScoringPolicy } from '#core/quality.mjs'
 
 const projectContext = {
   projectMap: {

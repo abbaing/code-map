@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { populateSettingsTab } from '../viewer/viewer-actions.js'
-import { renderFindingsTable } from '../viewer/viewer-findings.js'
-import { nodesForRender, render, renderingStrategies } from '../viewer/viewer-graph.js'
-import { layoutNodes, layoutSystemModules } from '../viewer/viewer-layouts.js'
+import { populateSettingsTab } from '#viewer/viewer-actions.js'
+import { renderFindingsTable } from '#viewer/viewer-findings.js'
+import { nodesForRender, render, renderingStrategies } from '#viewer/viewer-graph.js'
+import { layoutNodes, layoutSystemModules } from '#viewer/viewer-layouts.js'
 import {
   colors,
   configureViewerElements,
@@ -12,13 +12,13 @@ import {
   moduleLabels,
   state,
   typeLabels
-} from '../viewer/viewer-state.js'
+} from '#viewer/viewer-state.js'
 
-const viewerHtml = fs.readFileSync(new URL('../viewer/viewer.html', import.meta.url), 'utf8')
-const tailwindCss = fs.readFileSync(new URL('../viewer/tailwind.css', import.meta.url), 'utf8')
-const findingsSource = fs.readFileSync(new URL('../viewer/viewer-findings.js', import.meta.url), 'utf8')
-const actionsSource = fs.readFileSync(new URL('../viewer/viewer-actions.js', import.meta.url), 'utf8')
-const interactionsSource = fs.readFileSync(new URL('../viewer/viewer-interactions.mjs', import.meta.url), 'utf8')
+const viewerHtml = fs.readFileSync(new URL(import.meta.resolve('#viewer/viewer.html')), 'utf8')
+const tailwindCss = fs.readFileSync(new URL(import.meta.resolve('#viewer/tailwind.css')), 'utf8')
+const findingsSource = fs.readFileSync(new URL(import.meta.resolve('#viewer/viewer-findings.js')), 'utf8')
+const actionsSource = fs.readFileSync(new URL(import.meta.resolve('#viewer/viewer-actions.js')), 'utf8')
+const interactionsSource = fs.readFileSync(new URL(import.meta.resolve('#viewer/viewer-interactions.mjs')), 'utf8')
 assert.match(
   viewerHtml,
   /<link rel="stylesheet" href="\/tailwind\.css" \/>/u,
@@ -35,10 +35,12 @@ assert.doesNotMatch(
   'the viewer must not load remote scripts or stylesheets'
 )
 assert.match(viewerHtml, /<script type="module" src="\/viewer-init\.js"><\/script>/u)
+assert.match(viewerHtml, /<script type="importmap">/u)
+assert.match(viewerHtml, /"#viewer\/": "\/"/u)
 assert.equal(
   [...viewerHtml.matchAll(/<script\b/gu)].length,
-  1,
-  'the viewer must start from one explicit module entry point'
+  2,
+  'the viewer must declare one import map and one module entry point'
 )
 assert.doesNotMatch(
   `${viewerHtml}\n${findingsSource}`,

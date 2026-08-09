@@ -1,4 +1,4 @@
-import { layerLabels, moduleLabels, typeLabels } from './viewer-state.js'
+import { layerLabels, moduleLabels, typeLabels } from '#viewer/viewer-state.js'
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))]

@@ -1,7 +1,7 @@
 import path from 'node:path'
-import { featureFromRepoPath } from './classify.mjs'
-import { findBackFileByName } from './scan-back-session.mjs'
-import { escapeRegExp, stripCSharpStringLiterals } from './source-analysis.mjs'
+import { featureFromRepoPath } from '#core/classify.mjs'
+import { findBackFileByName } from '#scanners/scan-back-session.mjs'
+import { escapeRegExp, stripCSharpStringLiterals } from '#core/source-analysis.mjs'
 
 export function scanDatabase(graph, files, projectContext, session, sourceReader) {
   const { entityNodeByName, dbSetByEntity, tableByEntity } = extractDbSets(

@@ -1,5 +1,5 @@
-import { isTestFile, tsExtensions } from '../source-analysis.mjs'
-import { pickRuleMetadata } from './rule-metadata.mjs'
+import { isTestFile, tsExtensions } from '#core/source-analysis.mjs'
+import { pickRuleMetadata } from '#templates/rule-metadata.mjs'
 
 export const typescriptTemplate = {
   id: 'typescript',

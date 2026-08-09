@@ -1,6 +1,6 @@
-import { layerOrder, state } from './viewer-state.js'
-import { nodeHeight } from './viewer-trace.js'
-import { formatModule, unique } from './viewer-utils.js'
+import { layerOrder, state } from '#viewer/viewer-state.js'
+import { nodeHeight } from '#viewer/viewer-trace.js'
+import { formatModule, unique } from '#viewer/viewer-utils.js'
 
 function layoutSystemModules(nodes, width, height) {
   const sorted = [...nodes].sort((a, b) => {

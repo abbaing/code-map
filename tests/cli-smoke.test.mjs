@@ -5,7 +5,7 @@ import http from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { startServer } from '../server.mjs'
+import { startServer } from '#entry/server.mjs'
 
 const testDir = path.dirname(fileURLToPath(import.meta.url))
 const packageRoot = path.resolve(testDir, '..')
@@ -324,6 +324,11 @@ await withServer(['--config', arbitraryConfigPath, '--allow-plugins'], arbitrary
   assert.match(contentSecurityPolicy, /default-src 'none'/u)
   assert.match(contentSecurityPolicy, /script-src 'self'/u)
   assert.match(contentSecurityPolicy, /script-src-attr 'none'/u, 'inline event handlers must be blocked by policy')
+  assert.match(
+    contentSecurityPolicy,
+    /script-src[^;]*'sha256-/u,
+    'the static viewer import map must be hash-authorized'
+  )
   assert.doesNotMatch(contentSecurityPolicy, /script-src[^;]*'unsafe-inline'/u)
   assert.match(
     contentSecurityPolicy,

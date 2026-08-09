@@ -90,7 +90,7 @@ Concrete dependencies may be assembled only in these locations:
 
 - `cli.mjs`: root CLI commands and Node adapters;
 - `server.mjs`: HTTP routes, server application, security policy, and Node HTTP adapter;
-- `scan-node.mjs`: direct Node scan execution and adapter selection;
+- `src/adapters/node/scan-node.mjs`: direct Node scan execution and adapter selection;
 - `templates/registry.mjs`: ordered template and capability composition;
 - `viewer/viewer-init.js`: browser store, gateways, controllers, and render strategies;
 - tests: fakes, fixtures, clocks, and failure adapters.

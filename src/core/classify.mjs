@@ -1,4 +1,4 @@
-import { kebab, findComponentDirIndex } from './source-analysis.mjs'
+import { kebab, findComponentDirIndex } from '#core/source-analysis.mjs'
 
 export function createSourceClassifier(strategies) {
   if (!Array.isArray(strategies) || strategies.length === 0) {

@@ -1,4 +1,4 @@
-import { createViewerStore } from './viewer-store.mjs'
+import { createViewerStore } from '#viewer/viewer-store.mjs'
 
 export const NODE_RENDER_LIMIT = 400
 export const DOMAIN_RENDER_LIMIT = 1200

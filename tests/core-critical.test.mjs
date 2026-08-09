@@ -2,11 +2,11 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { Graph } from '../graph.mjs'
-import { createProjectContext, loadProjectContext, normalizeProjectMap, validateProjectMap } from '../config.mjs'
-import { buildTemplateRegistry, loadTemplatePlugins, registerTemplate } from '../templates/registry.mjs'
-import { SubmapError, readJson, writeJsonAtomic } from '../submap/index.mjs'
-import { nodePlatform } from '../platform/node.mjs'
+import { Graph } from '#core/graph.mjs'
+import { createProjectContext, loadProjectContext, normalizeProjectMap, validateProjectMap } from '#core/config.mjs'
+import { buildTemplateRegistry, loadTemplatePlugins, registerTemplate } from '#templates/registry.mjs'
+import { SubmapError, readJson, writeJsonAtomic } from '#submap/index.mjs'
+import { nodePlatform } from '#platform/node.mjs'
 
 const graph = new Graph()
 graph.addNode('a', { label: 'A', type: 'service', meta: { first: true } })

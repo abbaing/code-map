@@ -6,7 +6,7 @@ import {
   createSubmap,
   validateSubmap,
   validateSubmapAgainstGraph
-} from '../submap/index.mjs'
+} from '#submap/index.mjs'
 
 const graph = fixtureGraph()
 

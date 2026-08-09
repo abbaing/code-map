@@ -5,8 +5,8 @@ import {
   scanRequestDispatches,
   scanRequestHandlers,
   createBackScanSession
-} from '../scan-back.mjs'
-import { isBackTestFile } from '../source-analysis.mjs'
+} from '#scanners/scan-back.mjs'
+import { isBackTestFile } from '#core/source-analysis.mjs'
 
 export const dotnetApiTemplate = {
   id: 'dotnet-api',

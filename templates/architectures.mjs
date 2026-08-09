@@ -1,4 +1,4 @@
-import { pickRuleMetadata } from './rule-metadata.mjs'
+import { pickRuleMetadata } from '#templates/rule-metadata.mjs'
 
 export const architectureTemplates = [
   {

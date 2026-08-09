@@ -1,6 +1,6 @@
-import { assertGraphGateway } from './graph-gateway.mjs'
-import { colors, els, layerLabels, layerOrder, moduleLabels, state, typeLabels } from './viewer-state.js'
-import { moduleTraceNodeIds } from './viewer-trace.js'
+import { assertGraphGateway } from '#viewer/graph-gateway.mjs'
+import { colors, els, layerLabels, layerOrder, moduleLabels, state, typeLabels } from '#viewer/viewer-state.js'
+import { moduleTraceNodeIds } from '#viewer/viewer-trace.js'
 import {
   escapeHtml,
   formatRuleId,
@@ -9,7 +9,7 @@ import {
   ruleLabels,
   scoreToHealthKey,
   unique
-} from './viewer-utils.js'
+} from '#viewer/viewer-utils.js'
 
 let graphGateway = null
 let viewOperations = null

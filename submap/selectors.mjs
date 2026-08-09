@@ -1,4 +1,4 @@
-import { SubmapError } from './errors.mjs'
+import { SubmapError } from '#submap/errors.mjs'
 
 const ACCESS_LEVELS = ['editable', 'readable', 'external', 'forbidden', 'generated']
 

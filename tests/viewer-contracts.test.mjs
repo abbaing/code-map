@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
-import { GraphGatewayError, assertGraphGateway, createGraphGateway } from '../viewer/graph-gateway.mjs'
-import { assertTraceStrategy, createTraceStrategy } from '../viewer/trace-strategy.mjs'
-import { configureViewerData } from '../viewer/viewer-data.js'
-import { assertViewerStore, createViewerStore } from '../viewer/viewer-store.mjs'
+import { GraphGatewayError, assertGraphGateway, createGraphGateway } from '#viewer/graph-gateway.mjs'
+import { assertTraceStrategy, createTraceStrategy } from '#viewer/trace-strategy.mjs'
+import { configureViewerData } from '#viewer/viewer-data.js'
+import { assertViewerStore, createViewerStore } from '#viewer/viewer-store.mjs'
 
 const store = createViewerStore({ selectedId: null, selectedTypes: new Set(['page']) })
 assertViewerStore(store)

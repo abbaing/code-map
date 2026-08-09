@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { readJson, readJsonStdin } from './io.mjs'
+import { readJson, readJsonStdin } from '#submap/io.mjs'
 
 export const nodeSubmapCliCapabilities = Object.freeze({
   documents: Object.freeze({ read: readJson, readStdin: readJsonStdin }),

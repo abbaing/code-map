@@ -13,14 +13,14 @@ import {
   stripCSharpStringLiterals,
   stripTsComments,
   tsExtensions
-} from '../source-analysis.mjs'
+} from '#core/source-analysis.mjs'
 import {
   SourceFileTooLargeError,
   createSourceReader,
   importsOf as compatibleImportsOf,
   normalizePath as compatibleNormalizePath,
   walk
-} from '../scan-utils.mjs'
+} from '#core/scan-utils.mjs'
 
 assert.equal(normalizePath('src\\features\\orders\\index.ts'), 'src/features/orders/index.ts')
 assert.equal(displayLabel('src/features/orders/index.ts'), 'orders')

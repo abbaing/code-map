@@ -1,6 +1,10 @@
-import { createEdgeRendererRegistry, createLayoutRegistry, createNodeRendererRegistry } from './rendering-contracts.mjs'
-import { layoutNodes, layoutSystemModules } from './viewer-layouts.js'
-import { DOMAIN_RENDER_LIMIT, els, NODE_RENDER_LIMIT, state } from './viewer-state.js'
+import {
+  createEdgeRendererRegistry,
+  createLayoutRegistry,
+  createNodeRendererRegistry
+} from '#viewer/rendering-contracts.mjs'
+import { layoutNodes, layoutSystemModules } from '#viewer/viewer-layouts.js'
+import { DOMAIN_RENDER_LIMIT, els, NODE_RENDER_LIMIT, state } from '#viewer/viewer-state.js'
 import {
   edgeSvg,
   graphModuleBandSvg,
@@ -8,14 +12,14 @@ import {
   nodeGraphSvg,
   systemModuleEdgeSvg,
   systemModuleNodeSvg
-} from './viewer-svg.js'
+} from '#viewer/viewer-svg.js'
 import {
   applyTraceFocusLayout,
   buildModuleTraceContext,
   buildSystemModuleGraph,
   buildTraceContext
-} from './viewer-trace.js'
-import { escapeHtml, formatLayer, formatModule } from './viewer-utils.js'
+} from '#viewer/viewer-trace.js'
+import { escapeHtml, formatLayer, formatModule } from '#viewer/viewer-utils.js'
 
 const layoutRegistry = createLayoutRegistry([
   { id: 'system', layout: ({ nodes, width, height }) => layoutSystemModules(nodes, width, height) },

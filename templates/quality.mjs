@@ -1,7 +1,7 @@
-import { applyQualityMetrics, defaultQualityScoringPolicy } from '../quality.mjs'
-import { runArchitectureGuardrails } from '../rules/architecture-guardrails.mjs'
-import { runFrontendGuardrails } from '../rules/frontend-guardrails.mjs'
-import { attachFindingsToNodes } from '../rules/findings.mjs'
+import { applyQualityMetrics, defaultQualityScoringPolicy } from '#core/quality.mjs'
+import { runArchitectureGuardrails } from '#rules/architecture-guardrails.mjs'
+import { runFrontendGuardrails } from '#rules/frontend-guardrails.mjs'
+import { attachFindingsToNodes } from '#rules/findings.mjs'
 
 export const coverageTemplate = {
   id: 'coverage',

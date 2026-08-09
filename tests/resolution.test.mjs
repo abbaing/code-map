@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import path from 'node:path'
-import { createImportResolver, resolveTsImport } from '../resolve.mjs'
+import { createImportResolver, resolveTsImport } from '#core/resolve.mjs'
 
 const repoRoot = path.resolve('virtual-project')
 const existingFiles = new Set([

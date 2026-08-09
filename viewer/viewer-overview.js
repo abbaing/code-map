@@ -1,7 +1,7 @@
-import { applyFilters, isCoverable } from './viewer-data.js'
-import { selectedNodeDetailHtml } from './viewer-selection.js'
-import { els, state } from './viewer-state.js'
-import { escapeHtml, formatModule, healthPill, pillHtml, scoreToHealthKey } from './viewer-utils.js'
+import { applyFilters, isCoverable } from '#viewer/viewer-data.js'
+import { selectedNodeDetailHtml } from '#viewer/viewer-selection.js'
+import { els, state } from '#viewer/viewer-state.js'
+import { escapeHtml, formatModule, healthPill, pillHtml, scoreToHealthKey } from '#viewer/viewer-utils.js'
 
 function buildModuleStats() {
   const modules = new Map()

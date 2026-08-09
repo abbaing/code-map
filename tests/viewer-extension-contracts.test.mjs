@@ -6,10 +6,10 @@ import {
   createEdgeRendererRegistry,
   createLayoutRegistry,
   createNodeRendererRegistry
-} from '../viewer/rendering-contracts.mjs'
-import { assertViewController, createViewController, createViewControllerRegistry } from '../viewer/view-controller.mjs'
-import { createViewerUiController } from '../viewer/viewer-interactions.mjs'
-import { configureViewerSelection } from '../viewer/viewer-selection.js'
+} from '#viewer/rendering-contracts.mjs'
+import { assertViewController, createViewController, createViewControllerRegistry } from '#viewer/view-controller.mjs'
+import { createViewerUiController } from '#viewer/viewer-interactions.mjs'
+import { configureViewerSelection } from '#viewer/viewer-selection.js'
 
 const layouts = [
   { id: 'grid', layout: ({ nodes }) => nodes.map((node, index) => ({ ...node, x: index, y: 0 })) },

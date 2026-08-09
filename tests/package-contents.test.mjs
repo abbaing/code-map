@@ -35,7 +35,7 @@ for (const required of [
   'viewer/viewer.html',
   'viewer/viewer-init.js',
   'viewer/viewer-interactions.mjs',
-  'writer-contract.mjs'
+  'src/core/writer-contract.mjs'
 ]) {
   assert.equal(paths.includes(required), true, `published package must include ${required}`)
 }
@@ -43,7 +43,7 @@ for (const required of [
 assert.equal(
   paths.some((file) => /(?:^|\/)\.\.(?:\/|$)/u.test(file)),
   false,
-  'package paths must remain relative'
+  'package paths must not traverse parent directories'
 )
 assert.equal(report.entryCount, paths.length, 'reported package entry count must match the file list')
 console.log(

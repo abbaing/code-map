@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { classifyBack, classifyFront, createSourceClassifier, featureFromRepoPath } from '../classify.mjs'
+import { classifyBack, classifyFront, createSourceClassifier, featureFromRepoPath } from '#core/classify.mjs'
 
 const projectContext = {
   projectMap: {

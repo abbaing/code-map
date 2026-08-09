@@ -1,5 +1,5 @@
-import { escapeRegExp } from '../source-analysis.mjs'
-import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from './rule-runner.mjs'
+import { escapeRegExp } from '#core/source-analysis.mjs'
+import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from '#rules/rule-runner.mjs'
 
 const reactStateHooks = /\buse(State|Effect|Memo|Callback|Reducer|Ref)\s*\(/g
 const reactRoutingHooks = /\buse(Navigate|Params|SearchParams|Location)\s*\(/g

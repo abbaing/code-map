@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
-import { createCliCommands } from '../cli-commands.mjs'
+import { createCliCommands } from '#app/cli-commands.mjs'
 import {
   assertCommand,
   assertCommandRegistry,
   commandContract,
   createCommandRegistry,
   defineCommand
-} from '../command-registry.mjs'
+} from '#core/command-registry.mjs'
 
 const calls = []
 const selected = defineCommand({

@@ -29,8 +29,8 @@ try {
   }
   fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
 
-  const { loadProjectContext } = await import('../config.mjs')
-  const { nodePlatform } = await import('../platform/node.mjs')
+  const { loadProjectContext } = await import('#core/config.mjs')
+  const { nodePlatform } = await import('#platform/node.mjs')
   const {
     ApplicationInputError,
     assertServerApplication,
@@ -38,8 +38,8 @@ try {
     createServerApplication,
     serverApplicationContract,
     serverApplicationServicesContract
-  } = await import('../server-app.mjs')
-  const { nodeServerApplicationServices } = await import('../server-app-node.mjs')
+  } = await import('#app/server-app.mjs')
+  const { nodeServerApplicationServices } = await import('#node/server-app-node.mjs')
 
   const projectContext = loadProjectContext(configPath, { repoRoot: tempRoot, platform: nodePlatform })
   const delegatedCalls = []

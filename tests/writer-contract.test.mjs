@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { nodeTextWriter } from '../json-io.mjs'
-import { assertTextWriter, createTextWriter } from '../writer-contract.mjs'
+import { nodeTextWriter } from '#node/json-io.mjs'
+import { assertTextWriter, createTextWriter } from '#core/writer-contract.mjs'
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-map-writer-'))
 const memoryDocuments = new Map()

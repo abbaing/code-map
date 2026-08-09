@@ -1,5 +1,5 @@
-import { featureFromRepoPath } from './classify.mjs'
-import { escapeRegExp, stripCSharpComments, stripCSharpStringLiterals } from './source-analysis.mjs'
+import { featureFromRepoPath } from '#core/classify.mjs'
+import { escapeRegExp, stripCSharpComments, stripCSharpStringLiterals } from '#core/source-analysis.mjs'
 
 export function scanBackDependencies(graph, files, projectContext, session, sourceReader) {
   const { toRepoPath } = projectContext

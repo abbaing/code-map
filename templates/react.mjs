@@ -1,5 +1,5 @@
-import { scanFront } from '../scan-front.mjs'
-import { pickRuleMetadata } from './rule-metadata.mjs'
+import { scanFront } from '#scanners/scan-front.mjs'
+import { pickRuleMetadata } from '#templates/rule-metadata.mjs'
 
 export const reactTemplate = {
   id: 'react',

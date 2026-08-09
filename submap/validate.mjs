@@ -1,6 +1,6 @@
-import { calculateGraphDigest, calculateSubmapUid, canonicalStringify } from './digest.mjs'
-import { ACCESS_LEVELS } from './selectors.mjs'
-import { validationIssue } from './errors.mjs'
+import { calculateGraphDigest, calculateSubmapUid, canonicalStringify } from '#submap/digest.mjs'
+import { ACCESS_LEVELS } from '#submap/selectors.mjs'
+import { validationIssue } from '#submap/errors.mjs'
 
 export function validateSubmap(submap, hash) {
   const errors = []

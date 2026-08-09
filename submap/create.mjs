@@ -1,7 +1,7 @@
-import { calculateGraphDigest, calculateSubmapUid } from './digest.mjs'
-import { ACCESS_LEVELS, normalizeRequest, selectorIsEmpty } from './selectors.mjs'
-import { SubmapError } from './errors.mjs'
-import { resolveNodeAccess, resolveSubmapStrategies, selectNodeIds, traverseNodeIds } from './strategies.mjs'
+import { calculateGraphDigest, calculateSubmapUid } from '#submap/digest.mjs'
+import { ACCESS_LEVELS, normalizeRequest, selectorIsEmpty } from '#submap/selectors.mjs'
+import { SubmapError } from '#submap/errors.mjs'
+import { resolveNodeAccess, resolveSubmapStrategies, selectNodeIds, traverseNodeIds } from '#submap/strategies.mjs'
 
 export function createSubmap(graph, request, options = {}) {
   const clock = options.clock
