@@ -117,8 +117,8 @@ export const components = [
     files: ['endpoints.mjs'],
     contracts: ['EndpointAnalyzer'],
     compositionRoot: false,
-    design: designStatus('pass', 'gap', 'not-applicable', 'pass', 'pass'),
-    decision: 'Extraction patterns require modification for new client conventions; introduce ordered extractors.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Add client conventions as ordered endpoint extractors with shared normalization.'
   },
   {
     id: 'quality',

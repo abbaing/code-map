@@ -143,14 +143,56 @@ export function expandFrontendUrl(value, baseUrl) {
 const HTTP_CALL_PATTERN = /\b(?:apiClient|repository|Repository|\.request|\.get|\.post|\.put|\.patch|\.delete)\s*[(<]/i
 
 export function extractFrontendEndpoints(content, importedBindings = new Map()) {
-  const endpoints = []
-
   const urlBindings = new Map(importedBindings)
   for (const [name, value] of collectUrlBindings(content)) {
     urlBindings.set(name, value)
   }
   const baseUrl = primaryBaseUrl(urlBindings)
+  return defaultEndpointExtractor.extract({ content, urlBindings, baseUrl })
+}
 
+export function createEndpointExtractor(extractors) {
+  if (!Array.isArray(extractors) || extractors.length === 0) {
+    throw new TypeError('Endpoint extractors must be a non-empty array.')
+  }
+  const ids = new Set()
+  const ordered = extractors.map((extractor) => {
+    if (!extractor || typeof extractor.id !== 'string' || typeof extractor.extract !== 'function') {
+      throw new TypeError('Endpoint extractors must declare id and extract(context).')
+    }
+    if (ids.has(extractor.id)) {
+      throw new TypeError(`Duplicate endpoint extractor id: ${extractor.id}.`)
+    }
+    ids.add(extractor.id)
+    return Object.freeze({ id: extractor.id, extract: extractor.extract.bind(extractor) })
+  })
+
+  return Object.freeze({
+    extract(context) {
+      const endpoints = []
+      for (const extractor of ordered) {
+        const result = extractor.extract(context)
+        if (!Array.isArray(result)) {
+          throw new TypeError(`Endpoint extractor ${extractor.id} must return an array.`)
+        }
+        endpoints.push(...result)
+      }
+      return normalizeExtractedEndpoints(endpoints)
+    }
+  })
+}
+
+const defaultEndpointExtractor = createEndpointExtractor([
+  { id: 'instance-methods', extract: extractInstanceMethodCalls },
+  { id: 'free-functions', extract: extractFreeFunctionCalls },
+  { id: 'request-objects', extract: extractRequestObjects },
+  { id: 'object-arguments', extract: extractObjectArguments },
+  { id: 'positional-methods', extract: extractPositionalMethods },
+  { id: 'fetch', extract: extractFetchCalls }
+])
+
+function extractInstanceMethodCalls({ content, urlBindings, baseUrl }) {
+  const endpoints = []
   const callPattern =
     /this\.(get|post|put|patch|delete|requestWithFullApiResponse|request)\s*(?:<[\s\S]{0,800}?>)?\s*\(([\s\S]{0,260}?)\)/g
   for (const match of content.matchAll(callPattern)) {
@@ -161,7 +203,11 @@ export function extractFrontendEndpoints(content, importedBindings = new Map()) 
       endpoints.push({ url, method })
     }
   }
+  return endpoints
+}
 
+function extractFreeFunctionCalls({ content, urlBindings, baseUrl }) {
+  const endpoints = []
   const freeFnPattern =
     /\b(get|post|put|patch|del|delete)\s*(?:<[\s\S]{0,800}?>)?\s*\(\s*(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[A-Za-z_$][\w$]*)/g
   for (const match of content.matchAll(freeFnPattern)) {
@@ -175,7 +221,11 @@ export function extractFrontendEndpoints(content, importedBindings = new Map()) 
       endpoints.push({ url, method })
     }
   }
+  return endpoints
+}
 
+function extractRequestObjects({ content, urlBindings, baseUrl }) {
+  const endpoints = []
   if (HTTP_CALL_PATTERN.test(content)) {
     const requestObjectPattern = /\b(?:request|apiClient\.request)\s*(?:<[\s\S]{0,800}?>)?\s*\(([\s\S]{0,620}?)\)/g
     for (const match of content.matchAll(requestObjectPattern)) {
@@ -190,7 +240,11 @@ export function extractFrontendEndpoints(content, importedBindings = new Map()) 
       }
     }
   }
+  return endpoints
+}
 
+function extractObjectArguments({ content, urlBindings, baseUrl }) {
+  const endpoints = []
   const objectCallPattern =
     /\b[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?\s*(?:<[\s\S]{0,800}?>)?\s*\(\s*\{([\s\S]{0,900}?)\}\s*\)/g
   for (const match of content.matchAll(objectCallPattern)) {
@@ -207,7 +261,11 @@ export function extractFrontendEndpoints(content, importedBindings = new Map()) 
       endpoints.push({ url, method })
     }
   }
+  return endpoints
+}
 
+function extractPositionalMethods({ content, urlBindings, baseUrl }) {
+  const endpoints = []
   const positionalMethodPattern =
     /\b[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?\s*(?:<[\s\S]{0,800}?>)?\s*\(\s*['"](GET|POST|PUT|PATCH|DELETE)['"]\s*,\s*(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|this\.[A-Za-z_$][\w$]*|[A-Za-z_$][\w$]*)/g
   for (const match of content.matchAll(positionalMethodPattern)) {
@@ -216,7 +274,11 @@ export function extractFrontendEndpoints(content, importedBindings = new Map()) 
       endpoints.push({ url, method: match[1] })
     }
   }
+  return endpoints
+}
 
+function extractFetchCalls({ content, urlBindings, baseUrl }) {
+  const endpoints = []
   const fetchPattern =
     /\bfetch\s*\(\s*(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[A-Za-z_$][\w$]*)([\s\S]{0,420}?)\)/g
   for (const match of content.matchAll(fetchPattern)) {
@@ -227,7 +289,10 @@ export function extractFrontendEndpoints(content, importedBindings = new Map()) 
     const method = match[2].match(/\bmethod:\s*['"](\w+)['"]/)?.[1]?.toUpperCase() ?? 'GET'
     endpoints.push({ url, method })
   }
+  return endpoints
+}
 
+function normalizeExtractedEndpoints(endpoints) {
   const specificMethods = new Map()
   const normalized = []
   for (const endpoint of endpoints) {
