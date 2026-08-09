@@ -21,6 +21,7 @@ graph.json → viewer
 - `submap/` keeps selection, traversal, digest, diff, and validation independent from its CLI adapter.
 - `server-app.mjs` owns server-facing use cases; `server.mjs` only adapts HTTP and static files.
 - `viewer/` consumes the serialized graph and does not reach into Node.js modules.
+- `platform/` defines runtime capabilities and contains the Node adapter selected by executable boundaries.
 
 ## Component design policy
 

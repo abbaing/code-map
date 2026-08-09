@@ -2,7 +2,7 @@ import { calculateGraphDigest, calculateSubmapUid, canonicalStringify } from './
 import { ACCESS_LEVELS } from './selectors.mjs'
 import { validationIssue } from './errors.mjs'
 
-export function validateSubmap(submap) {
+export function validateSubmap(submap, hash) {
   const errors = []
   const warnings = []
   if (!submap || typeof submap !== 'object') {
@@ -109,7 +109,7 @@ export function validateSubmap(submap) {
   }
 
   validateStatistics(submap, errors)
-  if (typeof submap.uid !== 'string' || submap.uid !== calculateSubmapUid(submap)) {
+  if (typeof submap.uid !== 'string' || submap.uid !== calculateSubmapUid(submap, hash)) {
     errors.push(validationIssue('SUBMAP_UID_MISMATCH', 'uid does not match the normalized submap content.'))
   }
   if (!submap.source?.graphDigest?.startsWith('sha256:')) {
@@ -118,8 +118,8 @@ export function validateSubmap(submap) {
   return { valid: errors.length === 0, errors, warnings }
 }
 
-export function validateSubmapAgainstGraph(submap, graph) {
-  const result = validateSubmap(submap)
+export function validateSubmapAgainstGraph(submap, graph, hash) {
+  const result = validateSubmap(submap, hash)
   const errors = [...result.errors]
   const warnings = [...result.warnings]
   if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
@@ -127,7 +127,7 @@ export function validateSubmapAgainstGraph(submap, graph) {
     return { valid: false, errors, warnings }
   }
 
-  const currentDigest = calculateGraphDigest(graph)
+  const currentDigest = calculateGraphDigest(graph, hash)
   if (submap.source?.graphDigest !== currentDigest) {
     errors.push(
       validationIssue('SUBMAP_GRAPH_DIGEST_MISMATCH', 'The submap was created from a different graph.', {

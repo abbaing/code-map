@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import path from 'node:path'
 import { writeGraph } from './scan.mjs'
 import { loadProjectContext, validateProjectMap } from './config.mjs'
@@ -7,11 +6,13 @@ import { createSubmap, defaultSubmapFilename, writeSubmap } from './submap/index
 
 export class ApplicationInputError extends Error {}
 
-export function createServerApplication({
-  projectContext = loadProjectContext(),
-  repoRoot = projectContext.repoRoot
-} = {}) {
-  const projectRoot = canonicalPath(repoRoot)
+export function createServerApplication({ projectContext, repoRoot } = {}) {
+  if (!projectContext) {
+    throw new TypeError('createServerApplication requires a ProjectContext.')
+  }
+  repoRoot ??= projectContext.repoRoot
+  const { fileSystem } = projectContext.platform
+  const projectRoot = canonicalPath(repoRoot, fileSystem)
   let context = projectContext
 
   return {
@@ -47,16 +48,16 @@ export function createServerApplication({
     assertProjectMapPaths(document, projectMapPath)
     assertPluginConfigurationUnchanged(document, context.projectMap)
 
-    const previousDocument = fs.readFileSync(projectMapPath, 'utf8')
+    const previousDocument = fileSystem.readText(projectMapPath)
     writeJsonFileAtomic(projectMapPath, document)
     try {
-      context = loadProjectContext(projectMapPath, { repoRoot })
+      context = loadProjectContext(projectMapPath, { repoRoot, platform: projectContext.platform })
       const graph = scan()
       return { projectMap: context.projectMap, stats: graph.stats }
     } catch (error) {
       try {
         writeFileAtomic(projectMapPath, previousDocument)
-        context = loadProjectContext(projectMapPath, { repoRoot })
+        context = loadProjectContext(projectMapPath, { repoRoot, platform: projectContext.platform })
       } catch (rollbackError) {
         throw new AggregateError([error, rollbackError], 'Project map update and rollback both failed.')
       }
@@ -67,9 +68,7 @@ export function createServerApplication({
   function createTraceSubmap(input) {
     validateTraceInput(input)
     assertProjectMapPaths(context.projectMap, context.configPath)
-    const graph = JSON.parse(
-      fs.readFileSync(projectPath(context.resolveGraphOutputPath(), 'project.graphOutput'), 'utf8')
-    )
+    const graph = JSON.parse(fileSystem.readText(projectPath(context.resolveGraphOutputPath(), 'project.graphOutput')))
     const request = {
       id: input.id,
       selectors: { nodeIds: [...new Set(input.nodeIds)] },
@@ -136,7 +135,7 @@ export function createServerApplication({
   }
 
   function projectPath(candidate, label) {
-    const resolved = canonicalPath(candidate)
+    const resolved = canonicalPath(candidate, fileSystem)
     const relative = path.relative(projectRoot, resolved)
     const escapesRoot = relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)
     if (escapesRoot) {
@@ -207,10 +206,10 @@ function assertPathValue(value, label) {
   }
 }
 
-function canonicalPath(candidate) {
+function canonicalPath(candidate, fileSystem) {
   let existing = path.resolve(candidate)
   const missing = []
-  while (!fs.existsSync(existing)) {
+  while (!fileSystem.exists(existing)) {
     const parent = path.dirname(existing)
     if (parent === existing) {
       break
@@ -218,6 +217,6 @@ function canonicalPath(candidate) {
     missing.unshift(path.basename(existing))
     existing = parent
   }
-  const real = fs.realpathSync(existing)
+  const real = fileSystem.realPath(existing)
   return path.resolve(real, ...missing)
 }

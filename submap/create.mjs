@@ -3,6 +3,14 @@ import { ACCESS_LEVELS, normalizeRequest, resolveSeeds, resolveSelectorNodeIds, 
 import { SubmapError } from './errors.mjs'
 
 export function createSubmap(graph, request, options = {}) {
+  const clock = options.clock
+  const hash = options.hash
+  if (!options.createdAt && !clock) {
+    throw new TypeError('Submap creation requires a clock capability.')
+  }
+  if (!hash) {
+    throw new TypeError('Submap creation requires a hash capability.')
+  }
   assertGraph(graph)
   const normalized = normalizeRequest(request)
   const nodeById = new Map(graph.nodes.map((node) => [node.id, node]))
@@ -50,10 +58,10 @@ export function createSubmap(graph, request, options = {}) {
     uid: '',
     revision: normalized.revision,
     parentUid: normalized.parentUid,
-    createdAt: options.createdAt ?? new Date().toISOString(),
+    createdAt: options.createdAt ?? clock.nowIso(),
     source: {
       graphVersion: graph.version,
-      graphDigest: calculateGraphDigest(graph),
+      graphDigest: calculateGraphDigest(graph, hash),
       graphGeneratedAt: graph.generatedAt,
       projectName: graph.projectMap?.project?.name ?? 'Unknown project',
       ...(options.git ? { git: options.git } : {})
@@ -75,7 +83,7 @@ export function createSubmap(graph, request, options = {}) {
     warnings: buildWarnings(normalized, boundaries),
     metadata: clone(normalized.metadata)
   }
-  submap.uid = calculateSubmapUid(submap)
+  submap.uid = calculateSubmapUid(submap, hash)
   return submap
 }
 

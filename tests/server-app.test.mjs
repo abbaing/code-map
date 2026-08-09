@@ -30,9 +30,10 @@ try {
   fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
 
   const { loadProjectContext } = await import('../config.mjs')
+  const { nodePlatform } = await import('../platform/node.mjs')
   const { ApplicationInputError, createServerApplication } = await import('../server-app.mjs')
 
-  const projectContext = loadProjectContext(configPath, { repoRoot: tempRoot })
+  const projectContext = loadProjectContext(configPath, { repoRoot: tempRoot, platform: nodePlatform })
   const application = createServerApplication({ projectContext })
   const graphPath = path.join(tempRoot, '.code-map', 'graph.json')
   assert.equal(application.graphPath(), graphPath)
@@ -96,7 +97,7 @@ try {
     (error) => error instanceof ApplicationInputError && /Template plugins cannot be changed/u.test(error.message)
   )
 
-  const autoDetectedContext = loadProjectContext(changedConfig, { repoRoot: tempRoot })
+  const autoDetectedContext = loadProjectContext(changedConfig, { repoRoot: tempRoot, platform: nodePlatform })
   const autoDetectedApplication = createServerApplication({ projectContext: autoDetectedContext })
   assert.throws(
     () => autoDetectedApplication.saveProjectMap(changedConfig),

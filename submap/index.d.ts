@@ -125,14 +125,23 @@ export interface ValidationResult {
 export function createSubmap(
   graph: CodeMapGraph,
   request: SubmapRequest,
-  options?: { createdAt?: string; git?: Record<string, unknown> }
+  options?: {
+    createdAt?: string
+    git?: Record<string, unknown>
+    clock?: { nowIso(): string }
+    hash?: { sha256(value: string): string }
+  }
 ): Submap
-export function validateSubmap(submap: Submap): ValidationResult
-export function validateSubmapAgainstGraph(submap: Submap, graph: CodeMapGraph): ValidationResult
+export function validateSubmap(submap: Submap, options?: { hash?: { sha256(value: string): string } }): ValidationResult
+export function validateSubmapAgainstGraph(
+  submap: Submap,
+  graph: CodeMapGraph,
+  options?: { hash?: { sha256(value: string): string } }
+): ValidationResult
 export function compareSubmaps(previous: Submap, current: Submap): Record<string, unknown>
 export function inspectSubmap(submap: Submap): Record<string, unknown>
-export function calculateGraphDigest(graph: CodeMapGraph): string
-export function calculateSubmapUid(submap: Submap): string
+export function calculateGraphDigest(graph: CodeMapGraph, hash?: { sha256(value: string): string }): string
+export function calculateSubmapUid(submap: Submap, hash?: { sha256(value: string): string }): string
 export function canonicalStringify(value: unknown): string
 export function normalizeRequest(request: SubmapRequest): SubmapRequest
 export function globMatches(pattern: string, value: string): boolean

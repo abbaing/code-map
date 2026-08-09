@@ -14,6 +14,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Cross-platform CI, grouped dependency updates, static quality checks, and coverage regression thresholds.
 - A machine-checked component inventory, contract baseline, and Definition of Done.
 - Immutable, injectable project contexts that isolate configuration and path resolution between executions.
+- Injectable filesystem, environment, clock, hashing, and randomness capabilities with a Node adapter.
 
 ### Changed
 

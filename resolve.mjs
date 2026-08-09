@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import path from 'node:path'
 import { tsExtensions } from './scan-utils.mjs'
 
@@ -37,5 +36,5 @@ export function resolveTsImport(fromFile, specifier, projectContext) {
     }
   }
 
-  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null
+  return candidates.find((candidate) => projectContext.platform.fileSystem.exists(candidate)) ?? null
 }

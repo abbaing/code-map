@@ -6,6 +6,7 @@ import { Graph } from '../graph.mjs'
 import { createProjectContext, loadProjectContext, normalizeProjectMap, validateProjectMap } from '../config.mjs'
 import { buildTemplateRegistry, loadTemplatePlugins, registerTemplate } from '../templates/registry.mjs'
 import { SubmapError, readJson, writeJsonAtomic } from '../submap/index.mjs'
+import { nodePlatform } from '../platform/node.mjs'
 
 const graph = new Graph()
 graph.addNode('a', { label: 'A', type: 'service', meta: { first: true } })
@@ -51,7 +52,8 @@ const mutableInput = {
 }
 const firstContext = createProjectContext(mutableInput, {
   repoRoot: path.join(os.tmpdir(), 'context-one'),
-  configPath: 'config/project-map.json'
+  configPath: 'config/project-map.json',
+  platform: nodePlatform
 })
 const secondContext = createProjectContext(
   {
@@ -60,7 +62,7 @@ const secondContext = createProjectContext(
     sourceRoots: { frontend: 'client' },
     modules: { shared: 'common' }
   },
-  { repoRoot: path.join(os.tmpdir(), 'context-two') }
+  { repoRoot: path.join(os.tmpdir(), 'context-two'), platform: nodePlatform }
 )
 mutableInput.project.name = 'Mutated Input'
 assert.equal(firstContext.projectMap.project.name, 'Immutable Context', 'contexts must clone their configuration input')
@@ -88,7 +90,12 @@ assert.equal(
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-map-core-'))
 try {
   assert.throws(
-    () => loadProjectContext(),
+    () =>
+      loadProjectContext(undefined, {
+        repoRoot: tempRoot,
+        argv: ['code-map'],
+        platform: nodePlatform
+      }),
     (error) => /No project-map\.json found/u.test(error.message),
     'loading without a config must explain how to provide one'
   )
@@ -99,14 +106,14 @@ try {
       project: { name: 'Loaded Context' },
       sourceRoots: { frontend: 'src' }
     },
-    { repoRoot: tempRoot }
+    { repoRoot: tempRoot, platform: nodePlatform }
   )
   assert.equal(loadedContext.repoRoot, tempRoot)
 
   const malformedPath = path.join(tempRoot, 'malformed.project-map.json')
   fs.writeFileSync(malformedPath, '{ invalid json', 'utf8')
   assert.throws(
-    () => loadProjectContext(malformedPath),
+    () => loadProjectContext(malformedPath, { repoRoot: tempRoot, platform: nodePlatform }),
     (error) => /Failed to read project map/u.test(error.message) && /JSON/u.test(error.message),
     'malformed JSON must retain config-path context'
   )

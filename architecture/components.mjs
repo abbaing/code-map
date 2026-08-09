@@ -26,9 +26,29 @@ export const components = [
     files: ['config.mjs'],
     contracts: ['ProjectContext'],
     compositionRoot: false,
-    design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'gap'),
+    design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'pass'),
     decision:
-      'ProjectContext is immutable and injected; move its direct filesystem and environment access behind platform ports.'
+      'ProjectContext is immutable, injected, and consumes platform capabilities without importing Node adapters.'
+  },
+  {
+    id: 'platform-contracts',
+    responsibility: 'Validate the minimal capabilities required from a runtime platform.',
+    role: 'core',
+    files: ['platform/contracts.mjs'],
+    contracts: ['FileSystemPort', 'EnvironmentPort', 'ClockPort', 'HashPort', 'RandomPort'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep capability validation structural so tests and future runtimes can provide small implementations.'
+  },
+  {
+    id: 'node-platform',
+    responsibility: 'Adapt Node filesystem, process, clock, hashing, and randomness APIs to platform contracts.',
+    role: 'adapter',
+    files: ['platform/node.mjs'],
+    contracts: ['FileSystemPort', 'EnvironmentPort', 'ClockPort', 'HashPort', 'RandomPort'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep Node-specific imports contained here and select this adapter only at executable boundaries.'
   },
   {
     id: 'detection',
@@ -212,7 +232,6 @@ export const components = [
       'submap/diff.mjs',
       'submap/digest.mjs',
       'submap/errors.mjs',
-      'submap/index.mjs',
       'submap/selectors.mjs',
       'submap/validate.mjs'
     ],
@@ -220,6 +239,16 @@ export const components = [
     compositionRoot: false,
     design: designStatus('pass', 'gap', 'gap', 'pass', 'pass'),
     decision: 'Extract strategy contracts before adding new selector, traversal, or access variants.'
+  },
+  {
+    id: 'submap-api',
+    responsibility: 'Expose portable submap operations with Node runtime defaults at the public boundary.',
+    role: 'composition-root',
+    files: ['submap/index.mjs'],
+    contracts: ['GraphDocument', 'ClockPort', 'HashPort'],
+    compositionRoot: true,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep runtime defaults here while core submap modules require explicit capabilities.'
   },
   {
     id: 'submap-io',

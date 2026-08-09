@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -83,11 +82,12 @@ function collectFileKind(projectContext, kind, walkOptions) {
 
 function phaseApplyRuntimeLinks(graph, projectContext) {
   const { projectMap, resolveRepoPath } = projectContext
+  const { fileSystem } = projectContext.platform
   if (!projectMap.project.runtimeLinks) {
     return
   }
   const runtimeLinksPath = resolveRepoPath(projectMap.project.runtimeLinks)
-  if (!fs.existsSync(runtimeLinksPath)) {
+  if (!fileSystem.exists(runtimeLinksPath)) {
     return
   }
   const parsed = JSON.parse(readText(runtimeLinksPath))
@@ -107,13 +107,14 @@ function phaseApplyRuntimeLinks(graph, projectContext) {
 
 function phaseApplyCoverage(graph, testFiles, projectContext) {
   const { toRepoPath } = projectContext
+  const { fileSystem } = projectContext.platform
   const coverageBySource = new Map()
   const testCaseCountByFile = new Map()
 
   for (const testFile of testFiles) {
     const covered = new Set()
     for (const candidate of sourceCandidatesForTest(testFile)) {
-      if (candidate && fs.existsSync(candidate) && !isTestFile(candidate)) {
+      if (candidate && fileSystem.exists(candidate) && !isTestFile(candidate)) {
         covered.add(candidate)
       }
     }
@@ -445,7 +446,7 @@ function buildGraph(projectContext) {
   return {
     version: 1,
     projectMap: effectiveProjectMap,
-    generatedAt: new Date().toISOString(),
+    generatedAt: projectContext.platform.clock.nowIso(),
     stats: {
       nodes: nodes.length,
       edges: edges.length,
@@ -541,7 +542,10 @@ function phaseRunRegisteredEnrichers(context) {
   }
 }
 
-export function writeGraph(outputPath, projectContext = loadProjectContext()) {
+export function writeGraph(outputPath, projectContext) {
+  if (!projectContext) {
+    throw new TypeError('writeGraph requires a ProjectContext.')
+  }
   const targetPath = outputPath ?? projectContext.resolveGraphOutputPath()
   const result = buildGraph(projectContext)
   writeJsonFileAtomic(targetPath, result)
@@ -550,16 +554,17 @@ export function writeGraph(outputPath, projectContext = loadProjectContext()) {
 }
 
 function removeLegacyDefaultGraph(outputPath, projectContext) {
+  const { fileSystem } = projectContext.platform
   const managedOutput = path.resolve(projectContext.repoRoot, '.code-map', 'graph.json')
   if (path.resolve(outputPath) !== managedOutput) {
     return
   }
   const legacyOutput = path.resolve(projectContext.repoRoot, 'graph.json')
-  if (!fs.existsSync(legacyOutput)) {
+  if (!fileSystem.exists(legacyOutput)) {
     return
   }
   try {
-    const document = JSON.parse(fs.readFileSync(legacyOutput, 'utf8'))
+    const document = JSON.parse(fileSystem.readText(legacyOutput))
     const generatedByCodeMap =
       Number.isInteger(document?.version) &&
       Array.isArray(document?.nodes) &&
@@ -567,7 +572,7 @@ function removeLegacyDefaultGraph(outputPath, projectContext) {
       document?.projectMap &&
       document?.stats
     if (generatedByCodeMap) {
-      fs.rmSync(legacyOutput)
+      fileSystem.remove(legacyOutput)
     }
   } catch {
     /* preserve files that are not recognizable code-map output */
@@ -575,15 +580,24 @@ function removeLegacyDefaultGraph(outputPath, projectContext) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const projectRoot = process.cwd()
-  const configPath = getConfigPathFromArgs(process.argv, { cwd: projectRoot })
-  const projectContext = loadProjectContext(configPath ?? detect(projectRoot), { repoRoot: projectRoot })
-  await loadTemplatePlugins(projectContext.projectMap, configPath ?? path.join(projectRoot, 'project-map.json'), {
-    allow: process.argv.includes('--allow-plugins')
+  const { nodePlatform } = await import('./platform/node.mjs')
+  const { environment, fileSystem } = nodePlatform
+  const argv = environment.args()
+  const projectRoot = environment.cwd()
+  const configPath = getConfigPathFromArgs(argv, {
+    cwd: projectRoot,
+    configPath: environment.variable('CODE_MAP_CONFIG'),
+    fileSystem
   })
-  const outArgIndex = process.argv.indexOf('--out')
-  const outputPath =
-    outArgIndex >= 0 ? path.resolve(process.argv[outArgIndex + 1]) : projectContext.resolveGraphOutputPath()
+  const projectContext = loadProjectContext(configPath ?? detect(projectRoot), {
+    repoRoot: projectRoot,
+    platform: nodePlatform
+  })
+  await loadTemplatePlugins(projectContext.projectMap, configPath ?? path.join(projectRoot, 'project-map.json'), {
+    allow: argv.includes('--allow-plugins')
+  })
+  const outArgIndex = argv.indexOf('--out')
+  const outputPath = outArgIndex >= 0 ? path.resolve(argv[outArgIndex + 1]) : projectContext.resolveGraphOutputPath()
   const result = writeGraph(outputPath, projectContext)
   console.log(
     `Code map written to ${projectContext.toRepoPath(outputPath)} (${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.orphans} orphans).`

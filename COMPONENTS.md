@@ -40,7 +40,7 @@ Core and application modules depend on domain contracts. Platform APIs and concr
 
 Contracts are structural JavaScript objects or functions. Their exact signatures will be introduced with the component that first implements them.
 
-`ProjectContext` is created once at a composition root, deeply freezes its normalized project map, owns repository-relative path resolution, and is passed explicitly to every scan or application execution. Loading another project creates an independent context and cannot alter an existing execution.
+`ProjectContext` is created once at a composition root, deeply freezes its normalized project map, owns repository-relative path resolution, and is passed explicitly to every scan or application execution. Loading another project creates an independent context and cannot alter an existing execution. Runtime access is provided through validated capabilities rather than ambient process state.
 
 | Contract                        | Minimum responsibility                                                          |
 | ------------------------------- | ------------------------------------------------------------------------------- |
@@ -49,6 +49,7 @@ Contracts are structural JavaScript objects or functions. Their exact signatures
 | `EnvironmentPort`               | Working directory, arguments, environment values, and process exit boundary     |
 | `ClockPort`                     | Current timestamp generation                                                    |
 | `HashPort`                      | Stable SHA-256 digest generation                                                |
+| `RandomPort`                    | UUID and cryptographically secure token generation                              |
 | `Graph` / `GraphDocument`       | In-memory graph operations and serialized graph shape                           |
 | `SourceClassifier`              | Classify one repository-relative source path                                    |
 | `ImportResolver`                | Resolve one import from a source file                                           |
@@ -97,4 +98,4 @@ A new or materially changed component is complete only when:
 7. architecture, contract, behavior, and coverage tests pass;
 8. documentation names any public contract or compatibility impact.
 
-Existing `gap` entries are the controlled remediation baseline for S03–S16. S17 will turn the target dependency rules into automated fitness functions, and S18 will require every remaining applicable status to be `pass`.
+Existing `gap` entries are the controlled remediation baseline for S04–S16. S17 will turn the target dependency rules into automated fitness functions, and S18 will require every remaining applicable status to be `pass`.

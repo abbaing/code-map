@@ -190,12 +190,30 @@ async function withServer(args, cwd, callback) {
   const child = spawn(process.execPath, [cliPath, ...args], {
     cwd,
     env: { ...process.env, CODE_MAP_PORT: port, CODE_MAP_CONFIG: '' },
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['ignore', 'ignore', 'pipe']
   })
+  let childFailure
+  let childError = ''
+  child.on('error', (error) => {
+    childFailure = error
+  })
+  child.stderr.on('data', (chunk) => {
+    childError += chunk.toString('utf8')
+  })
+  child.stderr.on('error', () => {})
 
   try {
     const session = await waitForServer(port)
     await callback(port, session)
+    if (childFailure) {
+      throw childFailure
+    }
+  } catch (error) {
+    error.message += `\nServer arguments: ${args.join(' ') || '(auto-detected)'}`
+    if (childError.trim()) {
+      error.message += `\nServer process error:\n${childError.trim()}`
+    }
+    throw error
   } finally {
     child.kill('SIGTERM')
     await new Promise((resolve) => child.once('exit', resolve))
@@ -218,6 +236,7 @@ function request(port, method, pathname, body, headers = {}) {
       },
       (response) => {
         const chunks = []
+        response.on('error', reject)
         response.on('data', (chunk) => chunks.push(chunk))
         response.on('end', () =>
           resolve({
@@ -249,6 +268,7 @@ function requestRaw(port, method, pathname, payload, headers = {}) {
       },
       (response) => {
         const chunks = []
+        response.on('error', reject)
         response.on('data', (chunk) => chunks.push(chunk))
         response.on('end', () =>
           resolve({

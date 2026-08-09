@@ -6,6 +6,7 @@ import { detect, detectSummary } from '../detect.mjs'
 import { getConfigPathFromArgs, loadProjectContext } from '../config.mjs'
 import { writeGraph } from '../scan.mjs'
 import { escapeRegExp, maxSourceFileBytes, readText } from '../scan-utils.mjs'
+import { nodePlatform } from '../platform/node.mjs'
 import { architectureFixture, createFixtureTree, typescriptFixture } from './fixtures.mjs'
 
 const fixtureRoot = createFixtureTree(typescriptFixture, architectureFixture)
@@ -16,21 +17,24 @@ function repoRelative(absolutePath) {
 
 function scanTypeScriptFixture(name) {
   const frontendRoot = path.join(fixtureRoot, 'typescript/front/src')
-  const projectContext = loadProjectContext({
-    schemaVersion: 1,
-    project: {
-      name: 'TypeScript Fixture',
-      graphOutput: path.join(fixtureRoot, `${name}.graph.json`)
+  const projectContext = loadProjectContext(
+    {
+      schemaVersion: 1,
+      project: {
+        name: 'TypeScript Fixture',
+        graphOutput: path.join(fixtureRoot, `${name}.graph.json`)
+      },
+      sourceRoots: { frontend: frontendRoot },
+      templates: { enabled: ['filesystem', 'typescript', 'quality'] },
+      imports: { aliases: [] },
+      modules: { shared: 'shared', labels: {} },
+      layers: [{ id: 'auxiliary', label: 'Auxiliary' }],
+      frontend: { entryPoints: [], classifiers: [], coverableTypes: [] },
+      rules: { enabled: [], options: {}, suppressions: [] },
+      backend: { classifiers: [] }
     },
-    sourceRoots: { frontend: frontendRoot },
-    templates: { enabled: ['filesystem', 'typescript', 'quality'] },
-    imports: { aliases: [] },
-    modules: { shared: 'shared', labels: {} },
-    layers: [{ id: 'auxiliary', label: 'Auxiliary' }],
-    frontend: { entryPoints: [], classifiers: [], coverableTypes: [] },
-    rules: { enabled: [], options: {}, suppressions: [] },
-    backend: { classifiers: [] }
-  })
+    { platform: nodePlatform }
+  )
   return writeGraph(path.join(fixtureRoot, `${name}.graph.json`), projectContext)
 }
 
@@ -39,85 +43,88 @@ function scanArchitectureFixture(name) {
   const backendRoot = path.join(fixtureRoot, 'architecture/back')
   const frontendPattern = escapeRegExp(repoRelative(frontendRoot))
   const backendPattern = escapeRegExp(repoRelative(backendRoot))
-  const projectContext = loadProjectContext({
-    schemaVersion: 1,
-    project: {
-      name: 'Architecture Fixture',
-      graphOutput: path.join(fixtureRoot, `${name}.graph.json`)
-    },
-    sourceRoots: { frontend: frontendRoot, backend: backendRoot },
-    templates: {
-      enabled: [
-        'filesystem',
-        'typescript',
-        'react',
-        'architecture.feature-sliced',
-        'architecture.mvvm',
-        'dotnet-api',
-        'architecture.mvc',
-        'architecture.clean-architecture',
-        'quality'
-      ]
-    },
-    imports: { aliases: [{ prefix: '@/', path: frontendRoot }] },
-    modules: {
-      shared: 'shared',
-      frontendFeaturePattern: `^${frontendPattern}/features/([^/]+)`,
-      backendProjectFolderPattern: `^${backendPattern}/[^/]+/([^/]+)`,
-      backendControllerPattern: `^${backendPattern}/[^/]+/Controllers/(.+?)Controller\\.cs$`,
-      backendEntityDomainPattern: `^${backendPattern}/[^/]+/Entities/([^/]+)`,
-      labels: {}
-    },
-    layers: [
-      { id: 'ui-component-logic', label: 'Components' },
-      { id: 'ui-main-component', label: 'Main Components' },
-      { id: 'front-repository', label: 'Repositories' },
-      { id: 'api-controller', label: 'Controllers' },
-      { id: 'domain', label: 'Domain' }
-    ],
-    frontend: {
-      entryPoints: [],
-      featureFolderPattern: '/features/{module}/',
-      classifiers: [{ contains: '/repositories/', type: 'repository', layer: 'front-repository' }],
-      coverableTypes: []
-    },
-    rules: {
-      enabled: [
-        'framework.react.component-folder-entry',
-        'architecture.mvvm.thin-view-entry',
-        'architecture.feature-sliced.no-cross-feature-internals',
-        'architecture.mvvm.viewmodel-hook-naming',
-        'architecture.layered.no-ui-imports-in-data-adapters',
-        'architecture.mvc.thin-controller',
-        'architecture.clean-architecture.layer-boundaries'
-      ],
-      options: {
-        'framework.react.component-folder-entry': {
-          includePatterns: [`^${frontendPattern}/features/[^/]+/components/`]
-        },
-        'architecture.clean-architecture.layer-boundaries': { namespacePrefix: 'Demo' }
+  const projectContext = loadProjectContext(
+    {
+      schemaVersion: 1,
+      project: {
+        name: 'Architecture Fixture',
+        graphOutput: path.join(fixtureRoot, `${name}.graph.json`)
       },
-      suppressions: []
+      sourceRoots: { frontend: frontendRoot, backend: backendRoot },
+      templates: {
+        enabled: [
+          'filesystem',
+          'typescript',
+          'react',
+          'architecture.feature-sliced',
+          'architecture.mvvm',
+          'dotnet-api',
+          'architecture.mvc',
+          'architecture.clean-architecture',
+          'quality'
+        ]
+      },
+      imports: { aliases: [{ prefix: '@/', path: frontendRoot }] },
+      modules: {
+        shared: 'shared',
+        frontendFeaturePattern: `^${frontendPattern}/features/([^/]+)`,
+        backendProjectFolderPattern: `^${backendPattern}/[^/]+/([^/]+)`,
+        backendControllerPattern: `^${backendPattern}/[^/]+/Controllers/(.+?)Controller\\.cs$`,
+        backendEntityDomainPattern: `^${backendPattern}/[^/]+/Entities/([^/]+)`,
+        labels: {}
+      },
+      layers: [
+        { id: 'ui-component-logic', label: 'Components' },
+        { id: 'ui-main-component', label: 'Main Components' },
+        { id: 'front-repository', label: 'Repositories' },
+        { id: 'api-controller', label: 'Controllers' },
+        { id: 'domain', label: 'Domain' }
+      ],
+      frontend: {
+        entryPoints: [],
+        featureFolderPattern: '/features/{module}/',
+        classifiers: [{ contains: '/repositories/', type: 'repository', layer: 'front-repository' }],
+        coverableTypes: []
+      },
+      rules: {
+        enabled: [
+          'framework.react.component-folder-entry',
+          'architecture.mvvm.thin-view-entry',
+          'architecture.feature-sliced.no-cross-feature-internals',
+          'architecture.mvvm.viewmodel-hook-naming',
+          'architecture.layered.no-ui-imports-in-data-adapters',
+          'architecture.mvc.thin-controller',
+          'architecture.clean-architecture.layer-boundaries'
+        ],
+        options: {
+          'framework.react.component-folder-entry': {
+            includePatterns: [`^${frontendPattern}/features/[^/]+/components/`]
+          },
+          'architecture.clean-architecture.layer-boundaries': { namespacePrefix: 'Demo' }
+        },
+        suppressions: []
+      },
+      backend: {
+        entryPointSuffixes: ['/Program.cs'],
+        dtoPathFragment: '/DTOs/',
+        validatorPathFragment: '/Validators/',
+        mappingPathFragment: '/Mappings/',
+        controllerPathFragment: '/Controllers/',
+        handlerPathFragment: '/Handlers/',
+        repositoryPathFragment: '/Repositories/',
+        entityConfigurationPathFragment: '/Configurations/Entities/',
+        dataContextPathFragment: '/Data/Context/',
+        entityPathFragment: '/Entities/',
+        classifiers: [
+          { contains: '/Controllers/', type: 'controller', layer: 'api-controller' },
+          { contains: '/Queries/', type: 'query', layer: 'application-boundary' },
+          { contains: '/Commands/', type: 'command', layer: 'application-boundary' },
+          { contains: '/Entities/', type: 'entity', layer: 'domain' }
+        ]
+      }
     },
-    backend: {
-      entryPointSuffixes: ['/Program.cs'],
-      dtoPathFragment: '/DTOs/',
-      validatorPathFragment: '/Validators/',
-      mappingPathFragment: '/Mappings/',
-      controllerPathFragment: '/Controllers/',
-      handlerPathFragment: '/Handlers/',
-      repositoryPathFragment: '/Repositories/',
-      entityConfigurationPathFragment: '/Configurations/Entities/',
-      dataContextPathFragment: '/Data/Context/',
-      entityPathFragment: '/Entities/',
-      classifiers: [
-        { contains: '/Controllers/', type: 'controller', layer: 'api-controller' },
-        { contains: '/Queries/', type: 'query', layer: 'application-boundary' },
-        { contains: '/Commands/', type: 'command', layer: 'application-boundary' },
-        { contains: '/Entities/', type: 'entity', layer: 'domain' }
-      ]
-    }
-  })
+    { platform: nodePlatform }
+  )
   return writeGraph(path.join(fixtureRoot, `${name}.graph.json`), projectContext)
 }
 
@@ -288,48 +295,55 @@ assert.equal(
 const fetchEndpoint = architectureGraph.nodes.find((node) => node.id === 'endpoint:GET /api/reports')
 assert.equal(fetchEndpoint?.type, 'endpoint', 'native fetch calls should create GET endpoints by default')
 
-const originalCwd = process.cwd()
-const originalConfigEnv = process.env.CODE_MAP_CONFIG
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-map-test-'))
 
 try {
   const emptyDir = path.join(tempRoot, 'empty')
   fs.mkdirSync(emptyDir)
-  process.chdir(emptyDir)
-  delete process.env.CODE_MAP_CONFIG
-  assert.equal(getConfigPathFromArgs(['code-map']), null, 'missing config must not fall back to packaged preset')
+  const discoveryOptions = { cwd: emptyDir, fileSystem: nodePlatform.fileSystem }
+  assert.equal(
+    getConfigPathFromArgs(['code-map'], discoveryOptions),
+    null,
+    'missing config must not fall back to packaged preset'
+  )
 
   const hiddenConfigDir = path.join(emptyDir, '.code-map')
   const hiddenConfig = path.join(hiddenConfigDir, 'demo.project-map.json')
   fs.mkdirSync(hiddenConfigDir)
   fs.writeFileSync(hiddenConfig, '{}\n', 'utf8')
-  assert.equal(getConfigPathFromArgs(['code-map']), hiddenConfig, 'configs stored in .code-map should be discovered')
+  assert.equal(
+    getConfigPathFromArgs(['code-map'], discoveryOptions),
+    hiddenConfig,
+    'configs stored in .code-map should be discovered'
+  )
   fs.rmSync(hiddenConfigDir, { recursive: true })
 
   const localConfig = path.join(emptyDir, 'demo.project-map.json')
   fs.writeFileSync(localConfig, '{}\n', 'utf8')
-  assert.equal(getConfigPathFromArgs(['code-map']), localConfig, 'local *.project-map.json should be discovered')
-
-  process.env.CODE_MAP_CONFIG = path.join(tempRoot, 'env.project-map.json')
   assert.equal(
-    getConfigPathFromArgs(['code-map']),
-    path.join(tempRoot, 'env.project-map.json'),
+    getConfigPathFromArgs(['code-map'], discoveryOptions),
+    localConfig,
+    'local *.project-map.json should be discovered'
+  )
+
+  const environmentConfig = path.join(tempRoot, 'env.project-map.json')
+  assert.equal(
+    getConfigPathFromArgs(['code-map'], { ...discoveryOptions, configPath: environmentConfig }),
+    environmentConfig,
     'CODE_MAP_CONFIG should win over local discovery'
   )
 
   const explicitConfig = path.join(tempRoot, 'explicit.project-map.json')
   assert.equal(
-    getConfigPathFromArgs(['code-map', '--config', explicitConfig]),
+    getConfigPathFromArgs(['code-map', '--config', explicitConfig], {
+      ...discoveryOptions,
+      configPath: environmentConfig
+    }),
     explicitConfig,
     '--config should win over env vars'
   )
 } finally {
-  process.chdir(originalCwd)
-  if (originalConfigEnv === undefined) {
-    delete process.env.CODE_MAP_CONFIG
-  } else {
-    process.env.CODE_MAP_CONFIG = originalConfigEnv
-  }
+  // no process-wide environment or working-directory mutation is required
 }
 
 const detectedRepo = path.join(tempRoot, 'detected')
@@ -371,15 +385,18 @@ const oversizedSourcePath = path.join(frontendOnlyRoot, 'src/oversized.ts')
 fs.writeFileSync(oversizedSourcePath, '')
 fs.truncateSync(oversizedSourcePath, maxSourceFileBytes + 1)
 
-const frontendOnlyContext = loadProjectContext({
-  schemaVersion: 1,
-  project: { name: 'Frontend Only', graphOutput: path.join(tempRoot, 'frontend-only.graph.json') },
-  sourceRoots: { frontend: path.join(frontendOnlyRoot, 'src') },
-  templates: { enabled: ['filesystem', 'typescript', 'quality'] },
-  imports: { aliases: [] },
-  modules: { shared: 'shared', frontendFeaturePattern: '^$', labels: {} },
-  layers: [{ id: 'ui-component-logic', label: 'Components' }]
-})
+const frontendOnlyContext = loadProjectContext(
+  {
+    schemaVersion: 1,
+    project: { name: 'Frontend Only', graphOutput: path.join(tempRoot, 'frontend-only.graph.json') },
+    sourceRoots: { frontend: path.join(frontendOnlyRoot, 'src') },
+    templates: { enabled: ['filesystem', 'typescript', 'quality'] },
+    imports: { aliases: [] },
+    modules: { shared: 'shared', frontendFeaturePattern: '^$', labels: {} },
+    layers: [{ id: 'ui-component-logic', label: 'Components' }]
+  },
+  { platform: nodePlatform }
+)
 
 const frontendOnlyGraph = writeGraph(path.join(tempRoot, 'frontend-only.graph.json'), frontendOnlyContext)
 assert.equal(frontendOnlyGraph.stats.backFiles, 0, 'frontend-only scan should not require sourceRoots.backend')
@@ -400,14 +417,17 @@ assert.throws(
   'direct scanner reads must enforce the same size limit'
 )
 
-const templateDefaultsContext = loadProjectContext({
-  schemaVersion: 1,
-  project: { name: 'Template Defaults', graphOutput: path.join(tempRoot, 'template-defaults.graph.json') },
-  sourceRoots: { frontend: path.join(frontendOnlyRoot, 'src') },
-  templates: { enabled: ['filesystem', 'typescript', 'react', 'quality'] },
-  imports: { aliases: [] },
-  modules: { frontendFeaturePattern: '^$' }
-})
+const templateDefaultsContext = loadProjectContext(
+  {
+    schemaVersion: 1,
+    project: { name: 'Template Defaults', graphOutput: path.join(tempRoot, 'template-defaults.graph.json') },
+    sourceRoots: { frontend: path.join(frontendOnlyRoot, 'src') },
+    templates: { enabled: ['filesystem', 'typescript', 'react', 'quality'] },
+    imports: { aliases: [] },
+    modules: { frontendFeaturePattern: '^$' }
+  },
+  { platform: nodePlatform }
+)
 
 const templateDefaultsGraph = writeGraph(path.join(tempRoot, 'template-defaults.graph.json'), templateDefaultsContext)
 assert.equal(

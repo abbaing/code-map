@@ -1,6 +1,6 @@
-import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { assertPlatform } from './platform/contracts.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export const defaultProjectMapPath = path.join(__dirname, 'presets/starter.project-map.json')
@@ -69,10 +69,10 @@ const defaultBackendClassifiers = [
   { contains: '/Entities/', type: 'entity', layer: 'domain' }
 ]
 
-function findLocalProjectMapPath(cwd = process.cwd()) {
+function findLocalProjectMapPath(cwd, fileSystem) {
   for (const directory of [cwd, path.join(cwd, '.code-map')]) {
     try {
-      const files = fs.readdirSync(directory)
+      const files = fileSystem.readDirectory(directory)
       const exact = files.find((file) => file === 'project-map.json')
       if (exact) {
         return path.join(directory, exact)
@@ -88,24 +88,39 @@ function findLocalProjectMapPath(cwd = process.cwd()) {
   return null
 }
 
-export function getConfigPathFromArgs(argv = process.argv, { cwd = process.cwd(), env = process.env } = {}) {
+export function getConfigPathFromArgs(argv, { cwd, configPath, fileSystem } = {}) {
+  if (!Array.isArray(argv) || !cwd) {
+    throw new TypeError('Config discovery requires argument and working-directory inputs.')
+  }
   const configArgIndex = argv.indexOf('--config')
   if (configArgIndex >= 0 && argv[configArgIndex + 1]) {
     return path.resolve(cwd, argv[configArgIndex + 1])
   }
-  if (env.CODE_MAP_CONFIG) {
-    return path.resolve(cwd, env.CODE_MAP_CONFIG)
+  if (configPath) {
+    return path.resolve(cwd, configPath)
   }
-  return findLocalProjectMapPath(cwd)
+  if (!fileSystem) {
+    throw new TypeError('Config discovery requires a filesystem capability.')
+  }
+  return findLocalProjectMapPath(cwd, fileSystem)
 }
 
 export function loadProjectContext(
   source,
-  { repoRoot: projectRoot = process.cwd(), argv = process.argv, env = process.env } = {}
+  { platform: providedPlatform, repoRoot: providedRoot, argv: providedArgs, configPath: environmentConfigPath } = {}
 ) {
-  const configSource = source ?? getConfigPathFromArgs(argv, { cwd: projectRoot, env })
+  const platform = assertPlatform(providedPlatform)
+  const projectRoot = providedRoot ?? platform.environment.cwd()
+  const argv = providedArgs ?? platform.environment.args()
+  const configSource =
+    source ??
+    getConfigPathFromArgs(argv, {
+      cwd: projectRoot,
+      configPath: environmentConfigPath ?? platform.environment.variable('CODE_MAP_CONFIG'),
+      fileSystem: platform.fileSystem
+    })
   if (configSource && typeof configSource === 'object') {
-    return createProjectContext(configSource, { repoRoot: projectRoot })
+    return createProjectContext(configSource, { repoRoot: projectRoot, platform })
   }
   if (!configSource) {
     throw new Error('No project-map.json found. Run code-map --init or pass --config <path>.')
@@ -113,14 +128,18 @@ export function loadProjectContext(
   const resolvedPath = path.resolve(projectRoot, configSource)
   let parsed
   try {
-    parsed = JSON.parse(fs.readFileSync(resolvedPath, 'utf8'))
+    parsed = JSON.parse(platform.fileSystem.readText(resolvedPath))
   } catch (err) {
     throw new Error(`Failed to read project map at ${relativeProjectPath(projectRoot, resolvedPath)}: ${err.message}`)
   }
-  return createProjectContext(parsed, { repoRoot: projectRoot, configPath: resolvedPath })
+  return createProjectContext(parsed, { repoRoot: projectRoot, configPath: resolvedPath, platform })
 }
 
-export function createProjectContext(projectMap, { repoRoot: projectRoot = process.cwd(), configPath = null } = {}) {
+export function createProjectContext(
+  projectMap,
+  { repoRoot: projectRoot = '.', configPath = null, platform: providedPlatform } = {}
+) {
+  const platform = assertPlatform(providedPlatform)
   const root = path.resolve(projectRoot)
   const resolvedConfigPath = configPath ? path.resolve(root, configPath) : null
   validateProjectMap(projectMap, resolvedConfigPath ?? defaultProjectMapPath, { repoRoot: root })
@@ -132,6 +151,7 @@ export function createProjectContext(projectMap, { repoRoot: projectRoot = proce
     repoRoot: root,
     configPath: resolvedConfigPath,
     projectMap: normalizedProjectMap,
+    platform,
     resolveRepoPath: (repoPath) => path.resolve(root, repoPath),
     toRepoPath: (filePath) => relativeProjectPath(root, filePath),
     resolveGraphOutputPath(outputPath = normalizedProjectMap.project.graphOutput) {
@@ -146,7 +166,7 @@ export function createProjectContext(projectMap, { repoRoot: projectRoot = proce
   })
 }
 
-export function normalizeProjectMap(projectMap, configPath = null, { repoRoot: projectRoot = process.cwd() } = {}) {
+export function normalizeProjectMap(projectMap, configPath = null, { repoRoot: projectRoot = '.' } = {}) {
   const sourceRoots = projectMap.sourceRoots ?? {}
   const project = projectMap.project ?? {}
   return {
@@ -230,7 +250,7 @@ export function normalizeProjectMap(projectMap, configPath = null, { repoRoot: p
 export function validateProjectMap(
   projectMap,
   configPath = defaultProjectMapPath,
-  { repoRoot: projectRoot = process.cwd() } = {}
+  { repoRoot: projectRoot = '.' } = {}
 ) {
   const errors = []
   if (!isRecord(projectMap)) {

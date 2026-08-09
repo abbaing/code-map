@@ -1,20 +1,21 @@
 #!/usr/bin/env node
-import fs from 'node:fs'
 import path from 'node:path'
 import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
 import { detect, detectSummary } from './detect.mjs'
 import { writeGraph } from './scan.mjs'
 import { listTemplates, loadTemplatePlugins } from './templates/registry.mjs'
 import { writeJsonFileAtomic } from './json-io.mjs'
+import { nodePlatform } from './platform/node.mjs'
 
-const repoRoot = process.cwd()
+const { environment, fileSystem } = nodePlatform
+const repoRoot = environment.cwd()
 
-const args = process.argv.slice(2)
+const args = environment.args().slice(2)
 const hasFlag = (flag) => args.includes(flag)
 
 if (args[0] === 'submap') {
   const { runSubmapCli } = await import('./submap/cli.mjs')
-  process.exit(await runSubmapCli(args.slice(1), { cwd: repoRoot }))
+  environment.exit(await runSubmapCli(args.slice(1), { cwd: repoRoot, platform: nodePlatform }))
 }
 
 if (hasFlag('--help') || hasFlag('-h')) {
@@ -44,14 +45,14 @@ Config:
   to that project-map.json; a bare graphOutput filename is written beside the config.
 `.trim()
   )
-  process.exit(0)
+  environment.exit(0)
 }
 
 if (hasFlag('--templates')) {
   for (const template of listTemplates()) {
     console.log(`${template.id}\t${template.stage}\t${template.description}`)
   }
-  process.exit(0)
+  environment.exit(0)
 }
 
 // ── --init: detect + write project-map.json ───────────────────────────────────
@@ -72,7 +73,7 @@ if (hasFlag('--init')) {
   writeJsonFileAtomic(outFile, config)
   console.log(`Written to ${path.relative(repoRoot, outFile)}`)
   console.log('Review and adjust the file, then run: npx code-map --config ' + path.relative(repoRoot, outFile))
-  process.exit(0)
+  environment.exit(0)
 }
 
 // ── Resolve config: explicit path or zero-config detection ────────────────────
@@ -82,22 +83,28 @@ const explicitConfigPath = (() => {
   if (configIndex >= 0 && args[configIndex + 1]) {
     return path.resolve(args[configIndex + 1])
   }
-  if (process.env.CODE_MAP_CONFIG) {
-    return path.resolve(process.env.CODE_MAP_CONFIG)
+  if (environment.variable('CODE_MAP_CONFIG')) {
+    return path.resolve(environment.variable('CODE_MAP_CONFIG'))
   }
   return null
 })()
 
-const configPath = explicitConfigPath ?? getConfigPathFromArgs()
+const configPath =
+  explicitConfigPath ??
+  getConfigPathFromArgs(environment.args(), {
+    cwd: repoRoot,
+    configPath: environment.variable('CODE_MAP_CONFIG'),
+    fileSystem
+  })
 let pluginBasePath = configPath
 let projectContext
 
 if (configPath) {
-  if (!fs.existsSync(configPath)) {
+  if (!fileSystem.exists(configPath)) {
     console.error(`Config file not found: ${configPath}`)
-    process.exit(1)
+    environment.exit(1)
   }
-  projectContext = loadProjectContext(configPath, { repoRoot })
+  projectContext = loadProjectContext(configPath, { repoRoot, platform: nodePlatform })
   console.log(`Using config: ${path.relative(repoRoot, configPath)}`)
 } else {
   const summary = detectSummary(repoRoot)
@@ -105,7 +112,7 @@ if (configPath) {
     `Auto-detected: ${summary.frontendFramework ?? 'unknown'} + ${summary.backendStack ?? 'none'}, ${summary.moduleCount} modules`
   )
   console.log('Tip: run with --init to generate a project-map.json you can customize.')
-  projectContext = loadProjectContext(detect(repoRoot), { repoRoot })
+  projectContext = loadProjectContext(detect(repoRoot), { repoRoot, platform: nodePlatform })
   pluginBasePath = path.join(repoRoot, 'project-map.json')
 }
 
@@ -115,7 +122,7 @@ try {
   })
 } catch (error) {
   console.error(error.message)
-  process.exit(1)
+  environment.exit(1)
 }
 
 // ── --scan: scan only, no server ──────────────────────────────────────────────
@@ -129,7 +136,7 @@ if (hasFlag('--scan')) {
   console.log(
     `Scan complete: ${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.findings} findings -> ${displayOutput}`
   )
-  process.exit(0)
+  environment.exit(0)
 }
 
 // ── Default: scan + open viewer ───────────────────────────────────────────────

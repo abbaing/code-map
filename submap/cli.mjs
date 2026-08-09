@@ -1,7 +1,7 @@
-import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { getConfigPathFromArgs, loadProjectContext } from '../config.mjs'
+import { nodePlatform } from '../platform/node.mjs'
 import {
   assertOnlyOptions,
   createOptionNames,
@@ -27,6 +27,7 @@ import {
 } from './index.mjs'
 
 export async function runSubmapCli(args, context = {}) {
+  const platform = context.platform ?? nodePlatform
   const optionsForErrors = args.includes('--json-errors')
   try {
     const command = args[0]
@@ -35,9 +36,9 @@ export async function runSubmapCli(args, context = {}) {
       return 0
     }
     const parsed = parseArgs(args.slice(1))
-    const cwd = context.cwd ?? process.cwd()
+    const cwd = context.cwd ?? platform.environment.cwd()
     if (command === 'create') {
-      return createCommand(parsed, cwd)
+      return createCommand(parsed, cwd, platform)
     }
     if (command === 'inspect') {
       return inspectCommand(parsed)
@@ -49,7 +50,7 @@ export async function runSubmapCli(args, context = {}) {
       return diffCommand(parsed)
     }
     if (command === 'list') {
-      return listCommand(parsed, cwd)
+      return listCommand(parsed, cwd, platform)
     }
     throw new SubmapError('SUBMAP_UNKNOWN_COMMAND', `Unknown submap command: ${command}`, { command })
   } catch (error) {
@@ -57,7 +58,7 @@ export async function runSubmapCli(args, context = {}) {
   }
 }
 
-function createCommand(options, cwd) {
+function createCommand(options, cwd, platform) {
   assertOnlyOptions(options, createOptionNames())
   if (options.stdout && options.output) {
     throw new SubmapError('SUBMAP_OUTPUT_CONFLICT', '--stdout and --output are mutually exclusive.')
@@ -86,9 +87,13 @@ function createCommand(options, cwd) {
   if (!request.id && options.positionals[0]) {
     request.id = options.positionals[0]
   }
-  const graphPath = resolveGraphPath(options, cwd)
+  const graphPath = resolveGraphPath(options, cwd, platform)
   const graph = readJson(graphPath, 'source graph')
-  const submap = createSubmap(graph, request, { git: readGitMetadata(cwd) })
+  const submap = createSubmap(graph, request, {
+    git: readGitMetadata(cwd),
+    clock: platform.clock,
+    hash: platform.hash
+  })
   const validation = validateSubmap(submap)
   if (!validation.valid) {
     throw new SubmapError(
@@ -106,7 +111,7 @@ function createCommand(options, cwd) {
 
   const outputPath = options.output
     ? path.resolve(cwd, last(options.output))
-    : path.join(resolveSubmapsDirectory(options, cwd), defaultSubmapFilename(submap))
+    : path.join(resolveSubmapsDirectory(options, cwd, platform), defaultSubmapFilename(submap))
   const written = writeJsonAtomic(outputPath, submap, { force: Boolean(options.force) })
   log(
     options,
@@ -163,9 +168,9 @@ function diffCommand(options) {
   return 0
 }
 
-function listCommand(options, cwd) {
+function listCommand(options, cwd, platform) {
   assertOnlyOptions(options, new Set(['dir', 'config', 'json', 'quiet', 'json-errors', 'non-interactive']))
-  const directory = options.dir ? path.resolve(cwd, last(options.dir)) : resolveSubmapsDirectory(options, cwd)
+  const directory = options.dir ? path.resolve(cwd, last(options.dir)) : resolveSubmapsDirectory(options, cwd, platform)
   const entries = listSubmapFiles(directory).map((filePath) => ({
     file: filePath,
     ...inspectSubmap(readJson(filePath, 'submap'))
@@ -243,42 +248,48 @@ function readSpec(specPath, positionalId) {
   return request
 }
 
-function resolveGraphPath(options, cwd) {
+function resolveGraphPath(options, cwd, platform) {
   if (options.graph) {
     return path.resolve(cwd, last(options.graph))
   }
-  const projectContext = loadOptionalProjectContext(options, cwd)
+  const projectContext = loadOptionalProjectContext(options, cwd, platform)
   return projectContext
     ? projectContext.resolveRepoPath(projectContext.projectMap.project.graphOutput)
     : path.join(cwd, 'graph.json')
 }
 
-function resolveSubmapsDirectory(options, cwd) {
+function resolveSubmapsDirectory(options, cwd, platform) {
   if (options.dir) {
     return path.resolve(cwd, last(options.dir))
   }
-  const projectContext = loadOptionalProjectContext(options, cwd)
+  const projectContext = loadOptionalProjectContext(options, cwd, platform)
   return projectContext
     ? projectContext.resolveRepoPath(projectContext.projectMap.project.submapsDirectory)
     : path.join(cwd, '.code-map', 'submaps')
 }
 
-function loadOptionalProjectContext(options, cwd) {
+function loadOptionalProjectContext(options, cwd, platform) {
   const explicit = options.config ? path.resolve(cwd, last(options.config)) : null
   const configPath =
     explicit ??
     getConfigPathFromArgs(
-      ['node', 'code-map', ...(process.env.CODE_MAP_CONFIG ? ['--config', process.env.CODE_MAP_CONFIG] : [])],
-      { cwd }
+      [
+        'node',
+        'code-map',
+        ...(platform.environment.variable('CODE_MAP_CONFIG')
+          ? ['--config', platform.environment.variable('CODE_MAP_CONFIG')]
+          : [])
+      ],
+      { cwd, fileSystem: platform.fileSystem }
     )
   if (!configPath) {
     return null
   }
-  if (!fs.existsSync(configPath)) {
+  if (!platform.fileSystem.exists(configPath)) {
     throw new SubmapError('SUBMAP_CONFIG_NOT_FOUND', 'Project map file not found.', { path: configPath }, 3)
   }
   try {
-    return loadProjectContext(configPath, { repoRoot: cwd })
+    return loadProjectContext(configPath, { repoRoot: cwd, platform })
   } catch (error) {
     throw new SubmapError('SUBMAP_CONFIG_INVALID', error.message, { path: configPath })
   }

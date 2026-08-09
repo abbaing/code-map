@@ -1,4 +1,3 @@
-import crypto from 'node:crypto'
 import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
@@ -8,9 +7,9 @@ import { detect } from './detect.mjs'
 import { loadTemplatePlugins } from './templates/registry.mjs'
 import { ApplicationInputError, createServerApplication } from './server-app.mjs'
 import { SubmapError } from './submap/errors.mjs'
+import { nodePlatform } from './platform/node.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const repoRoot = process.cwd()
 const viewerRoot = path.join(__dirname, 'viewer')
 const indexPath = path.join(viewerRoot, 'viewer.html')
 const viewerAssets = new Map(
@@ -29,8 +28,6 @@ const viewerAssets = new Map(
     'viewer-utils.js'
   ].map((file) => [`/${file}`, path.join(viewerRoot, file)])
 )
-const port = Number(process.env.CODE_MAP_PORT) || 1133
-const host = process.env.CODE_MAP_HOST?.trim() || '127.0.0.1'
 const sessionCookieName = 'code-map-session'
 const maxRequestBodyBytes = 1024 * 1024
 const requestTimeoutMs = 30_000
@@ -268,14 +265,16 @@ function createRoutes(sessionToken, application) {
 }
 
 export function startServer(options = {}) {
-  const serverPort = options.port ?? port
-  const serverHost = options.host ?? host
+  const platform = options.platform ?? nodePlatform
+  const repoRoot = options.repoRoot ?? platform.environment.cwd()
+  const serverPort = options.port ?? (Number(platform.environment.variable('CODE_MAP_PORT')) || 1133)
+  const serverHost = options.host ?? (platform.environment.variable('CODE_MAP_HOST')?.trim() || '127.0.0.1')
   const log = options.log ?? console.log
-  const sessionToken = options.sessionToken ?? crypto.randomBytes(32).toString('base64url')
+  const sessionToken = options.sessionToken ?? platform.random.token(32)
   const application =
     options.application ??
     createServerApplication({
-      projectContext: options.projectContext ?? loadProjectContext(undefined, { repoRoot }),
+      projectContext: options.projectContext ?? loadProjectContext(undefined, { repoRoot, platform }),
       repoRoot
     })
   const routes = createRoutes(sessionToken, application)
@@ -291,7 +290,7 @@ export function startServer(options = {}) {
         return sendJson(response, 400, { ok: false, error: 'Invalid Host header.' })
       }
       const url = new URL(request.url ?? '/', authority.origin)
-      if (request.method === 'POST' && !authorizedMutation(request, authority.origin, sessionToken)) {
+      if (request.method === 'POST' && !authorizedMutation(request, authority.origin, sessionToken, platform.random)) {
         return sendJson(response, 403, { ok: false, error: 'A same-origin viewer session is required.' })
       }
       const route = routes.find((candidate) => candidate.method === request.method && candidate.test(url.pathname))
@@ -353,7 +352,7 @@ function trustedAuthority(request, serverHost, address) {
   return allowedHosts.has(normalizeHost(authority.hostname)) ? authority : null
 }
 
-function authorizedMutation(request, expectedOrigin, sessionToken) {
+function authorizedMutation(request, expectedOrigin, sessionToken, random) {
   if (request.headers.origin !== expectedOrigin) {
     return false
   }
@@ -363,7 +362,7 @@ function authorizedMutation(request, expectedOrigin, sessionToken) {
   }
   const expected = Buffer.from(sessionToken)
   const actual = Buffer.from(token)
-  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected)
+  return random.timingSafeEqual(actual, expected)
 }
 
 function normalizeHost(value = '') {
@@ -393,10 +392,20 @@ function sessionCookie(sessionToken) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const configPath = getConfigPathFromArgs(process.argv, { cwd: repoRoot })
-  const projectContext = loadProjectContext(configPath ?? detect(repoRoot), { repoRoot })
+  const { environment, fileSystem } = nodePlatform
+  const argv = environment.args()
+  const repoRoot = environment.cwd()
+  const configPath = getConfigPathFromArgs(argv, {
+    cwd: repoRoot,
+    configPath: environment.variable('CODE_MAP_CONFIG'),
+    fileSystem
+  })
+  const projectContext = loadProjectContext(configPath ?? detect(repoRoot), {
+    repoRoot,
+    platform: nodePlatform
+  })
   await loadTemplatePlugins(projectContext.projectMap, configPath ?? path.join(repoRoot, 'project-map.json'), {
-    allow: process.argv.includes('--allow-plugins')
+    allow: argv.includes('--allow-plugins')
   })
   const application = createServerApplication({ projectContext, repoRoot })
   application.scan()
