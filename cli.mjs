@@ -1,151 +1,17 @@
 #!/usr/bin/env node
-import path from 'node:path'
-import { getConfigPathFromArgs, loadProjectContext } from './config.mjs'
-import { detect, detectSummary } from './detect.mjs'
-import { writeGraph } from './scan.mjs'
-import { listTemplates, loadTemplatePlugins } from './templates/registry.mjs'
-import { writeJsonFileAtomic } from './json-io.mjs'
+import { createCliCommands } from './cli-commands.mjs'
+import { createCommandRegistry } from './command-registry.mjs'
 import { nodePlatform } from './platform/node.mjs'
 import { nodeSubmapRepository } from './submap/io.mjs'
 
-const { environment, fileSystem } = nodePlatform
-const repoRoot = environment.cwd()
-
-const args = environment.args().slice(2)
-const hasFlag = (flag) => args.includes(flag)
-
-if (args[0] === 'submap') {
-  const { runSubmapCli } = await import('./submap/cli.mjs')
-  environment.exit(
-    await runSubmapCli(args.slice(1), { cwd: repoRoot, platform: nodePlatform, repository: nodeSubmapRepository })
-  )
+const { environment } = nodePlatform
+const registry = createCommandRegistry(
+  createCliCommands({ platform: nodePlatform, repository: nodeSubmapRepository, output: console })
+)
+const result = await registry.execute({
+  args: environment.args().slice(2),
+  repoRoot: environment.cwd()
+})
+if (result.exitCode !== null) {
+  environment.exit(result.exitCode)
 }
-
-if (hasFlag('--help') || hasFlag('-h')) {
-  console.log(
-    `
-code-map - architectural graph generator
-
-Usage:
-  node tools/code-map/cli.mjs                  Scan once and serve viewer
-  node tools/code-map/cli.mjs --config <path>  Use explicit project-map.json
-  node tools/code-map/cli.mjs --init           Detect and write project-map.json, then exit
-  node tools/code-map/cli.mjs --init --out <dir>  Write project-map.json to directory
-  node tools/code-map/cli.mjs --scan           Scan only, no viewer
-  node tools/code-map/cli.mjs --scan --config <path>  Scan with explicit config, no viewer
-  node tools/code-map/cli.mjs --allow-plugins  Trust and execute configured plugin modules
-  node tools/code-map/cli.mjs --templates      List composable templates
-  node tools/code-map/cli.mjs submap --help    Create and manage portable partial graphs
-  node tools/code-map/cli.mjs --help           Show this help
-
-Environment variables:
-  CODE_MAP_CONFIG   Path to project-map.json (same as --config)
-  CODE_MAP_HOST     Viewer server host (default: 127.0.0.1)
-  CODE_MAP_PORT     Port for the viewer server (default: 1133)
-
-Config:
-  --config may point anywhere in the repo. Plugin paths are resolved relative
-  to that project-map.json; a bare graphOutput filename is written beside the config.
-`.trim()
-  )
-  environment.exit(0)
-}
-
-if (hasFlag('--templates')) {
-  for (const template of listTemplates()) {
-    console.log(`${template.id}\t${template.stage}\t${template.description}`)
-  }
-  environment.exit(0)
-}
-
-// ── --init: detect + write project-map.json ───────────────────────────────────
-
-if (hasFlag('--init')) {
-  const summary = detectSummary(repoRoot)
-  console.log(
-    `Detected: ${summary.frontendFramework ?? 'unknown'} frontend, ${summary.backendStack ?? 'none'} backend, ${summary.moduleCount} modules`
-  )
-
-  const config = detect(repoRoot)
-
-  const outIndex = args.indexOf('--out')
-  const outDir = outIndex >= 0 ? path.resolve(args[outIndex + 1]) : repoRoot
-  const projectSlug = (config.project?.name ?? 'project').toLowerCase().replace(/[^a-z0-9]+/g, '-')
-  const outFile = path.join(outDir, `${projectSlug}.project-map.json`)
-
-  writeJsonFileAtomic(outFile, config)
-  console.log(`Written to ${path.relative(repoRoot, outFile)}`)
-  console.log('Review and adjust the file, then run: npx code-map --config ' + path.relative(repoRoot, outFile))
-  environment.exit(0)
-}
-
-// ── Resolve config: explicit path or zero-config detection ────────────────────
-
-const explicitConfigPath = (() => {
-  const configIndex = args.indexOf('--config')
-  if (configIndex >= 0 && args[configIndex + 1]) {
-    return path.resolve(args[configIndex + 1])
-  }
-  if (environment.variable('CODE_MAP_CONFIG')) {
-    return path.resolve(environment.variable('CODE_MAP_CONFIG'))
-  }
-  return null
-})()
-
-const configPath =
-  explicitConfigPath ??
-  getConfigPathFromArgs(environment.args(), {
-    cwd: repoRoot,
-    configPath: environment.variable('CODE_MAP_CONFIG'),
-    fileSystem
-  })
-let pluginBasePath = configPath
-let projectContext
-
-if (configPath) {
-  if (!fileSystem.exists(configPath)) {
-    console.error(`Config file not found: ${configPath}`)
-    environment.exit(1)
-  }
-  projectContext = loadProjectContext(configPath, { repoRoot, platform: nodePlatform })
-  console.log(`Using config: ${path.relative(repoRoot, configPath)}`)
-} else {
-  const summary = detectSummary(repoRoot)
-  console.log(
-    `Auto-detected: ${summary.frontendFramework ?? 'unknown'} + ${summary.backendStack ?? 'none'}, ${summary.moduleCount} modules`
-  )
-  console.log('Tip: run with --init to generate a project-map.json you can customize.')
-  projectContext = loadProjectContext(detect(repoRoot), { repoRoot, platform: nodePlatform })
-  pluginBasePath = path.join(repoRoot, 'project-map.json')
-}
-
-try {
-  await loadTemplatePlugins(projectContext.projectMap, pluginBasePath ?? path.join(repoRoot, 'project-map.json'), {
-    allow: hasFlag('--allow-plugins')
-  })
-} catch (error) {
-  console.error(error.message)
-  environment.exit(1)
-}
-
-// ── --scan: scan only, no server ──────────────────────────────────────────────
-
-if (hasFlag('--scan')) {
-  const outArgIndex = args.indexOf('--out')
-  const outputPath = outArgIndex >= 0 ? path.resolve(args[outArgIndex + 1]) : projectContext.resolveGraphOutputPath()
-
-  const result = writeGraph(outputPath, projectContext)
-  const displayOutput = path.relative(repoRoot, outputPath).replaceAll(path.sep, '/')
-  console.log(
-    `Scan complete: ${result.stats.nodes} nodes, ${result.stats.edges} edges, ${result.stats.findings} findings -> ${displayOutput}`
-  )
-  environment.exit(0)
-}
-
-// ── Default: scan + open viewer ───────────────────────────────────────────────
-
-const outputPath = projectContext.resolveGraphOutputPath()
-writeGraph(outputPath, projectContext)
-
-const { startServer } = await import('./server.mjs')
-startServer({ projectContext })

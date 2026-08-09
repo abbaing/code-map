@@ -271,8 +271,28 @@ export const components = [
     files: ['cli.mjs'],
     contracts: ['Command'],
     compositionRoot: true,
-    design: designStatus('pass', 'gap', 'not-applicable', 'pass', 'gap'),
-    decision: 'Replace flag branching and concrete imports with a command registry assembled at the composition root.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Assemble validated command implementations with Node platform and repository adapters.'
+  },
+  {
+    id: 'cli-commands',
+    responsibility: 'Implement root command-line use cases through injected runtime capabilities.',
+    role: 'adapter',
+    files: ['cli-commands.mjs'],
+    contracts: ['Command'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep command matching declarative and runtime dependencies explicit at command construction.'
+  },
+  {
+    id: 'command-registry',
+    responsibility: 'Validate, select, and execute command implementations with normalized exit results.',
+    role: 'core',
+    files: ['command-registry.mjs'],
+    contracts: ['Command', 'CommandRegistry'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep command dispatch ordered, runtime-independent, and strict about result contracts.'
   },
   {
     id: 'submap-core',

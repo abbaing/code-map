@@ -25,6 +25,7 @@ graph.json → viewer
 - `server-app.mjs` coordinates injected scan, configuration, and submap capabilities; `server.mjs` selects Node adapters and dispatches through a validated route registry.
 - `viewer/` consumes the serialized graph and does not reach into Node.js modules.
 - `platform/` defines runtime capabilities and contains the Node adapter selected by executable boundaries.
+- `cli.mjs` assembles validated command implementations; command selection and exit results are runtime-independent.
 
 ## Component design policy
 
