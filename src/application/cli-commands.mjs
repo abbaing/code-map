@@ -191,16 +191,16 @@ function assertOperations(implementation, operations, label) {
 const helpText = `code-map - architectural graph generator
 
 Usage:
-  node tools/code-map/cli.mjs                  Scan once and serve viewer
-  node tools/code-map/cli.mjs --config <path>  Use explicit project-map.json
-  node tools/code-map/cli.mjs --init           Detect and write project-map.json, then exit
-  node tools/code-map/cli.mjs --init --out <dir>  Write project-map.json to directory
-  node tools/code-map/cli.mjs --scan           Scan only, no viewer
-  node tools/code-map/cli.mjs --scan --config <path>  Scan with explicit config, no viewer
-  node tools/code-map/cli.mjs --allow-plugins  Trust and execute configured plugin modules
-  node tools/code-map/cli.mjs --templates      List composable templates
-  node tools/code-map/cli.mjs submap --help    Create and manage portable partial graphs
-  node tools/code-map/cli.mjs --help           Show this help
+  code-map                          Scan once and serve viewer
+  code-map --config <path>          Use explicit project-map.json
+  code-map --init                   Detect and write project-map.json, then exit
+  code-map --init --out <dir>       Write project-map.json to directory
+  code-map --scan                   Scan only, no viewer
+  code-map --scan --config <path>   Scan with explicit config, no viewer
+  code-map --allow-plugins          Trust and execute configured plugin modules
+  code-map --templates              List composable templates
+  code-map submap --help            Create and manage portable partial graphs
+  code-map --help                   Show this help
 
 Environment variables:
   CODE_MAP_CONFIG   Path to project-map.json (same as --config)

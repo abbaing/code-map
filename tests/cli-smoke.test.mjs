@@ -30,6 +30,8 @@ function runResult(args, cwd = tempRoot) {
 
 const help = run(['--help'])
 assert.match(help, /code-map - architectural graph generator/u)
+assert.match(help, /Usage:\s+code-map\s+Scan once and serve viewer/u)
+assert.doesNotMatch(help, /tools\/code-map\/cli\.mjs/u)
 assert.match(help, /CODE_MAP_HOST\s+Viewer server host \(default: 127\.0\.0\.1\)/u)
 assert.match(help, /--allow-plugins\s+Trust and execute configured plugin modules/u)
 
