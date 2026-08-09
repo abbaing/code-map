@@ -9,6 +9,13 @@ assert.deepEqual(Object.keys(packageDocument.exports), [
   './schemas/submap',
   './schemas/submap-request'
 ])
+for (const developmentDirectory of ['architecture/', 'tests/']) {
+  assert.equal(
+    packageDocument.files.includes(developmentDirectory),
+    false,
+    `${developmentDirectory} must not be included in the published package`
+  )
+}
 
 const rootApi = await import('@abbaing/code-map')
 for (const name of [
