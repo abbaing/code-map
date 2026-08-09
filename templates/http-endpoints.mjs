@@ -10,10 +10,11 @@ export const httpEndpointsTemplate = {
     colors: { endpoint: '#c2410c' }
   },
   capabilities: {
-    scanners: [{ id: 'http.endpoints', run: (context) => context.frontEndpointIds }],
+    scanners: [{ id: 'http.endpoints', requires: ['frontEndpointIds'], run: (context) => context.frontEndpointIds }],
     enrichers: [
       {
         id: 'http.link-endpoints',
+        requires: ['graph', 'frontEndpointIds', 'controllerEndpoints'],
         run: (context) => connectEndpoints(context.graph, context.frontEndpointIds, context.controllerEndpoints)
       }
     ]

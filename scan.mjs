@@ -11,6 +11,7 @@ import { buildTemplateRegistry, loadTemplatePlugins } from './templates/registry
 import { detect } from './detect.mjs'
 import { writeJsonFileAtomic } from './json-io.mjs'
 import { createScanPipeline, defineScanPhase } from './scan-pipeline.mjs'
+import { capabilityInput } from './templates/contracts.mjs'
 
 // ── Phase functions ───────────────────────────────────────────────────────────
 
@@ -561,7 +562,7 @@ function createScanContext(graph, projectContext, registry, files, findingSink, 
 
 function phaseRunRegisteredScanners(context) {
   for (const scanner of context.registry.capabilities.scanners) {
-    const result = scanner.run(context)
+    const result = scanner.run(capabilityInput(scanner, context))
     if (scanner.assign) {
       context[scanner.assign] = result ?? []
     }
@@ -570,7 +571,7 @@ function phaseRunRegisteredScanners(context) {
 
 function phaseRunRegisteredEnrichers(context) {
   for (const enricher of context.registry.capabilities.enrichers) {
-    enricher.run(context)
+    enricher.run(capabilityInput(enricher, context))
   }
 }
 

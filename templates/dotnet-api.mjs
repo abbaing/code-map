@@ -51,31 +51,37 @@ export const dotnetApiTemplate = {
       {
         id: 'dotnet.index',
         assign: 'backSession',
+        requires: ['files'],
         run: (context) => createBackScanSession(context.files.allBackFiles)
       },
       {
         id: 'dotnet.files',
+        requires: ['graph', 'files', 'projectContext', 'backSession'],
         run: (context) =>
           scanBackFiles(context.graph, context.files.backFiles, context.projectContext, context.backSession)
       },
       {
         id: 'dotnet.controllers',
         assign: 'controllerEndpoints',
+        requires: ['graph', 'controllerFiles', 'projectContext', 'backSession'],
         run: (context) =>
           scanControllers(context.graph, context.controllerFiles(), context.projectContext, context.backSession)
       },
       {
         id: 'dotnet.dispatches',
+        requires: ['graph', 'files', 'projectContext', 'backSession'],
         run: (context) =>
           scanRequestDispatches(context.graph, context.files.backFiles, context.projectContext, context.backSession)
       },
       {
         id: 'dotnet.handlers',
+        requires: ['graph', 'files', 'projectContext', 'backSession'],
         run: (context) =>
           scanRequestHandlers(context.graph, context.files.backFiles, context.projectContext, context.backSession)
       },
       {
         id: 'dotnet.dependencies',
+        requires: ['graph', 'files', 'projectContext', 'backSession'],
         run: (context) =>
           scanBackDependencies(context.graph, context.files.backFiles, context.projectContext, context.backSession)
       }

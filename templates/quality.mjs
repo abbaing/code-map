@@ -15,11 +15,20 @@ export const qualityTemplate = {
   description: 'Coverage, cohesion/coupling score, orphan detection, and findings attachment.',
   capabilities: {
     enrichers: [
-      { id: 'quality.coverage', run: (context) => context.applyCoverage() },
-      { id: 'quality.score', run: (context) => applyQualityMetrics(context.graph, context.projectContext) },
-      { id: 'quality.track-internals', run: (context) => context.trackInternalComponents() },
+      { id: 'quality.coverage', requires: ['applyCoverage'], run: (context) => context.applyCoverage() },
+      {
+        id: 'quality.score',
+        requires: ['graph', 'projectContext'],
+        run: (context) => applyQualityMetrics(context.graph, context.projectContext)
+      },
+      {
+        id: 'quality.track-internals',
+        requires: ['trackInternalComponents'],
+        run: (context) => context.trackInternalComponents()
+      },
       {
         id: 'quality.guardrails',
+        requires: ['files', 'registry', 'projectContext', 'findingSink'],
         run: (context) =>
           runFrontendGuardrails(
             context.files.frontFiles,
@@ -30,6 +39,7 @@ export const qualityTemplate = {
       },
       {
         id: 'quality.architecture-guardrails',
+        requires: ['files', 'registry', 'projectContext', 'findingSink'],
         run: (context) =>
           runArchitectureGuardrails(
             [...context.files.frontFiles, ...context.files.backFiles],
@@ -40,6 +50,7 @@ export const qualityTemplate = {
       },
       {
         id: 'quality.findings',
+        requires: ['graph', 'findingSource'],
         run: (context) => attachFindingsToNodes(context.graph, context.findingSource.active())
       }
     ]

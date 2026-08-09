@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { templateCatalog } from './catalog.mjs'
+import { assertCapabilityRegistry, assertTemplate, deepFreeze } from './contracts.mjs'
 
 const baseTemplate = {
   id: 'base',
@@ -20,10 +21,12 @@ const baseTemplate = {
 const templates = new Map()
 
 export function registerTemplate(template) {
-  if (!template?.id) {
-    throw new Error('Template id is required.')
+  const normalized = normalizeTemplate(template)
+  assertTemplate(normalized)
+  if (templates.has(normalized.id)) {
+    throw new TypeError(`Duplicate template id: ${normalized.id}.`)
   }
-  templates.set(template.id, normalizeTemplate(template))
+  templates.set(normalized.id, deepFreeze(normalized))
 }
 
 export function getTemplate(id) {
@@ -93,7 +96,11 @@ export function buildTemplateRegistry(projectMap) {
     return template
   })
 
-  return selected.reduce((registry, template) => mergeRegistry(registry, template), normalizeTemplate(baseTemplate))
+  const registry = selected.reduce(
+    (current, template) => mergeRegistry(current, template),
+    normalizeTemplate(baseTemplate)
+  )
+  return deepFreeze(assertCapabilityRegistry(registry))
 }
 
 function normalizeTemplate(template) {

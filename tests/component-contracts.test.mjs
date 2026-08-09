@@ -86,11 +86,13 @@ assertUniqueContracts(templateCatalog, 'template', (template) => {
     assert.match(scanner.id, /\S/u, `template ${template.id} has a scanner without id`)
     assertUniqueCapability(capabilityIds.scanner, scanner.id, 'scanner')
     assert.equal(typeof scanner.run, 'function', `scanner ${scanner.id} must implement run(context)`)
+    assert.equal(Array.isArray(scanner.requires), true, `scanner ${scanner.id} must declare required inputs`)
   }
   for (const enricher of template.capabilities?.enrichers ?? []) {
     assert.match(enricher.id, /\S/u, `template ${template.id} has an enricher without id`)
     assertUniqueCapability(capabilityIds.enricher, enricher.id, 'enricher')
     assert.equal(typeof enricher.run, 'function', `enricher ${enricher.id} must implement run(context)`)
+    assert.equal(Array.isArray(enricher.requires), true, `enricher ${enricher.id} must declare required inputs`)
   }
 })
 

@@ -179,7 +179,7 @@ try {
     /Unknown code map template: does-not-exist/u,
     'unknown templates must fail before scanning'
   )
-  assert.throws(() => registerTemplate({}), /Template id is required/u)
+  assert.throws(() => registerTemplate({}), /Template id must be a non-empty string/u)
   await assert.rejects(
     loadTemplatePlugins({ templates: { plugins: ['./missing-plugin.mjs'] } }, path.join(tempRoot, 'project-map.json')),
     /Custom template plugins are disabled by default/u,

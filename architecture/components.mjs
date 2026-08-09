@@ -197,6 +197,7 @@ export const components = [
     files: [
       'templates/architectures.mjs',
       'templates/catalog.mjs',
+      'templates/contracts.mjs',
       'templates/core.mjs',
       'templates/dotnet-api.mjs',
       'templates/entity-framework.mjs',
@@ -209,8 +210,8 @@ export const components = [
     ],
     contracts: ['Template', 'Scanner', 'GraphEnricher', 'FileKind'],
     compositionRoot: true,
-    design: designStatus('pass', 'pass', 'pass', 'gap', 'pass'),
-    decision: 'Capabilities compose correctly, but each implementation currently receives the complete scan context.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Validate capabilities at registration and project only their declared required and optional inputs.'
   },
   {
     id: 'json-persistence',
