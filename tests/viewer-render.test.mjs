@@ -5,6 +5,7 @@ import vm from 'node:vm'
 const viewerHtml = fs.readFileSync(new URL('../viewer/viewer.html', import.meta.url), 'utf8')
 const tailwindCss = fs.readFileSync(new URL('../viewer/tailwind.css', import.meta.url), 'utf8')
 const findingsSource = fs.readFileSync(new URL('../viewer/viewer-findings.js', import.meta.url), 'utf8')
+const actionsSource = fs.readFileSync(new URL('../viewer/viewer-actions.js', import.meta.url), 'utf8')
 const interactionsSource = fs.readFileSync(new URL('../viewer/viewer-interactions.mjs', import.meta.url), 'utf8')
 assert.match(
   viewerHtml,
@@ -64,6 +65,53 @@ assert.doesNotMatch(findingsTable.innerHTML, /navigator\.clipboard/iu)
 assert.match(
   findingsTable.innerHTML,
   /data-copy-path="src\/&#39;\);globalThis\.injected=true;\/\/&quot; onmouseover=&quot;alert\(1\)\.js"/u
+)
+
+const settingsBody = () => ({
+  innerHTML: '',
+  querySelectorAll() {
+    return []
+  }
+})
+const settingsElements = {
+  settingsModulesBody: settingsBody(),
+  settingsTypesBody: settingsBody(),
+  settingsRulesBody: settingsBody()
+}
+const hostileId = `users"><img src=x onerror="globalThis.injected=true">`
+const hostileLabel = `<script>globalThis.injected=true</script>`
+const hostileColor = `#fff"><img src=x onerror="globalThis.injected=true">`
+const hostileRule = `rule"><img src=x onerror="globalThis.injected=true">`
+const settingsContext = vm.createContext({
+  state: {
+    graph: {
+      projectMap: {
+        modules: { labels: { [hostileId]: hostileLabel } },
+        types: { labels: { [hostileId]: hostileLabel }, colors: { [hostileId]: hostileColor } },
+        rules: { enabled: [hostileRule], suppressions: [] }
+      }
+    }
+  },
+  els: settingsElements,
+  window: { clearTimeout, setTimeout },
+  console
+})
+for (const source of [fs.readFileSync(new URL('../viewer/viewer-utils.js', import.meta.url), 'utf8'), actionsSource]) {
+  vm.runInContext(source, settingsContext)
+}
+vm.runInContext('globalThis.settingsApi = { populateSettingsTab }', settingsContext)
+settingsContext.settingsApi.populateSettingsTab()
+const settingsMarkup = Object.values(settingsElements)
+  .map((body) => body.innerHTML)
+  .join('\n')
+assert.doesNotMatch(settingsMarkup, /<script|<img|onerror="/iu, 'settings values must not create executable markup')
+assert.doesNotMatch(settingsMarkup, /#fff/u, 'invalid configured colors must not reach style attributes')
+assert.match(settingsElements.settingsTypesBody.innerHTML, /background:#64748b/u)
+assert.match(settingsMarkup, /&lt;script&gt;globalThis\.injected=true&lt;\/script&gt;/u)
+assert.doesNotMatch(
+  actionsSource,
+  /querySelector\(`input\[data-type-hex=/u,
+  'configured type ids must not be interpolated into CSS selectors'
 )
 
 const classNames = new Set(['hidden'])

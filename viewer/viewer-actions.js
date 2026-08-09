@@ -198,9 +198,9 @@ function populateSettingsTab() {
     .map(
       ([id, label]) => `
       <tr>
-        <td class="px-3 py-2 text-gray-400 font-mono text-xs">${id}</td>
+        <td class="px-3 py-2 text-gray-400 font-mono text-xs">${escapeHtml(id)}</td>
         <td class="px-3 py-2">
-          <input data-module="${id}" type="text" value="${label.replace(/"/g, '&quot;')}"
+          <input data-module="${escapeHtml(id)}" type="text" value="${escapeHtml(label)}"
             class="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-400" />
         </td>
       </tr>`
@@ -212,23 +212,24 @@ function populateSettingsTab() {
   const typeLabelsMap = pm.types?.labels ?? {}
   els.settingsTypesBody.innerHTML = Object.entries(typeColors)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(
-      ([id, color]) => `
+    .map(([id, color]) => {
+      const safeColor = normalizeHexColor(color)
+      return `
       <tr>
         <td class="px-3 py-2 text-sm">
-          <span class="inline-block w-3 h-3 rounded-sm mr-2 align-middle" style="background:${color}"></span>
-          ${typeLabelsMap[id] ?? id}
+          <span class="inline-block w-3 h-3 rounded-sm mr-2 align-middle" style="background:${safeColor}"></span>
+          ${escapeHtml(typeLabelsMap[id] ?? id)}
         </td>
         <td class="px-3 py-2">
           <div class="flex items-center gap-2">
-            <input data-type-color="${id}" type="color" value="${color}"
+            <input data-type-color="${escapeHtml(id)}" type="color" value="${safeColor}"
               class="w-8 h-7 rounded cursor-pointer border border-gray-200 p-0.5" />
-            <input data-type-hex="${id}" type="text" value="${color}"
+            <input data-type-hex="${escapeHtml(id)}" type="text" value="${safeColor}"
               class="w-24 border border-gray-200 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-blue-400" />
           </div>
         </td>
       </tr>`
-    )
+    })
     .join('')
 
   // Rules
@@ -238,16 +239,19 @@ function populateSettingsTab() {
     .map(
       (id) => `
       <label class="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-50">
-        <input data-rule="${id}" type="checkbox" ${enabledRules.has(id) ? 'checked' : ''} class="accent-blue-600" />
-        <span class="text-sm font-mono text-gray-700">${id}</span>
+        <input data-rule="${escapeHtml(id)}" type="checkbox" ${enabledRules.has(id) ? 'checked' : ''} class="accent-blue-600" />
+        <span class="text-sm font-mono text-gray-700">${escapeHtml(id)}</span>
       </label>`
     )
     .join('')
 
   // Sync color picker <-> hex text input
+  const hexInputs = new Map(
+    [...els.settingsTypesBody.querySelectorAll('input[data-type-hex]')].map((input) => [input.dataset.typeHex, input])
+  )
   els.settingsTypesBody.querySelectorAll('input[data-type-color]').forEach((picker) => {
     const id = picker.dataset.typeColor
-    const hex = els.settingsTypesBody.querySelector(`input[data-type-hex="${id}"]`)
+    const hex = hexInputs.get(id)
     picker.addEventListener('input', () => {
       if (hex) {
         hex.value = picker.value
@@ -261,6 +265,11 @@ function populateSettingsTab() {
       })
     }
   })
+}
+
+function normalizeHexColor(value) {
+  const color = String(value ?? '')
+  return /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#64748b'
 }
 
 function collectAllRuleIds(pm) {
