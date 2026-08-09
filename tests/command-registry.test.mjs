@@ -49,7 +49,12 @@ const cliRegistry = createCommandRegistry(
       fileSystem: { exists: () => false }
     },
     repository: { read() {}, list: () => [], write() {} },
-    output: { log: (message) => messages.push(message), error: (message) => messages.push(message) }
+    output: { log: (message) => messages.push(message), error: (message) => messages.push(message) },
+    submapCli: {
+      documents: { read() {}, readStdin() {} },
+      git: { metadata() {} },
+      output: { writeStdout() {}, writeStderr() {} }
+    }
   })
 )
 assert.equal(cliRegistry.resolve({ args: ['submap', '--help'] }).id, 'submap')

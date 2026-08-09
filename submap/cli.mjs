@@ -1,8 +1,12 @@
 import path from 'node:path'
-import { execFileSync } from 'node:child_process'
+import { createCommandRegistry, defineCommand } from '../command-registry.mjs'
 import { getConfigPathFromArgs, loadProjectContext } from '../config.mjs'
-import { nodePlatform } from '../platform/node.mjs'
 import { assertSubmapRepository } from './repository.mjs'
+import { compareSubmaps, inspectSubmap } from './diff.mjs'
+import { createSubmap } from './create.mjs'
+import { SubmapError } from './errors.mjs'
+import { defaultSubmapFilename } from './io.mjs'
+import { validateSubmap, validateSubmapAgainstGraph } from './validate.mjs'
 import {
   assertOnlyOptions,
   createOptionNames,
@@ -13,52 +17,70 @@ import {
   scalar,
   values
 } from './cli-args.mjs'
-import {
-  SubmapError,
-  compareSubmaps,
-  createSubmap,
-  defaultSubmapFilename,
-  inspectSubmap,
-  readJson,
-  readJsonStdin,
-  validateSubmap,
-  validateSubmapAgainstGraph
-} from './index.mjs'
+
+export const submapCommands = Object.freeze([
+  defineCommand({ id: 'submap.help', matches: ({ args }) => isHelp(args), execute: executeHelp }),
+  defineCommand({ id: 'submap.create', matches: ({ args }) => args[0] === 'create', execute: executeCreate }),
+  defineCommand({ id: 'submap.inspect', matches: ({ args }) => args[0] === 'inspect', execute: executeInspect }),
+  defineCommand({ id: 'submap.validate', matches: ({ args }) => args[0] === 'validate', execute: executeValidate }),
+  defineCommand({ id: 'submap.diff', matches: ({ args }) => args[0] === 'diff', execute: executeDiff }),
+  defineCommand({ id: 'submap.list', matches: ({ args }) => args[0] === 'list', execute: executeList }),
+  defineCommand({ id: 'submap.unknown', matches: () => true, execute: executeUnknown })
+])
+
+const submapCommandRegistry = createCommandRegistry(submapCommands)
 
 export async function runSubmapCli(args, context = {}) {
-  const platform = context.platform ?? nodePlatform
+  const platform = assertPlatformCapabilities(context.platform)
   const repository = assertSubmapRepository(context.repository)
+  const documents = assertOperations(context.documents, ['read', 'readStdin'], 'Submap document input')
+  const git = assertOperations(context.git, ['metadata'], 'Submap Git metadata')
+  const output = assertOperations(context.output, ['writeStdout', 'writeStderr'], 'Submap output')
   const optionsForErrors = args.includes('--json-errors')
   try {
-    const command = args[0]
-    if (!command || command === 'help' || args.includes('--help')) {
-      writeHelp()
-      return 0
-    }
-    const parsed = parseArgs(args.slice(1))
     const cwd = context.cwd ?? platform.environment.cwd()
-    if (command === 'create') {
-      return createCommand(parsed, cwd, platform, repository)
-    }
-    if (command === 'inspect') {
-      return inspectCommand(parsed, repository)
-    }
-    if (command === 'validate') {
-      return validateCommand(parsed, repository)
-    }
-    if (command === 'diff') {
-      return diffCommand(parsed, repository)
-    }
-    if (command === 'list') {
-      return listCommand(parsed, cwd, platform, repository)
-    }
-    throw new SubmapError('SUBMAP_UNKNOWN_COMMAND', `Unknown submap command: ${command}`, { command })
+    const result = await submapCommandRegistry.execute({ args, cwd, platform, repository, documents, git, output })
+    return result.exitCode
   } catch (error) {
-    return reportError(error, optionsForErrors)
+    return reportError(error, optionsForErrors, output)
   }
 }
 
-function createCommand(options, cwd, platform, repository) {
+function isHelp(args) {
+  return !args[0] || args[0] === 'help' || args.includes('--help')
+}
+
+function executeHelp({ output }) {
+  writeHelp(output)
+  return { exitCode: 0 }
+}
+
+function executeCreate(input) {
+  const options = parseArgs(input.args.slice(1))
+  return { exitCode: createCommand(options, input) }
+}
+
+function executeInspect(input) {
+  return { exitCode: inspectCommand(parseArgs(input.args.slice(1)), input) }
+}
+
+function executeValidate(input) {
+  return { exitCode: validateCommand(parseArgs(input.args.slice(1)), input) }
+}
+
+function executeDiff(input) {
+  return { exitCode: diffCommand(parseArgs(input.args.slice(1)), input) }
+}
+
+function executeList(input) {
+  return { exitCode: listCommand(parseArgs(input.args.slice(1)), input) }
+}
+
+function executeUnknown({ args }) {
+  throw new SubmapError('SUBMAP_UNKNOWN_COMMAND', `Unknown submap command: ${args[0]}`, { command: args[0] })
+}
+
+function createCommand(options, { cwd, platform, repository, documents, git, output }) {
   assertOnlyOptions(options, createOptionNames())
   if (options.stdout && options.output) {
     throw new SubmapError('SUBMAP_OUTPUT_CONFLICT', '--stdout and --output are mutually exclusive.')
@@ -83,18 +105,20 @@ function createCommand(options, cwd, platform, repository) {
     )
   }
 
-  const request = options.spec ? readSpec(last(options.spec), options.positionals[0]) : requestFromOptions(options)
+  const request = options.spec
+    ? readSpec(last(options.spec), options.positionals[0], documents, cwd)
+    : requestFromOptions(options)
   if (!request.id && options.positionals[0]) {
     request.id = options.positionals[0]
   }
   const graphPath = resolveGraphPath(options, cwd, platform)
-  const graph = readJson(graphPath, 'source graph')
+  const graph = documents.read(graphPath, 'source graph')
   const submap = createSubmap(graph, request, {
-    git: readGitMetadata(cwd),
+    git: git.metadata(cwd),
     clock: platform.clock,
     hash: platform.hash
   })
-  const validation = validateSubmap(submap)
+  const validation = validateSubmap(submap, platform.hash)
   if (!validation.valid) {
     throw new SubmapError(
       'SUBMAP_GENERATED_INVALID',
@@ -105,7 +129,7 @@ function createCommand(options, cwd, platform, repository) {
   }
 
   if (options.stdout) {
-    writeJsonStdout(submap)
+    writeJsonStdout(submap, output)
     return 0
   }
 
@@ -115,36 +139,41 @@ function createCommand(options, cwd, platform, repository) {
   const written = repository.write(outputPath, submap, { force: Boolean(options.force) })
   log(
     options,
-    `Created ${path.relative(cwd, written)} (${submap.statistics.nodes} nodes, ${submap.statistics.edges} edges).`
+    `Created ${path.relative(cwd, written)} (${submap.statistics.nodes} nodes, ${submap.statistics.edges} edges).`,
+    output
   )
   return 0
 }
 
-function inspectCommand(options, repository) {
+function inspectCommand(options, { cwd, repository, output }) {
   assertOnlyOptions(options, new Set(['json', 'quiet', 'json-errors', 'non-interactive']))
   const input = requiredPositional(options, 0, 'SUBMAP_INPUT_REQUIRED', 'inspect requires a submap file.')
-  const summary = inspectSubmap(repository.read(path.resolve(input)))
+  const summary = inspectSubmap(repository.read(path.resolve(cwd, input)))
   if (options.json) {
-    writeJsonStdout(summary)
+    writeJsonStdout(summary, output)
   } else {
-    writeInspection(summary)
+    writeInspection(summary, output)
   }
   return 0
 }
 
-function validateCommand(options, repository) {
+function validateCommand(options, { cwd, platform, repository, documents, output }) {
   assertOnlyOptions(options, new Set(['against', 'json', 'quiet', 'json-errors', 'non-interactive']))
   const input = requiredPositional(options, 0, 'SUBMAP_INPUT_REQUIRED', 'validate requires a submap file.')
-  const submap = repository.read(path.resolve(input))
-  const internal = validateSubmap(submap)
+  const submap = repository.read(path.resolve(cwd, input))
+  const internal = validateSubmap(submap, platform.hash)
   const result =
     options.against && internal.valid
-      ? validateSubmapAgainstGraph(submap, readJson(path.resolve(last(options.against)), 'source graph'))
+      ? validateSubmapAgainstGraph(
+          submap,
+          documents.read(path.resolve(cwd, last(options.against)), 'source graph'),
+          platform.hash
+        )
       : internal
   if (options.json) {
-    writeJsonStdout(result)
+    writeJsonStdout(result, output)
   } else {
-    writeValidation(result)
+    writeValidation(result, output)
   }
   if (!result.valid) {
     return options.against && internal.valid ? 5 : 4
@@ -152,20 +181,23 @@ function validateCommand(options, repository) {
   return 0
 }
 
-function diffCommand(options, repository) {
+function diffCommand(options, { cwd, repository, output }) {
   assertOnlyOptions(options, new Set(['json', 'quiet', 'json-errors', 'non-interactive']))
   const previousPath = requiredPositional(options, 0, 'SUBMAP_INPUT_REQUIRED', 'diff requires two submap files.')
   const currentPath = requiredPositional(options, 1, 'SUBMAP_INPUT_REQUIRED', 'diff requires two submap files.')
-  const result = compareSubmaps(repository.read(path.resolve(previousPath)), repository.read(path.resolve(currentPath)))
+  const result = compareSubmaps(
+    repository.read(path.resolve(cwd, previousPath)),
+    repository.read(path.resolve(cwd, currentPath))
+  )
   if (options.json) {
-    writeJsonStdout(result)
+    writeJsonStdout(result, output)
   } else {
-    writeDiff(result)
+    writeDiff(result, output)
   }
   return 0
 }
 
-function listCommand(options, cwd, platform, repository) {
+function listCommand(options, { cwd, platform, repository, output }) {
   assertOnlyOptions(options, new Set(['dir', 'config', 'json', 'quiet', 'json-errors', 'non-interactive']))
   const directory = options.dir ? path.resolve(cwd, last(options.dir)) : resolveSubmapsDirectory(options, cwd, platform)
   const entries = repository.list(directory).map((filePath) => ({
@@ -173,12 +205,12 @@ function listCommand(options, cwd, platform, repository) {
     ...inspectSubmap(repository.read(filePath))
   }))
   if (options.json) {
-    writeJsonStdout(entries)
+    writeJsonStdout(entries, output)
   } else if (!entries.length) {
-    process.stdout.write(`No submaps found in ${directory}\n`)
+    output.writeStdout(`No submaps found in ${directory}\n`)
   } else {
     for (const entry of entries) {
-      process.stdout.write(
+      output.writeStdout(
         `${entry.id}\tr${entry.revision}\t${entry.statistics.nodes} nodes\t${path.basename(entry.file)}\n`
       )
     }
@@ -231,8 +263,9 @@ function accessSelector(options, level) {
   }
 }
 
-function readSpec(specPath, positionalId) {
-  const request = specPath === '-' ? readJsonStdin() : readJson(path.resolve(specPath), 'submap request')
+function readSpec(specPath, positionalId, documents, cwd) {
+  const request =
+    specPath === '-' ? documents.readStdin() : documents.read(path.resolve(cwd, specPath), 'submap request')
   if (positionalId && request.id && positionalId !== request.id) {
     throw new SubmapError('SUBMAP_ID_CONFLICT', 'Positional id and spec id do not match.', {
       positionalId,
@@ -292,47 +325,33 @@ function loadOptionalProjectContext(options, cwd, platform) {
   }
 }
 
-function readGitMetadata(cwd) {
-  try {
-    const run = (args) =>
-      execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
-    return {
-      commit: run(['rev-parse', 'HEAD']),
-      branch: run(['branch', '--show-current']) || null,
-      dirty: Boolean(run(['status', '--porcelain']))
-    }
-  } catch {
-    return undefined
-  }
+function writeJsonStdout(value, output) {
+  output.writeStdout(`${JSON.stringify(value, null, 2)}\n`)
 }
 
-function writeJsonStdout(value) {
-  process.stdout.write(`${JSON.stringify(value, null, 2)}\n`)
-}
-
-function log(options, message) {
+function log(options, message, output) {
   if (!options.quiet) {
-    process.stderr.write(`${message}\n`)
+    output.writeStderr(`${message}\n`)
   }
 }
 
-function reportError(error, json) {
+function reportError(error, json, output) {
   const normalized =
     error instanceof SubmapError
       ? error
       : new SubmapError('SUBMAP_INTERNAL_ERROR', error?.message ?? String(error), {}, 1)
   if (json) {
-    process.stderr.write(
+    output.writeStderr(
       `${JSON.stringify({ error: { code: normalized.code, message: normalized.message, details: normalized.details } })}\n`
     )
   } else {
-    process.stderr.write(`Error [${normalized.code}]: ${normalized.message}\n`)
+    output.writeStderr(`Error [${normalized.code}]: ${normalized.message}\n`)
   }
   return normalized.exitCode
 }
 
-function writeInspection(summary) {
-  process.stdout.write(
+function writeInspection(summary, output) {
+  output.writeStdout(
     [
       `${summary.id} (revision ${summary.revision})`,
       `UID: ${summary.uid}`,
@@ -349,18 +368,18 @@ function writeInspection(summary) {
   )
 }
 
-function writeValidation(result) {
-  process.stdout.write(result.valid ? 'Submap is valid.\n' : 'Submap is invalid.\n')
+function writeValidation(result, output) {
+  output.writeStdout(result.valid ? 'Submap is valid.\n' : 'Submap is invalid.\n')
   for (const issue of result.errors) {
-    process.stdout.write(`ERROR ${issue.code}: ${issue.message}\n`)
+    output.writeStdout(`ERROR ${issue.code}: ${issue.message}\n`)
   }
   for (const issue of result.warnings) {
-    process.stdout.write(`WARN ${issue.code}: ${issue.message}\n`)
+    output.writeStdout(`WARN ${issue.code}: ${issue.message}\n`)
   }
 }
 
-function writeDiff(result) {
-  process.stdout.write(
+function writeDiff(result, output) {
+  output.writeStdout(
     [
       `${result.previous.id} r${result.previous.revision} -> r${result.current.revision}`,
       `Nodes: +${result.nodes.added.length} -${result.nodes.removed.length}`,
@@ -372,8 +391,8 @@ function writeDiff(result) {
   )
 }
 
-function writeHelp() {
-  process.stdout.write(`code-map submap - create and manage portable partial graphs
+function writeHelp(output) {
+  output.writeStdout(`code-map submap - create and manage portable partial graphs
 
 Usage:
   code-map submap create <id> --graph <graph.json> [selectors] [--output <file> | --stdout]
@@ -402,4 +421,27 @@ Automation:
   --non-interactive   Explicitly assert non-interactive execution
   --force             Replace an existing output file
 `)
+}
+
+function assertPlatformCapabilities(platform) {
+  if (!platform || typeof platform !== 'object') {
+    throw new TypeError('Submap commands require platform capabilities.')
+  }
+  assertOperations(platform.environment, ['cwd', 'variable'], 'Submap environment')
+  assertOperations(platform.fileSystem, ['exists'], 'Submap filesystem')
+  assertOperations(platform.clock, ['nowIso'], 'Submap clock')
+  assertOperations(platform.hash, ['sha256'], 'Submap hash')
+  return platform
+}
+
+function assertOperations(implementation, operations, label) {
+  if (!implementation || typeof implementation !== 'object') {
+    throw new TypeError(`${label} capability is required.`)
+  }
+  for (const operation of operations) {
+    if (typeof implementation[operation] !== 'function') {
+      throw new TypeError(`${label} must implement ${operation}().`)
+    }
+  }
+  return implementation
 }

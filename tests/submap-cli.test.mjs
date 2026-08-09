@@ -4,6 +4,8 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { assertCommand } from '../command-registry.mjs'
+import { submapCommands } from '../submap/cli.mjs'
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const cliPath = path.join(packageRoot, 'cli.mjs')
@@ -33,6 +35,10 @@ const graph = {
   findings: [],
   orphans: []
 }
+assert.deepEqual(
+  submapCommands.map((command) => assertCommand(command).id),
+  ['submap.help', 'submap.create', 'submap.inspect', 'submap.validate', 'submap.diff', 'submap.list', 'submap.unknown']
+)
 fs.writeFileSync(graphPath, `${JSON.stringify(graph, null, 2)}\n`, 'utf8')
 fs.mkdirSync(path.join(tempRoot, 'src'))
 fs.writeFileSync(

@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { nodePlatform } from '../platform/node.mjs'
 import { runSubmapCli } from '../submap/cli.mjs'
+import { nodeSubmapCliCapabilities } from '../submap/cli-node.mjs'
 import {
   SubmapError,
   assertSubmapRepository,
@@ -31,23 +33,33 @@ exerciseRepositoryContract('memory', memoryRepository, path.join(tempRoot, 'memo
 const listedPath = path.join(tempRoot, 'injected', 'listed.submap.json')
 memoryRepository.write(listedPath, submap)
 let stdout = ''
-const originalWrite = process.stdout.write
-process.stdout.write = (chunk) => {
-  stdout += chunk
-  return true
+const injectedCapabilities = {
+  ...nodeSubmapCliCapabilities,
+  output: {
+    writeStdout: (chunk) => {
+      stdout += chunk
+    },
+    writeStderr: () => {}
+  }
 }
-try {
-  const exitCode = await runSubmapCli(['list', '--dir', path.dirname(listedPath), '--json'], {
-    cwd: tempRoot,
-    repository: memoryRepository
-  })
-  assert.equal(exitCode, 0)
-} finally {
-  process.stdout.write = originalWrite
-}
+const exitCode = await runSubmapCli(['list', '--dir', path.dirname(listedPath), '--json'], {
+  cwd: tempRoot,
+  platform: nodePlatform,
+  repository: memoryRepository,
+  ...injectedCapabilities
+})
+assert.equal(exitCode, 0)
 assert.equal(JSON.parse(stdout)[0].id, submap.id, 'the CLI must consume the injected repository')
 
-await assert.rejects(() => runSubmapCli(['list'], { repository: {} }), /must implement read/u)
+await assert.rejects(
+  () =>
+    runSubmapCli(['list'], {
+      platform: nodePlatform,
+      repository: {},
+      ...nodeSubmapCliCapabilities
+    }),
+  /must implement read/u
+)
 
 fs.rmSync(tempRoot, { recursive: true, force: true })
 console.log('submap repository contract tests passed')

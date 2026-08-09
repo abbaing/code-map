@@ -26,6 +26,7 @@ graph.json → viewer
 - `viewer/` consumes the serialized graph and does not reach into Node.js modules.
 - `platform/` defines runtime capabilities and contains the Node adapter selected by executable boundaries.
 - `cli.mjs` assembles validated command implementations; command selection and exit results are runtime-independent.
+- Submap commands share the command registry and receive document input, Git metadata, persistence, and output capabilities.
 
 ## Component design policy
 

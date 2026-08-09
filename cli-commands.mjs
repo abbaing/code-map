@@ -6,8 +6,8 @@ import { writeJsonFileAtomic } from './json-io.mjs'
 import { writeGraph } from './scan.mjs'
 import { listTemplates, loadTemplatePlugins } from './templates/registry.mjs'
 
-export function createCliCommands({ platform, repository, output }) {
-  assertDependencies(platform, repository, output)
+export function createCliCommands({ platform, repository, output, submapCli }) {
+  assertDependencies(platform, repository, output, submapCli)
   return Object.freeze([
     defineCommand({ id: 'submap', matches: ({ args }) => args[0] === 'submap', execute: runSubmap }),
     defineCommand({
@@ -27,7 +27,7 @@ export function createCliCommands({ platform, repository, output }) {
 
   async function runSubmap({ args, repoRoot }) {
     const { runSubmapCli } = await import('./submap/cli.mjs')
-    const exitCode = await runSubmapCli(args.slice(1), { cwd: repoRoot, platform, repository })
+    const exitCode = await runSubmapCli(args.slice(1), { cwd: repoRoot, platform, repository, ...submapCli })
     return { exitCode }
   }
 
@@ -134,7 +134,7 @@ export function createCliCommands({ platform, repository, output }) {
   }
 }
 
-function assertDependencies(platform, repository, output) {
+function assertDependencies(platform, repository, output, submapCli) {
   if (!platform?.environment || !platform?.fileSystem) {
     throw new TypeError('CLI commands require platform environment and filesystem capabilities.')
   }
@@ -148,6 +148,15 @@ function assertDependencies(platform, repository, output) {
   }
   if (!output || typeof output.log !== 'function' || typeof output.error !== 'function') {
     throw new TypeError('CLI commands require log and error output capabilities.')
+  }
+  assertOperations(submapCli?.documents, ['read', 'readStdin'], 'Submap document input')
+  assertOperations(submapCli?.git, ['metadata'], 'Submap Git metadata')
+  assertOperations(submapCli?.output, ['writeStdout', 'writeStderr'], 'Submap output')
+}
+
+function assertOperations(implementation, operations, label) {
+  if (!implementation || operations.some((operation) => typeof implementation[operation] !== 'function')) {
+    throw new TypeError(`CLI commands require a complete ${label} capability.`)
   }
 }
 

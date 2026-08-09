@@ -349,8 +349,19 @@ export const components = [
     files: ['submap/cli.mjs', 'submap/cli-args.mjs'],
     contracts: ['Command', 'SubmapRepository'],
     compositionRoot: false,
-    design: designStatus('pass', 'gap', 'not-applicable', 'pass', 'gap'),
-    decision: 'Register commands and inject IO, repository, git metadata, and output ports.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision:
+      'Dispatch registered commands through injected document, repository, metadata, platform, and output ports.'
+  },
+  {
+    id: 'node-submap-cli',
+    responsibility: 'Adapt Node stdin, process output, and Git metadata to submap command capabilities.',
+    role: 'adapter',
+    files: ['submap/cli-node.mjs'],
+    contracts: ['DocumentInput', 'GitMetadata', 'CommandOutput'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep process and child-process access outside command implementations and expose frozen capabilities.'
   },
   {
     id: 'viewer-state-data',

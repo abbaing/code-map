@@ -25,6 +25,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - A validated server application contract backed by injectable use-case capabilities.
 - A validated and injectable HTTP route registry with asynchronous dispatch.
 - A validated command registry with injectable CLI runtime capabilities.
+- Registered submap commands with injectable document, Git metadata, and output capabilities.
 
 ### Changed
 
