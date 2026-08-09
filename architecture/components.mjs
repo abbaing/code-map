@@ -183,13 +183,33 @@ export const components = [
   },
   {
     id: 'backend-scanner',
-    responsibility: 'Extract .NET files, controllers, CQRS, and persistence evidence.',
+    responsibility: 'Expose backend scanning compatibility and extract file classification and persistence evidence.',
     role: 'extension',
     files: ['scan-back.mjs'],
     contracts: ['Scanner', 'BackendAnalysisSession'],
     compositionRoot: false,
     design: designStatus('gap', 'gap', 'gap', 'pass', 'pass'),
     decision: 'Backend indexes are execution-scoped; split scanner families before adding more backend technologies.'
+  },
+  {
+    id: 'backend-session-builder',
+    responsibility: 'Build and query execution-scoped backend analysis sessions from source declarations.',
+    role: 'extension',
+    files: ['scan-back-session.mjs'],
+    contracts: ['BackendAnalysisSession'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep source acquisition explicit and delegate immutable index ownership to BackendAnalysisSession.'
+  },
+  {
+    id: 'backend-request-scanner',
+    responsibility: 'Extract controller endpoints, request dispatches, and handler relationships.',
+    role: 'extension',
+    files: ['scan-back-requests.mjs'],
+    contracts: ['Scanner', 'BackendAnalysisSession'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Extend request conventions through focused parsers while preserving endpoint and dispatch contracts.'
   },
   {
     id: 'backend-dependency-scanner',

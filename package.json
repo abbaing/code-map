@@ -72,6 +72,8 @@
     "scan-pipeline.mjs",
     "scan-back.mjs",
     "scan-back-dependencies.mjs",
+    "scan-back-requests.mjs",
+    "scan-back-session.mjs",
     "scan-front.mjs",
     "scan-utils.mjs",
     "source-analysis.mjs",
