@@ -1,10 +1,12 @@
 import { calculateGraphDigest, calculateSubmapUid } from './digest.mjs'
-import { ACCESS_LEVELS, normalizeRequest, resolveSeeds, resolveSelectorNodeIds, selectorIsEmpty } from './selectors.mjs'
+import { ACCESS_LEVELS, normalizeRequest, selectorIsEmpty } from './selectors.mjs'
 import { SubmapError } from './errors.mjs'
+import { resolveNodeAccess, resolveSubmapStrategies, selectNodeIds, traverseNodeIds } from './strategies.mjs'
 
 export function createSubmap(graph, request, options = {}) {
   const clock = options.clock
   const hash = options.hash
+  const strategies = resolveSubmapStrategies(options.strategies)
   if (!options.createdAt && !clock) {
     throw new TypeError('Submap creation requires a clock capability.')
   }
@@ -14,13 +16,24 @@ export function createSubmap(graph, request, options = {}) {
   assertGraph(graph)
   const normalized = normalizeRequest(request)
   const nodeById = new Map(graph.nodes.map((node) => [node.id, node]))
+  assertExplicitNodeIdsExist(nodeById, normalized.selectors, 'SUBMAP_SEED_NOT_FOUND')
   assertExplicitNodeIdsExist(nodeById, normalized.exclusions, 'SUBMAP_EXCLUSION_NODE_NOT_FOUND')
   for (const level of ACCESS_LEVELS) {
     assertExplicitNodeIdsExist(nodeById, normalized.access[level], 'SUBMAP_ACCESS_NODE_NOT_FOUND', { access: level })
   }
-  const seeds = resolveSeeds(graph, normalized.selectors)
-  const excludedIds = resolveSelectorNodeIds(graph.nodes, normalized.exclusions)
-  const forbiddenIds = resolveSelectorNodeIds(graph.nodes, normalized.access.forbidden)
+  const seeds = selectNodeIds(strategies.selection, graph.nodes, normalized.selectors, 'seed selection')
+  if (!seeds.size) {
+    throw new SubmapError(
+      'SUBMAP_NO_SEEDS',
+      'The selectors did not resolve any seed nodes.',
+      {
+        selectors: normalized.selectors
+      },
+      3
+    )
+  }
+  const excludedIds = selectNodeIds(strategies.selection, graph.nodes, normalized.exclusions, 'exclusions')
+  const forbiddenIds = selectNodeIds(strategies.selection, graph.nodes, normalized.access.forbidden, 'forbidden access')
   const conflictingSeeds = [...seeds].filter((id) => excludedIds.has(id))
   if (conflictingSeeds.length) {
     throw new SubmapError('SUBMAP_SEED_EXCLUDED', 'Explicit selection and exclusions resolve to the same node.', {
@@ -28,9 +41,14 @@ export function createSubmap(graph, request, options = {}) {
     })
   }
 
-  const eligibleEdges = graph.edges.filter((edge) => edgeAllowed(edge, normalized.traversal))
-  const adjacency = buildAdjacency(eligibleEdges, normalized.traversal.direction)
-  const includedIds = traverse(seeds, adjacency, excludedIds, forbiddenIds, normalized.traversal.maxDepth)
+  const { eligibleEdges, includedIds } = traverseNodeIds(strategies.traversal, {
+    seeds,
+    edges: graph.edges,
+    policy: normalized.traversal,
+    excludedIds,
+    blockedIds: forbiddenIds
+  })
+  assertTraversalOutput(graph, nodeById, eligibleEdges, includedIds)
   const nodes = [...includedIds]
     .map((id) => nodeById.get(id))
     .filter(Boolean)
@@ -49,7 +67,13 @@ export function createSubmap(graph, request, options = {}) {
     .map((item) => (typeof item === 'string' ? item : item.id))
     .filter((id) => includedIds.has(id))
     .sort()
-  const access = resolveAccess(nodes, normalized.access)
+  const accessMatches = Object.fromEntries(
+    ACCESS_LEVELS.map((level) => [
+      level,
+      selectNodeIds(strategies.selection, nodes, normalized.access[level], `${level} access`, graph.nodes)
+    ])
+  )
+  const access = resolveNodeAccess(strategies.access, { nodes, rules: normalized.access, matches: accessMatches })
 
   const submap = {
     kind: 'code-map/submap',
@@ -87,52 +111,6 @@ export function createSubmap(graph, request, options = {}) {
   return submap
 }
 
-function traverse(seeds, adjacency, excludedIds, forbiddenIds, maxDepth) {
-  const included = new Set()
-  const queue = [...seeds].sort().map((id) => ({ id, depth: 0 }))
-  const bestDepth = new Map(queue.map((item) => [item.id, 0]))
-  while (queue.length) {
-    const current = queue.shift()
-    if (excludedIds.has(current.id)) {
-      continue
-    }
-    included.add(current.id)
-    if (current.depth >= maxDepth || forbiddenIds.has(current.id)) {
-      continue
-    }
-    for (const neighbor of adjacency.get(current.id) ?? []) {
-      if (excludedIds.has(neighbor)) {
-        continue
-      }
-      const depth = current.depth + 1
-      if ((bestDepth.get(neighbor) ?? Infinity) <= depth) {
-        continue
-      }
-      bestDepth.set(neighbor, depth)
-      queue.push({ id: neighbor, depth })
-    }
-  }
-  return included
-}
-
-function buildAdjacency(edges, direction) {
-  const adjacency = new Map()
-  const add = (from, to) => {
-    const current = adjacency.get(from) ?? new Set()
-    current.add(to)
-    adjacency.set(from, current)
-  }
-  for (const edge of edges) {
-    if (direction !== 'incoming') {
-      add(edge.from, edge.to)
-    }
-    if (direction !== 'outgoing') {
-      add(edge.to, edge.from)
-    }
-  }
-  return new Map([...adjacency].map(([id, values]) => [id, [...values].sort()]))
-}
-
 function buildBoundaries(edges, includedIds, excludedIds, nodeById) {
   const boundaries = []
   for (const edge of edges) {
@@ -155,30 +133,6 @@ function buildBoundaries(edges, includedIds, excludedIds, nodeById) {
     })
   }
   return boundaries.sort((a, b) => a.edgeId.localeCompare(b.edgeId))
-}
-
-function resolveAccess(nodes, rules) {
-  const matches = Object.fromEntries(ACCESS_LEVELS.map((level) => [level, resolveSelectorNodeIds(nodes, rules[level])]))
-  const conflicts = [...matches.editable].filter((id) => matches.forbidden.has(id))
-  if (conflicts.length) {
-    throw new SubmapError(
-      'SUBMAP_ACCESS_CONFLICT',
-      'Nodes cannot be both editable and forbidden.',
-      { nodeIds: conflicts.sort() },
-      4
-    )
-  }
-
-  const precedence = ['forbidden', 'generated', 'editable', 'readable', 'external']
-  const resolved = Object.fromEntries(ACCESS_LEVELS.map((level) => [level, []]))
-  for (const node of nodes) {
-    const level = precedence.find((candidate) => matches[candidate].has(node.id)) ?? rules.default
-    resolved[level].push(node.id)
-  }
-  for (const values of Object.values(resolved)) {
-    values.sort()
-  }
-  return { default: rules.default, ...resolved }
 }
 
 function buildCatalog(graph) {
@@ -215,13 +169,6 @@ function buildWarnings(request, boundaries) {
   return warnings
 }
 
-function edgeAllowed(edge, traversal) {
-  if (traversal.excludedEdgeTypes.includes(edge.type)) {
-    return false
-  }
-  return traversal.edgeTypes.length === 0 || traversal.edgeTypes.includes(edge.type)
-}
-
 function pickBoundaryNode(node) {
   return Object.fromEntries(
     ['id', 'label', 'type', 'layer', 'module', 'path']
@@ -245,6 +192,37 @@ function assertExplicitNodeIdsExist(nodeById, selector, code, details = {}) {
       { ...details, nodeIds: missing },
       3
     )
+  }
+}
+
+function assertTraversalOutput(graph, nodeById, eligibleEdges, includedIds) {
+  const unknownNodeIds = [...includedIds].filter((id) => !nodeById.has(id))
+  if (unknownNodeIds.length > 0) {
+    throw new TypeError(`Traversal strategy returned unknown node ids: ${unknownNodeIds.sort().join(', ')}.`)
+  }
+  const edgeById = new Map(graph.edges.map((edge) => [edge.id, edge]))
+  const returnedEdgeIds = eligibleEdges.map((edge) => edge?.id)
+  if (returnedEdgeIds.some((id) => typeof id !== 'string')) {
+    throw new TypeError('Traversal strategy returned an invalid edge.')
+  }
+  const duplicateEdgeIds = returnedEdgeIds.filter((id, index) => returnedEdgeIds.indexOf(id) !== index)
+  if (duplicateEdgeIds.length > 0) {
+    throw new TypeError(
+      `Traversal strategy returned duplicate edges: ${[...new Set(duplicateEdgeIds)].sort().join(', ')}.`
+    )
+  }
+  const unknownEdgeIds = returnedEdgeIds.filter((id) => !edgeById.has(id))
+  if (unknownEdgeIds.length > 0) {
+    throw new TypeError(`Traversal strategy returned unknown edges: ${unknownEdgeIds.sort().join(', ')}.`)
+  }
+  const changedEdgeIds = eligibleEdges
+    .filter((edge) => {
+      const source = edgeById.get(edge.id)
+      return edge.from !== source.from || edge.to !== source.to || edge.type !== source.type
+    })
+    .map((edge) => edge.id)
+  if (changedEdgeIds.length > 0) {
+    throw new TypeError(`Traversal strategy changed graph edges: ${changedEdgeIds.sort().join(', ')}.`)
   }
 }
 

@@ -58,6 +58,14 @@ export interface SubmapSelector {
   types?: string[]
 }
 
+export interface NormalizedSubmapSelector {
+  nodeIds: string[]
+  paths: string[]
+  modules: string[]
+  layers: string[]
+  types: string[]
+}
+
 export interface SubmapRequest {
   id: string
   revision?: number
@@ -72,6 +80,42 @@ export interface SubmapRequest {
   exclusions?: SubmapSelector
   access?: Partial<Record<AccessLevel, SubmapSelector>> & { default?: AccessLevel }
   metadata?: Record<string, unknown>
+}
+
+export interface SelectionStrategy {
+  readonly id?: string
+  select(input: { nodes: MapNode[]; selector: NormalizedSubmapSelector }): Set<string>
+}
+
+export interface TraversalStrategy {
+  readonly id?: string
+  traverse(input: {
+    seeds: Set<string>
+    edges: MapEdge[]
+    policy: {
+      direction: TraversalDirection
+      maxDepth: number
+      edgeTypes: string[]
+      excludedEdgeTypes: string[]
+    }
+    excludedIds: Set<string>
+    blockedIds: Set<string>
+  }): { eligibleEdges: MapEdge[]; includedIds: Set<string> }
+}
+
+export interface AccessStrategy {
+  readonly id?: string
+  resolve(input: {
+    nodes: MapNode[]
+    rules: Record<AccessLevel, NormalizedSubmapSelector> & { default: AccessLevel }
+    matches: Record<AccessLevel, Set<string>>
+  }): Record<AccessLevel, string[]> & { default: AccessLevel }
+}
+
+export interface SubmapStrategies {
+  selection: SelectionStrategy
+  traversal: TraversalStrategy
+  access: AccessStrategy
 }
 
 export interface SubmapBoundary {
@@ -130,6 +174,7 @@ export function createSubmap(
     git?: Record<string, unknown>
     clock?: { nowIso(): string }
     hash?: { sha256(value: string): string }
+    strategies?: Partial<SubmapStrategies>
   }
 ): Submap
 export function validateSubmap(submap: Submap, options?: { hash?: { sha256(value: string): string } }): ValidationResult
@@ -143,6 +188,10 @@ export function inspectSubmap(submap: Submap): Record<string, unknown>
 export function calculateGraphDigest(graph: CodeMapGraph, hash?: { sha256(value: string): string }): string
 export function calculateSubmapUid(submap: Submap, hash?: { sha256(value: string): string }): string
 export function canonicalStringify(value: unknown): string
+export const defaultSelectionStrategy: SelectionStrategy
+export const defaultTraversalStrategy: TraversalStrategy
+export const defaultAccessStrategy: AccessStrategy
+export function resolveSubmapStrategies(strategies?: Partial<SubmapStrategies>): Readonly<SubmapStrategies>
 export function normalizeRequest(request: SubmapRequest): SubmapRequest
 export function globMatches(pattern: string, value: string): boolean
 export const ACCESS_LEVELS: AccessLevel[]

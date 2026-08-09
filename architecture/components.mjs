@@ -264,12 +264,13 @@ export const components = [
       'submap/digest.mjs',
       'submap/errors.mjs',
       'submap/selectors.mjs',
+      'submap/strategies.mjs',
       'submap/validate.mjs'
     ],
     contracts: ['GraphDocument', 'SelectionStrategy', 'TraversalStrategy', 'AccessStrategy'],
     compositionRoot: false,
-    design: designStatus('pass', 'gap', 'gap', 'pass', 'pass'),
-    decision: 'Extract strategy contracts before adding new selector, traversal, or access variants.'
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Compose validated selection, traversal, and access strategies while retaining core invariants.'
   },
   {
     id: 'submap-api',

@@ -20,6 +20,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Runtime-independent source text and path analysis utilities.
 - Per-scan finding collectors with separate rule output and finalized result capabilities.
 - Runtime validation and focused input declarations for template capabilities.
+- Injectable selection, traversal, and access strategies for portable submaps.
 
 ### Changed
 

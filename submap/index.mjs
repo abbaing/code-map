@@ -37,6 +37,12 @@ export { compareSubmaps, inspectSubmap } from './diff.mjs'
 export { canonicalStringify } from './digest.mjs'
 export { normalizeRequest, globMatches, ACCESS_LEVELS } from './selectors.mjs'
 export {
+  defaultSelectionStrategy,
+  defaultTraversalStrategy,
+  defaultAccessStrategy,
+  resolveSubmapStrategies
+} from './strategies.mjs'
+export {
   readGraph,
   readSubmap,
   writeSubmap,
