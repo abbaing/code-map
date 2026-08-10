@@ -45,9 +45,11 @@ export function stripTsComments(content) {
 }
 
 export function importsOf(content) {
-  return [...stripTsComments(content).matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]/g)].map(
-    (match) => ({ specifier: match[1], index: match.index ?? 0 })
-  )
+  const pattern = /(^|[;\n])([ \t]*(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"])/gm
+  return [...stripTsComments(content).matchAll(pattern)].map((match) => ({
+    specifier: match[3],
+    index: (match.index ?? 0) + match[1].length + match[2].search(/\b(?:import|export)\b/u)
+  }))
 }
 
 export function kebab(value) {

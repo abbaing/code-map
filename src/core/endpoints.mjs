@@ -282,6 +282,9 @@ function extractFetchCalls({ content, urlBindings, baseUrl }) {
   const fetchPattern =
     /\bfetch\s*\(\s*(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[A-Za-z_$][\w$]*)([\s\S]{0,420}?)\)/g
   for (const match of content.matchAll(fetchPattern)) {
+    if (/^\s*\+/u.test(match[2])) {
+      continue
+    }
     const url = resolveFrontendUrlExpression(match[1], urlBindings, baseUrl)
     if (!url) {
       continue

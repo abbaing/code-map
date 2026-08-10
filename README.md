@@ -49,6 +49,8 @@ Open `http://localhost:1133` to inspect the graph. Everything runs locally; sour
 
 code-map performs static analysis over supported source trees. Its React and .NET templates read imports, classify files by architectural role, match frontend calls to backend endpoints, and calculate cohesion and coupling signals. Files larger than 2 MiB are skipped and reported in the generated graph warnings.
 
+The executable support matrix and known heuristic limits are documented in [ANALYSIS.md](ANALYSIS.md).
+
 The scan produces `.code-map/graph.json` and serves the viewer on port `1133`. Discovered paths remain repository-relative, and generated graphs do not contain code-map's workspace path.
 
 ### React + .NET execution traces

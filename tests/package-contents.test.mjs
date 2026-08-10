@@ -19,6 +19,7 @@ for (const prefix of ['architecture/', 'coverage/', 'node_modules/', 'tests/']) 
 }
 
 for (const required of [
+  'ANALYSIS.md',
   'LICENSE',
   'README.md',
   'cli.mjs',
