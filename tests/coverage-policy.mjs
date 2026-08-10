@@ -15,6 +15,11 @@ const groups = [
     thresholds: { lines: 86, statements: 86, branches: 83, functions: 100 }
   },
   {
+    id: 'submap',
+    includes: (file) => file.startsWith('submap/'),
+    thresholds: { lines: 81, statements: 81, branches: 81, functions: 90 }
+  },
+  {
     id: 'viewer',
     includes: (file) => file.startsWith('viewer/'),
     thresholds: { lines: 54, statements: 54, branches: 69, functions: 61 }

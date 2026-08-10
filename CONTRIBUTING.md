@@ -23,7 +23,7 @@ Measure the production modules and enforce the repository coverage baseline:
 npm run test:coverage
 ```
 
-Coverage thresholds are enforced separately for the application, viewer, platform, architecture modules, and critical server entry point in a dedicated Linux/Node.js 24 CI job. This keeps weaker presentation coverage from masking regressions in the application baseline. New behavior should include regression tests instead of lowering the thresholds.
+Coverage thresholds are enforced separately for the application, server, submap, viewer, platform, and architecture modules in a dedicated Linux/Node.js 24 CI job. This keeps weaker presentation coverage from masking regressions in the application baseline. New behavior should include regression tests instead of lowering the thresholds.
 
 Rebuild the local viewer utility stylesheet after changing classes in `viewer/`:
 
