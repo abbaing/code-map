@@ -50,13 +50,18 @@ export function restMethod(name) {
   return 'ANY'
 }
 
-function collectUrlBindings(content) {
+function collectUrlBindings(sourceFile) {
   const bindings = new Map()
-  const assignmentPattern =
-    /(?:^|[;\n{]\s*)(?:(?:const|let|var|private|protected|public|readonly|static)\s+)*([A-Za-z_$][\w$]*)\s*(?::[^=;\n]+)?=\s*['"`](\/api\/[^'"`]+)['"`]/gm
-  for (const match of content.matchAll(assignmentPattern)) {
-    bindings.set(match[1], match[2])
-  }
+  walkTypeScript(sourceFile, (node) => {
+    if ((!ts.isVariableDeclaration(node) && !ts.isPropertyDeclaration(node)) || !node.initializer) {
+      return
+    }
+    const name = ts.isIdentifier(node.name) ? node.name.text : null
+    const value = typeScriptLiteralValue(node.initializer, sourceFile)
+    if (name && value?.startsWith('/api/')) {
+      bindings.set(name, value)
+    }
+  })
   return bindings
 }
 
@@ -70,44 +75,11 @@ function primaryBaseUrl(bindings) {
   )
 }
 
-function firstArgumentExpression(argument) {
-  const trimmed = argument.trim()
-  const match = trimmed.match(
-    /^(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|this\.[A-Za-z_$][\w$]*|[A-Za-z_$][\w$]*)/
-  )
-  return match?.[1]
-}
-
-function stripQuoteExpression(expression) {
+function resolveFrontendUrlExpression(expression, sourceFile, bindings, baseUrl) {
   if (!expression) {
     return null
   }
-  const trimmed = expression.trim()
-  if (trimmed.startsWith('`') && trimmed.endsWith('`')) {
-    return trimmed.slice(1, -1)
-  }
-  if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
-    return trimmed.slice(1, -1)
-  }
-  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
-    return trimmed.slice(1, -1)
-  }
-  return null
-}
-
-function bindingName(expression) {
-  const trimmed = expression?.trim()
-  if (!trimmed) {
-    return null
-  }
-  return trimmed.startsWith('this.') ? trimmed.slice('this.'.length) : trimmed
-}
-
-function resolveFrontendUrlExpression(expression, bindings, baseUrl) {
-  if (!expression) {
-    return null
-  }
-  const literal = stripQuoteExpression(expression)
+  const literal = typeScriptLiteralValue(expression, sourceFile)
   if (literal !== null) {
     let expanded = literal
     for (const [name, value] of bindings) {
@@ -117,7 +89,12 @@ function resolveFrontendUrlExpression(expression, bindings, baseUrl) {
     return expandFrontendUrl(expanded, baseUrl)
   }
 
-  const bound = bindings.get(bindingName(expression))
+  const name = ts.isIdentifier(expression)
+    ? expression.text
+    : ts.isPropertyAccessExpression(expression) && expression.expression.kind === ts.SyntaxKind.ThisKeyword
+      ? expression.name.text
+      : null
+  const bound = name ? bindings.get(name) : null
   return bound ? expandFrontendUrl(bound, baseUrl) : null
 }
 
@@ -140,15 +117,19 @@ export function expandFrontendUrl(value, baseUrl) {
   return normalizeEndpoint(url)
 }
 
-const HTTP_CALL_PATTERN = /\b(?:apiClient|repository|Repository|\.request|\.get|\.post|\.put|\.patch|\.delete)\s*[(<]/i
-
-export function extractFrontendEndpoints(content, importedBindings = new Map()) {
+export function extractFrontendEndpoints(
+  content,
+  importedBindings = new Map(),
+  fileName = 'source.ts',
+  parsedSourceFile
+) {
+  const sourceFile = parsedSourceFile ?? parseTypeScript(content, fileName)
   const urlBindings = new Map(importedBindings)
-  for (const [name, value] of collectUrlBindings(content)) {
+  for (const [name, value] of collectUrlBindings(sourceFile)) {
     urlBindings.set(name, value)
   }
   const baseUrl = primaryBaseUrl(urlBindings)
-  return defaultEndpointExtractor.extract({ content, urlBindings, baseUrl })
+  return defaultEndpointExtractor.extract({ sourceFile, calls: callExpressions(sourceFile), urlBindings, baseUrl })
 }
 
 export function createEndpointExtractor(extractors) {
@@ -191,14 +172,31 @@ const defaultEndpointExtractor = createEndpointExtractor([
   { id: 'fetch', extract: extractFetchCalls }
 ])
 
-function extractInstanceMethodCalls({ content, urlBindings, baseUrl }) {
+function callExpressions(sourceFile) {
+  const calls = []
+  walkTypeScript(sourceFile, (node) => {
+    if (ts.isCallExpression(node)) {
+      calls.push(node)
+    }
+  })
+  return calls
+}
+
+function extractInstanceMethodCalls({ sourceFile, calls, urlBindings, baseUrl }) {
   const endpoints = []
-  const callPattern =
-    /this\.(get|post|put|patch|delete|requestWithFullApiResponse|request)\s*(?:<[\s\S]{0,800}?>)?\s*\(([\s\S]{0,260}?)\)/g
-  for (const match of content.matchAll(callPattern)) {
-    const method = restMethod(match[1])
-    const argument = match[2]
-    const url = resolveFrontendUrlExpression(firstArgumentExpression(argument), urlBindings, baseUrl)
+  for (const call of calls) {
+    if (
+      !ts.isPropertyAccessExpression(call.expression) ||
+      call.expression.expression.kind !== ts.SyntaxKind.ThisKeyword
+    ) {
+      continue
+    }
+    const name = call.expression.name.text
+    if (!['get', 'post', 'put', 'patch', 'delete', 'requestWithFullApiResponse', 'request'].includes(name)) {
+      continue
+    }
+    const method = restMethod(name)
+    const url = resolveFrontendUrlExpression(call.arguments[0], sourceFile, urlBindings, baseUrl)
     if (url) {
       endpoints.push({ url, method })
     }
@@ -206,17 +204,18 @@ function extractInstanceMethodCalls({ content, urlBindings, baseUrl }) {
   return endpoints
 }
 
-function extractFreeFunctionCalls({ content, urlBindings, baseUrl }) {
+function extractFreeFunctionCalls({ sourceFile, calls, urlBindings, baseUrl }) {
   const endpoints = []
-  const freeFnPattern =
-    /\b(get|post|put|patch|del|delete)\s*(?:<[\s\S]{0,800}?>)?\s*\(\s*(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[A-Za-z_$][\w$]*)/g
-  for (const match of content.matchAll(freeFnPattern)) {
-    const fnName = match[1]
-    if (['get', 'post', 'put', 'patch', 'delete', 'del'].includes(fnName) === false) {
+  for (const call of calls) {
+    if (!ts.isIdentifier(call.expression)) {
+      continue
+    }
+    const fnName = call.expression.text
+    if (!['get', 'post', 'put', 'patch', 'delete', 'del'].includes(fnName)) {
       continue
     }
     const method = fnName === 'del' ? 'DELETE' : fnName.toUpperCase()
-    const url = resolveFrontendUrlExpression(match[2], urlBindings, baseUrl)
+    const url = resolveFrontendUrlExpression(call.arguments[0], sourceFile, urlBindings, baseUrl)
     if (url) {
       endpoints.push({ url, method })
     }
@@ -224,39 +223,29 @@ function extractFreeFunctionCalls({ content, urlBindings, baseUrl }) {
   return endpoints
 }
 
-function extractRequestObjects({ content, urlBindings, baseUrl }) {
-  const endpoints = []
-  if (HTTP_CALL_PATTERN.test(content)) {
-    const requestObjectPattern = /\b(?:request|apiClient\.request)\s*(?:<[\s\S]{0,800}?>)?\s*\(([\s\S]{0,620}?)\)/g
-    for (const match of content.matchAll(requestObjectPattern)) {
-      const argument = match[1]
-      const method = argument.match(/\bmethod:\s*['"](\w+)['"]/)?.[1]?.toUpperCase() ?? 'ANY'
-      const urlExpression = argument.match(
-        /\burl:\s*(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|this\.[A-Za-z_$][\w$]*|[A-Za-z_$][\w$]*)/
-      )?.[1]
-      const url = resolveFrontendUrlExpression(urlExpression, urlBindings, baseUrl)
-      if (url) {
-        endpoints.push({ url, method })
-      }
-    }
-  }
-  return endpoints
+function objectProperty(object, name) {
+  const property = object.properties.find(
+    (candidate) =>
+      ts.isPropertyAssignment(candidate) &&
+      (ts.isIdentifier(candidate.name) || ts.isStringLiteralLike(candidate.name)) &&
+      candidate.name.text === name
+  )
+  return property?.initializer ?? null
 }
 
-function extractObjectArguments({ content, urlBindings, baseUrl }) {
+function extractRequestObjects({ sourceFile, calls, urlBindings, baseUrl }) {
   const endpoints = []
-  const objectCallPattern =
-    /\b[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?\s*(?:<[\s\S]{0,800}?>)?\s*\(\s*\{([\s\S]{0,900}?)\}\s*\)/g
-  for (const match of content.matchAll(objectCallPattern)) {
-    const argument = match[1]
-    const method = argument.match(/\bmethod:\s*['"](GET|POST|PUT|PATCH|DELETE)['"]/)?.[1]
-    const urlExpression = argument.match(
-      /\burl:\s*(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|this\.[A-Za-z_$][\w$]*|[A-Za-z_$][\w$]*)/
-    )?.[1]
-    if (!method || !urlExpression) {
+  for (const call of calls) {
+    if (
+      typeScriptCallName(call.expression) !== 'request' ||
+      !call.arguments[0] ||
+      !ts.isObjectLiteralExpression(call.arguments[0])
+    ) {
       continue
     }
-    const url = resolveFrontendUrlExpression(urlExpression, urlBindings, baseUrl)
+    const method =
+      typeScriptLiteralValue(objectProperty(call.arguments[0], 'method'), sourceFile)?.toUpperCase() ?? 'ANY'
+    const url = resolveFrontendUrlExpression(objectProperty(call.arguments[0], 'url'), sourceFile, urlBindings, baseUrl)
     if (url) {
       endpoints.push({ url, method })
     }
@@ -264,32 +253,55 @@ function extractObjectArguments({ content, urlBindings, baseUrl }) {
   return endpoints
 }
 
-function extractPositionalMethods({ content, urlBindings, baseUrl }) {
+function extractObjectArguments({ sourceFile, calls, urlBindings, baseUrl }) {
   const endpoints = []
-  const positionalMethodPattern =
-    /\b[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?\s*(?:<[\s\S]{0,800}?>)?\s*\(\s*['"](GET|POST|PUT|PATCH|DELETE)['"]\s*,\s*(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|this\.[A-Za-z_$][\w$]*|[A-Za-z_$][\w$]*)/g
-  for (const match of content.matchAll(positionalMethodPattern)) {
-    const url = resolveFrontendUrlExpression(match[2], urlBindings, baseUrl)
+  for (const call of calls) {
+    const object = call.arguments[0]
+    if (!object || !ts.isObjectLiteralExpression(object)) {
+      continue
+    }
+    const method = typeScriptLiteralValue(objectProperty(object, 'method'), sourceFile)?.toUpperCase()
+    if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      continue
+    }
+    const url = resolveFrontendUrlExpression(objectProperty(object, 'url'), sourceFile, urlBindings, baseUrl)
     if (url) {
-      endpoints.push({ url, method: match[1] })
+      endpoints.push({ url, method })
     }
   }
   return endpoints
 }
 
-function extractFetchCalls({ content, urlBindings, baseUrl }) {
+function extractPositionalMethods({ sourceFile, calls, urlBindings, baseUrl }) {
   const endpoints = []
-  const fetchPattern =
-    /\bfetch\s*\(\s*(`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[A-Za-z_$][\w$]*)([\s\S]{0,420}?)\)/g
-  for (const match of content.matchAll(fetchPattern)) {
-    if (/^\s*\+/u.test(match[2])) {
+  for (const call of calls) {
+    const method = typeScriptLiteralValue(call.arguments[0], sourceFile)?.toUpperCase()
+    if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
       continue
     }
-    const url = resolveFrontendUrlExpression(match[1], urlBindings, baseUrl)
+    const url = resolveFrontendUrlExpression(call.arguments[1], sourceFile, urlBindings, baseUrl)
+    if (url) {
+      endpoints.push({ url, method })
+    }
+  }
+  return endpoints
+}
+
+function extractFetchCalls({ sourceFile, calls, urlBindings, baseUrl }) {
+  const endpoints = []
+  for (const call of calls) {
+    if (!ts.isIdentifier(call.expression) || call.expression.text !== 'fetch') {
+      continue
+    }
+    const url = resolveFrontendUrlExpression(call.arguments[0], sourceFile, urlBindings, baseUrl)
     if (!url) {
       continue
     }
-    const method = match[2].match(/\bmethod:\s*['"](\w+)['"]/)?.[1]?.toUpperCase() ?? 'GET'
+    const options = call.arguments[1]
+    const method =
+      options && ts.isObjectLiteralExpression(options)
+        ? (typeScriptLiteralValue(objectProperty(options, 'method'), sourceFile)?.toUpperCase() ?? 'GET')
+        : 'GET'
     endpoints.push({ url, method })
   }
   return endpoints
@@ -349,3 +361,10 @@ export function connectEndpoints(graph, frontEndpointIds, controllerEndpoints) {
     }
   }
 }
+import {
+  parseTypeScript,
+  typeScriptCallName,
+  typeScriptLiteralValue,
+  typescript as ts,
+  walkTypeScript
+} from '#core/source-analysis.mjs'

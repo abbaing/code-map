@@ -1,39 +1,94 @@
-import { displayLabel, moduleReferencesOf } from '#core/source-analysis.mjs'
+import {
+  displayLabel,
+  moduleReferencesOf,
+  parseTypeScript,
+  typeScriptCallName,
+  typeScriptLiteralValue,
+  typescript as ts,
+  walkTypeScript
+} from '#core/source-analysis.mjs'
 import { classifyFront, featureFromRepoPath } from '#core/classify.mjs'
 import { addEndpoint, extractFrontendEndpoints } from '#core/endpoints.mjs'
 import { resolveTsImport } from '#core/resolve.mjs'
 
-export function detectFrontBehavior(content) {
-  const checks = [
-    ['hooks', /\buse(State|Effect|Memo|Callback|Reducer|Ref|Query|Mutation|Form|Navigate|Params|SearchParams)\s*\(/u],
-    ['handlers', /(?:^|\bconst\s+)\b(?:handle[A-Z]\w*|on[A-Z]\w*)\s*=\s*(?:async\s*)?(?:\([^)]*\)|[^=]+)\s*=>/mu],
-    ['async', /\basync\s+(?:function\s+)?\w*|\bawait\b/u],
-    [
-      'api/service/repository calls',
-      /\b(?:apiClient|Repository|repository|Service|service)\b|\.request\s*\(|\.(?:get|post|put|patch|delete)\s*</u
-    ],
-    ['state updates', /(?<![.\w])set[A-Z]\w*\s*\(/u],
-    ['side effects', /\b(?:localStorage|sessionStorage|window\.|document\.|location\.)/u]
-  ]
-
-  return {
-    reasons: checks.filter(([, pattern]) => pattern.test(content)).map(([label]) => label)
-  }
+export function detectFrontBehavior(content, parsedSourceFile) {
+  const sourceFile = parsedSourceFile ?? parseTypeScript(content)
+  const reasons = new Set()
+  const hookNames = new Set([
+    'useState',
+    'useEffect',
+    'useMemo',
+    'useCallback',
+    'useReducer',
+    'useRef',
+    'useQuery',
+    'useMutation',
+    'useForm',
+    'useNavigate',
+    'useParams',
+    'useSearchParams'
+  ])
+  walkTypeScript(sourceFile, (node) => {
+    if (ts.isCallExpression(node)) {
+      const name = typeScriptCallName(node.expression)
+      if (hookNames.has(name)) {
+        reasons.add('hooks')
+      }
+      if (name && /^set[A-Z]/u.test(name)) {
+        reasons.add('state updates')
+      }
+      if (['request', 'get', 'post', 'put', 'patch', 'delete'].includes(name)) {
+        reasons.add('api/service/repository calls')
+      }
+    }
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
+      const name = node.name.text
+      if (
+        (/^handle[A-Z]/u.test(name) || /^on[A-Z]/u.test(name)) &&
+        node.initializer &&
+        ts.isArrowFunction(node.initializer)
+      ) {
+        reasons.add('handlers')
+      }
+    }
+    if (
+      ts.isAwaitExpression(node) ||
+      node.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword)
+    ) {
+      reasons.add('async')
+    }
+    if (ts.isIdentifier(node)) {
+      if (/^(?:apiClient|.*(?:Repository|repository|Service|service))$/u.test(node.text)) {
+        reasons.add('api/service/repository calls')
+      }
+      if (['localStorage', 'sessionStorage', 'window', 'document', 'location'].includes(node.text)) {
+        reasons.add('side effects')
+      }
+    }
+  })
+  const order = ['hooks', 'handlers', 'async', 'api/service/repository calls', 'state updates', 'side effects']
+  return { reasons: order.filter((reason) => reasons.has(reason)) }
 }
 
 export function scanFront(graph, files, projectContext, sourceReader) {
   const { toRepoPath } = projectContext
   const frontEndpointNodes = []
-  const apiVersionPrefix = detectApiVersionPrefix(files, sourceReader)
-  const exportedEndpointBindings = collectExportedEndpointBindings(files, toRepoPath, sourceReader)
+  const sources = new Map(
+    files.map((file) => {
+      const content = sourceReader.readText(file)
+      return [file, { content, sourceFile: parseTypeScript(content, file) }]
+    })
+  )
+  const apiVersionPrefix = detectApiVersionPrefix(files, sources)
+  const exportedEndpointBindings = collectExportedEndpointBindings(files, toRepoPath, sources)
 
   for (const file of files) {
     const repoPath = toRepoPath(file)
-    const content = sourceReader.readText(file)
+    const { content, sourceFile } = sources.get(file)
     const [type, layer] = classifyFront(repoPath, projectContext)
     const module = featureFromRepoPath(repoPath, projectContext)
     const id = `file:${repoPath}`
-    const behavior = detectFrontBehavior(content)
+    const behavior = detectFrontBehavior(content, sourceFile)
     const review = ['route', 'page', 'main-component'].includes(type) && behavior.reasons.length > 0
 
     graph.addNode(id, {
@@ -53,7 +108,7 @@ export function scanFront(graph, files, projectContext, sourceReader) {
         : {}
     })
 
-    for (const { specifier, kind } of moduleReferencesOf(content, file)) {
+    for (const { specifier, kind } of moduleReferencesOf(content, file, sourceFile)) {
       const resolved = resolveTsImport(file, specifier, projectContext)
       if (resolved) {
         const target = `file:${toRepoPath(resolved)}`
@@ -69,9 +124,10 @@ export function scanFront(graph, files, projectContext, sourceReader) {
       file,
       content,
       exportedEndpointBindings,
-      projectContext
+      projectContext,
+      sourceFile
     )
-    for (const { url, method } of extractFrontendEndpoints(content, importedEndpointBindings)) {
+    for (const { url, method } of extractFrontendEndpoints(content, importedEndpointBindings, file, sourceFile)) {
       const runtimeUrl = applyApiVersionPrefix(url, apiVersionPrefix)
       const endpoint = addEndpoint(graph, runtimeUrl, method, module)
       if (endpoint) {
@@ -88,14 +144,26 @@ export function scanFront(graph, files, projectContext, sourceReader) {
   return frontEndpointNodes
 }
 
-function collectExportedEndpointBindings(files, toRepoPath, sourceReader) {
+function collectExportedEndpointBindings(files, toRepoPath, sources) {
   const byFile = new Map()
   const candidates = new Map()
-  const pattern = /\bexport\s+const\s+([A-Za-z_$][\w$]*)\s*(?::[^=;\n]+)?=\s*['"`]((?:\/api)(?:[^'"`\\]|\\.)*)['"`]/g
   for (const file of files) {
     const bindings = new Map()
-    for (const match of sourceReader.readText(file).matchAll(pattern)) {
-      bindings.set(match[1], match[2])
+    const { sourceFile } = sources.get(file)
+    for (const statement of sourceFile.statements) {
+      if (
+        !ts.isVariableStatement(statement) ||
+        !statement.modifiers?.some((item) => item.kind === ts.SyntaxKind.ExportKeyword)
+      ) {
+        continue
+      }
+      for (const declaration of statement.declarationList.declarations) {
+        const name = ts.isIdentifier(declaration.name) ? declaration.name.text : null
+        const value = typeScriptLiteralValue(declaration.initializer, sourceFile)
+        if (name && value?.startsWith('/api')) {
+          bindings.set(name, value)
+        }
+      }
     }
     if (bindings.size > 0) {
       byFile.set(toRepoPath(file), bindings)
@@ -115,23 +183,26 @@ function collectExportedEndpointBindings(files, toRepoPath, sourceReader) {
   return { byFile, unique }
 }
 
-function resolveImportedEndpointBindings(file, content, exportedBindings, projectContext) {
+function resolveImportedEndpointBindings(file, content, exportedBindings, projectContext, parsedSourceFile) {
   const { toRepoPath } = projectContext
   const result = new Map()
-  const importPattern = /\bimport\s*\{([\s\S]*?)\}\s*from\s*['"]([^'"]+)['"]/g
-  for (const match of content.matchAll(importPattern)) {
-    const resolved = resolveTsImport(file, match[2], projectContext)
+  const sourceFile = parsedSourceFile ?? parseTypeScript(content, file)
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteralLike(statement.moduleSpecifier)) {
+      continue
+    }
+    const namedBindings = statement.importClause?.namedBindings
+    if (!namedBindings || !ts.isNamedImports(namedBindings)) {
+      continue
+    }
+    const resolved = resolveTsImport(file, statement.moduleSpecifier.text, projectContext)
     if (!resolved) {
       continue
     }
     const exports = exportedBindings.byFile.get(toRepoPath(resolved))
-    for (const imported of match[1].split(',')) {
-      const parts = imported
-        .trim()
-        .replace(/^type\s+/, '')
-        .split(/\s+as\s+/)
-      const exportedName = parts[0]?.trim()
-      const localName = parts[1]?.trim() || exportedName
+    for (const imported of namedBindings.elements) {
+      const exportedName = imported.propertyName?.text ?? imported.name.text
+      const localName = imported.name.text
       const value = exports?.get(exportedName) ?? exportedBindings.unique.get(exportedName)
       if (exportedName && localName && value) {
         result.set(localName, value)
@@ -141,12 +212,26 @@ function resolveImportedEndpointBindings(file, content, exportedBindings, projec
   return result
 }
 
-function detectApiVersionPrefix(files, sourceReader) {
+function detectApiVersionPrefix(files, sources) {
   for (const file of files) {
-    const content = sourceReader.readText(file)
-    const match = content.match(/\.replace\([\s\S]{0,180}?['"](\/api\/v\d+\/)['"]\)/)
-    if (match && /\^\\?\/api\\?\//.test(match[0])) {
-      return match[1]
+    const { sourceFile } = sources.get(file)
+    let prefix = null
+    walkTypeScript(sourceFile, (node) => {
+      if (prefix || !ts.isCallExpression(node) || typeScriptCallName(node.expression) !== 'replace') {
+        return
+      }
+      const pattern = node.arguments[0]
+      const replacement = typeScriptLiteralValue(node.arguments[1], sourceFile)
+      if (
+        pattern?.kind === ts.SyntaxKind.RegularExpressionLiteral &&
+        pattern.text.includes('api') &&
+        /^\/api\/v\d+\/$/u.test(replacement ?? '')
+      ) {
+        prefix = replacement
+      }
+    })
+    if (prefix) {
+      return prefix
     }
   }
   return null

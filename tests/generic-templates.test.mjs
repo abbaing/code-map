@@ -141,6 +141,11 @@ assert.equal(
 )
 assert.equal(typeScriptRules.has('technology.typescript.no-any'), true, 'typescript template should detect any')
 assert.equal(
+  typescriptGraph.findings.filter((finding) => finding.ruleId === 'technology.typescript.no-any').length,
+  1,
+  'type-safety findings must come from syntax nodes rather than any-shaped string content'
+)
+assert.equal(
   [...typeScriptRules].every((ruleId) => ruleId.startsWith('technology.') || ruleId.startsWith('framework.')),
   true,
   'generic templates must emit generic rule ids'

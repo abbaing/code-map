@@ -93,13 +93,13 @@ export const components = [
   },
   {
     id: 'source-analysis',
-    responsibility: 'Analyze source text and repository-relative paths without runtime or filesystem access.',
+    responsibility: 'Parse and analyze source text and repository-relative paths without executing target code.',
     role: 'core',
-    files: ['src/core/source-analysis.mjs'],
+    files: ['src/core/source-analysis.mjs', 'src/core/csharp-analysis.mjs'],
     contracts: ['SourceAnalyzer'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Keep deterministic path, comment, import, and naming analysis independent from source acquisition.'
+    decision: 'Keep deterministic TypeScript and C# syntax analysis independent from source acquisition.'
   },
   {
     id: 'source-files',

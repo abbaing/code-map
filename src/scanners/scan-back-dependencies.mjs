@@ -1,5 +1,15 @@
+import {
+  csharpDescendants,
+  csharpName,
+  csharpSimpleTypeName,
+  csharpTypeDeclarations,
+  csharpTypeIdentifiers,
+  parseCSharp,
+  walkCSharp
+} from '#core/csharp-analysis.mjs'
 import { featureFromRepoPath } from '#core/classify.mjs'
-import { escapeRegExp, stripCSharpComments, stripCSharpStringLiterals } from '#core/source-analysis.mjs'
+
+export { csharpTypeDeclarations } from '#core/csharp-analysis.mjs'
 
 export function scanBackDependencies(graph, files, projectContext, session, sourceReader) {
   const { toRepoPath } = projectContext
@@ -9,7 +19,7 @@ export function scanBackDependencies(graph, files, projectContext, session, sour
     if (!graph.hasNode(sourceId)) {
       continue
     }
-    const content = stripCSharpComments(stripCSharpStringLiterals(sourceReader.readText(file)))
+    const content = sourceReader.readText(file)
     const declaration = csharpTypeDeclarations(content).find((item) => item.kind === 'class')
     if (!declaration) {
       continue
@@ -20,16 +30,17 @@ export function scanBackDependencies(graph, files, projectContext, session, sour
       if (!target || target.file === file) {
         continue
       }
-      const genericEntity = dependency.display.match(/<\s*([A-Z]\w*)\s*>/)?.[1]
+      const genericEntity = dependency.typeArguments[0]
       const isRepositoryAbstraction =
         genericEntity &&
-        /(?:Repository|Searchable|Pageable|Includable|Aggregatable|BulkOperations|Stateful)/.test(dependency.name)
+        /(?:Repository|Searchable|Pageable|Includable|Aggregatable|BulkOperations|Stateful)/u.test(dependency.name)
       const useLogicalDependency = isRepositoryAbstraction || target.ambiguous
       const logicalType = dependencyRole(dependency.name)
+      const compactDisplay = dependency.display.replace(/\s+/gu, '')
       const targetId = isRepositoryAbstraction
-        ? `backend-repository:${featureFromRepoPath(repoPath, projectContext)}:${dependency.display.replace(/\s+/g, '')}`
+        ? `backend-repository:${featureFromRepoPath(repoPath, projectContext)}:${compactDisplay}`
         : target.ambiguous
-          ? `backend-${logicalType}:${featureFromRepoPath(repoPath, projectContext)}:${dependency.display.replace(/\s+/g, '')}`
+          ? `backend-${logicalType}:${featureFromRepoPath(repoPath, projectContext)}:${compactDisplay}`
           : `file:${toRepoPath(target.file)}`
       if (useLogicalDependency) {
         graph.addNode(targetId, {
@@ -60,32 +71,46 @@ export function scanBackDependencies(graph, files, projectContext, session, sour
 }
 
 function dependencyRole(typeName) {
-  return /(?:Repository|Searchable|Pageable|Includable|Aggregatable|BulkOperations|Stateful)/.test(typeName)
+  return /(?:Repository|Searchable|Pageable|Includable|Aggregatable|BulkOperations|Stateful)/u.test(typeName)
     ? 'repository'
     : 'service'
 }
 
 function collectConstructorDependencies(content, className) {
-  const blocks = []
-  const primary = content.match(
-    new RegExp(`\\bclass\\s+${escapeRegExp(className)}(?:\\s*<[^>{]+>)?\\s*\\(([\\s\\S]{0,3000}?)\\)\\s*(?::|\\{)`)
-  )
-  if (primary) {
-    blocks.push(primary[1])
+  const tree = parseCSharp(content)
+  let declaration = null
+  walkCSharp(tree.rootNode, (node) => {
+    if (!declaration && node.type === 'class_declaration' && csharpName(node) === className) {
+      declaration = node
+    }
+  })
+  if (!declaration) {
+    return []
   }
-  const constructors = new RegExp(`\\b${escapeRegExp(className)}\\s*\\(([\\s\\S]{0,3000}?)\\)\\s*(?::[^\\{]+)?\\{`, 'g')
-  for (const match of content.matchAll(constructors)) {
-    blocks.push(match[1])
+
+  const parameterLists = declaration.namedChildren.filter((child) => child.type === 'parameter_list')
+  const body = declaration.namedChildren.find((child) => child.type === 'declaration_list')
+  for (const constructor of body?.namedChildren.filter((child) => child.type === 'constructor_declaration') ?? []) {
+    const parameters = constructor.namedChildren.find((child) => child.type === 'parameter_list')
+    if (parameters) {
+      parameterLists.push(parameters)
+    }
   }
 
   const dependencies = new Map()
-  for (const block of blocks) {
-    for (const match of block.matchAll(/(?:^|,)\s*([A-ZI][\w.]*(?:\s*<[^>]+>)?)\s+\w+/gm)) {
-      const display = match[1].replace(/\s+/g, ' ').trim()
-      const name = display.match(/(?:^|\.)([A-ZI]\w*)\s*(?:<|$)/)?.[1]
-      if (name) {
-        dependencies.set(`${name}:${display}`, { name, display })
+  for (const parameters of parameterLists) {
+    for (const parameter of parameters.namedChildren.filter((child) => child.type === 'parameter')) {
+      const parameterName = parameter.childForFieldName('name')
+      const type =
+        parameter.childForFieldName('type') ??
+        parameter.namedChildren.find((child) => child.id !== parameterName?.id && child.type !== 'attribute_list')
+      const name = csharpSimpleTypeName(type)
+      if (!name || !/^[A-ZI]/u.test(name)) {
+        continue
       }
+      const display = type.text.replace(/\s+/gu, ' ').trim()
+      const typeArguments = csharpDescendants(type, 'type_argument_list').flatMap(csharpTypeIdentifiers)
+      dependencies.set(`${name}:${display}`, { name, display, typeArguments })
     }
   }
   return [...dependencies.values()]
@@ -118,17 +143,4 @@ function preferDependencyCandidate(candidates, sourcePath, projectContext) {
     candidates.find((candidate) => !projectContext.toRepoPath(candidate.file).includes('.Tests/')) ??
     candidates[0]
   )
-}
-
-export function csharpTypeDeclarations(content) {
-  const declarations = []
-  const pattern = /\b(class|interface)\s+(\w+)(?:\s*<[^>{]+>)?(?:\s*\([^)]*\))?\s*(?::\s*([^{]+))?\s*\{/g
-  for (const match of content.matchAll(pattern)) {
-    const baseTypes = (match[3] ?? '')
-      .split(',')
-      .map((value) => value.trim().match(/(?:^|\.)([A-ZI]\w*)\s*(?:<|$)/)?.[1])
-      .filter(Boolean)
-    declarations.push({ kind: match[1], name: match[2], baseTypes })
-  }
-  return declarations
 }

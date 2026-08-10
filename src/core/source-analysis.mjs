@@ -1,5 +1,7 @@
 import ts from 'typescript'
 
+export { ts as typescript }
+
 export const tsExtensions = Object.freeze(['.ts', '.tsx', '.js', '.jsx'])
 export const componentContainerDirs = Object.freeze(['components', 'pages'])
 
@@ -46,8 +48,8 @@ export function stripTsComments(content) {
   return content.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
 }
 
-export function moduleReferencesOf(content, fileName = 'source.ts') {
-  const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, false, scriptKindOf(fileName))
+export function moduleReferencesOf(content, fileName = 'source.ts', parsedSourceFile) {
+  const sourceFile = parsedSourceFile ?? parseTypeScript(content, fileName)
   const references = []
 
   function visit(node) {
@@ -78,6 +80,38 @@ export function moduleReferencesOf(content, fileName = 'source.ts') {
 
   visit(sourceFile)
   return references.sort((left, right) => left.index - right.index)
+}
+
+export function parseTypeScript(content, fileName = 'source.ts') {
+  return ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, true, scriptKindOf(fileName))
+}
+
+export function walkTypeScript(node, visitor) {
+  visitor(node)
+  ts.forEachChild(node, (child) => walkTypeScript(child, visitor))
+}
+
+export function typeScriptLiteralValue(node, sourceFile) {
+  if (!node) {
+    return null
+  }
+  if (ts.isStringLiteralLike(node)) {
+    return node.text
+  }
+  if (ts.isTemplateExpression(node)) {
+    return node.getText(sourceFile).slice(1, -1)
+  }
+  return null
+}
+
+export function typeScriptCallName(expression) {
+  if (ts.isIdentifier(expression)) {
+    return expression.text
+  }
+  if (ts.isPropertyAccessExpression(expression)) {
+    return expression.name.text
+  }
+  return null
 }
 
 export function importsOf(content, fileName) {

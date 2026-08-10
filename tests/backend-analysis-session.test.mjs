@@ -1,5 +1,20 @@
 import assert from 'node:assert/strict'
 import { createBackendAnalysisSession } from '#core/backend-analysis-session.mjs'
+import { csharpTypeDeclarations } from '#core/csharp-analysis.mjs'
+
+assert.deepEqual(
+  csharpTypeDeclarations(`
+// public class Ignored : IFake {}
+public interface IOrders {}
+public class Orders(IClock clock) : BaseOrders, IOrders {}
+public record OrderCreated(string Id);
+`),
+  [
+    { kind: 'interface', name: 'IOrders', baseTypes: [] },
+    { kind: 'class', name: 'Orders', baseTypes: ['BaseOrders', 'IOrders'] },
+    { kind: 'record', name: 'OrderCreated', baseTypes: [] }
+  ]
+)
 
 const first = createBackendAnalysisSession([
   {

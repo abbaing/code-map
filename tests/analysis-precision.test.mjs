@@ -69,6 +69,16 @@ const endpointCases = [
     id: 'HTTP-05',
     source: "const baseUrl = '/api/accounts'\nfetch(baseUrl + '/' + accountId)",
     expected: []
+  },
+  {
+    id: 'HTTP-06',
+    source: "// fetch('/api/comment')\nconst example = \"client({ method: 'GET', url: '/api/string' })\"",
+    expected: []
+  },
+  {
+    id: 'HTTP-07',
+    source: "client<{ id: string }>({\n method: 'PATCH',\n url: '/api/accounts/42'\n})",
+    expected: [{ url: '/api/accounts/42', method: 'PATCH' }]
   }
 ]
 
@@ -112,6 +122,23 @@ public class AccountsController : ControllerBase
     public IActionResult Get() => Ok();
 }`,
     expected: []
+  },
+  {
+    id: 'CS-04',
+    source: `
+// [Route("api/ignored")]
+// public class IgnoredController : ControllerBase { [HttpGet] public object Get() => Ok(); }
+public class PlainController : ControllerBase {}`,
+    expected: []
+  },
+  {
+    id: 'CS-05',
+    source: `
+public class PlainController : ControllerBase
+{
+    private const string Example = "[Route(\\"api/ignored\\")] [HttpGet]";
+}`,
+    expected: []
   }
 ]
 
@@ -119,7 +146,7 @@ for (const fixture of controllerCases) {
   assert.deepEqual(extractControllerEndpoints(fixture.source), fixture.expected, fixture.id)
 }
 
-assert.equal(importCases.length + endpointCases.length + controllerCases.length, 16)
+assert.equal(importCases.length + endpointCases.length + controllerCases.length, 20)
 console.log('analysis precision fixtures passed')
 
 function extractControllerEndpoints(source) {

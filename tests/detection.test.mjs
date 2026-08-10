@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
-import { createDetectionFiles, createStackDetectorRegistry, detectSummary } from '#core/detect.mjs'
+import { createDetectionFiles, createStackDetectorRegistry, detect, detectSummary } from '#core/detect.mjs'
 
 const repoRoot = path.resolve('virtual-project')
 const directories = new Map([
@@ -50,6 +50,32 @@ assert.throws(
 )
 assert.throws(() => createDetectionFiles({ exists() {} }), /bounded filesystem capabilities/u)
 assert.throws(() => detectSummary(repoRoot), /requires detection files/u)
+
+const aliasRoot = path.resolve('alias-project')
+const aliasDirectories = new Map([
+  [aliasRoot, ['front']],
+  [path.join(aliasRoot, 'front'), ['src']],
+  [path.join(aliasRoot, 'front', 'src'), []]
+])
+const aliasFiles = createDetectionFiles({
+  exists: (target) => aliasDirectories.has(target) || target === path.join(aliasRoot, 'front', 'tsconfig.json'),
+  readText(target) {
+    if (target === path.join(aliasRoot, 'front', 'tsconfig.json')) {
+      return `{
+        // JSONC is valid in tsconfig files.
+        "compilerOptions": { "paths": { "@/*": ["src/*",], }, },
+      }`
+    }
+    throw new Error('missing')
+  },
+  readDirectory: (target) => aliasDirectories.get(target) ?? [],
+  stat: (target) => ({ isDirectory: () => aliasDirectories.has(target) })
+})
+const aliasConfig = detect(aliasRoot, {
+  files: aliasFiles,
+  detectors: createStackDetectorRegistry({ frontend: [], backend: [] })
+})
+assert.deepEqual(aliasConfig.imports.aliases, [{ prefix: '@/', path: 'front/src' }])
 
 const readme = fs.readFileSync(new URL(import.meta.resolve('#entry/README.md')), 'utf8')
 assert.match(readme, /Specialized source analysis currently covers:/u)

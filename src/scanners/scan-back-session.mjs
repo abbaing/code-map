@@ -1,13 +1,11 @@
 import path from 'node:path'
 import { createBackendAnalysisSession } from '#core/backend-analysis-session.mjs'
+import { csharpTypeDeclarations } from '#core/csharp-analysis.mjs'
 import { featureFromRepoPath } from '#core/classify.mjs'
-import { csharpTypeDeclarations } from '#scanners/scan-back-dependencies.mjs'
-import { stripCSharpComments, stripCSharpStringLiterals } from '#core/source-analysis.mjs'
 
 export function createBackScanSession(allBackFiles, sourceReader) {
   const entries = allBackFiles.map((file) => {
-    const content = stripCSharpComments(stripCSharpStringLiterals(sourceReader.readText(file)))
-    return { file, fileName: path.basename(file), declarations: csharpTypeDeclarations(content) }
+    return { file, fileName: path.basename(file), declarations: csharpTypeDeclarations(sourceReader.readText(file)) }
   })
   return createBackendAnalysisSession(entries)
 }

@@ -1,6 +1,6 @@
 # Static analysis precision
 
-code-map uses bounded static heuristics rather than building or executing the target application. This matrix records which syntax forms have executable guarantees and where manual runtime links or future parser-backed extractors are required.
+code-map uses parser-backed static analysis without building or executing the target application. This matrix records which syntax forms have executable guarantees and where manual runtime links or semantic analysis are still required.
 
 ## Status model
 
@@ -25,16 +25,21 @@ code-map uses bounded static heuristics rather than building or executing the ta
 | HTTP-03 | Frontend HTTP | Heuristic        | Template parameters are normalized to `{}`.                      |
 | HTTP-04 | Frontend HTTP | Supported        | Object-style request calls are detected.                         |
 | HTTP-05 | Frontend HTTP | Known limitation | Concatenated URL expressions are not resolved.                   |
+| HTTP-06 | Frontend HTTP | Supported        | Calls represented only in comments or strings are ignored.       |
+| HTTP-07 | Frontend HTTP | Supported        | Multiline generic calls and object arguments are parsed.         |
 | CS-01   | .NET API      | Supported        | Literal controller routes and block-bodied actions are detected. |
 | CS-02   | .NET API      | Supported        | Expression-bodied controller actions are detected.               |
 | CS-03   | .NET API      | Known limitation | Route constants and computed attributes are not resolved.        |
+| CS-04   | .NET API      | Supported        | Commented controller syntax is ignored.                          |
+| CS-05   | .NET API      | Supported        | Controller syntax inside string values is ignored.               |
 
 The fixtures live in `tests/analysis-precision.test.mjs`. When support changes, update the fixture and this matrix together. A known limitation becoming supported should be an explicit compatibility decision rather than an incidental regex change.
 
 ## General limits
 
 - Runtime-only relationships, reflection, generated code, and dependency injection behavior may require `project.runtimeLinks`.
-- TypeScript and JavaScript module references are parsed without executing the target application.
+- TypeScript and JavaScript imports, calls, declarations, and type nodes use the TypeScript compiler AST.
+- C# declarations, attributes, methods, properties, calls, and object creation use the Tree-sitter C# grammar.
 - Computed HTTP methods fall back to the extractor default when no literal method is available.
 - Confidence metadata distinguishes confirmed and inferred graph relationships where the scanner has enough evidence.
 - Serialized edges retain `confidence`, `source`, and `evidence`; the viewer exposes all three on connected relations.

@@ -6,7 +6,11 @@ import {
   isBackTestFile,
   isTestFile,
   normalizePath,
-  tsExtensions
+  parseTypeScript,
+  typeScriptCallName,
+  typescript as ts,
+  tsExtensions,
+  walkTypeScript
 } from '#core/source-analysis.mjs'
 import { Graph, validateGraphDocument } from '#core/graph.mjs'
 import { resolveTsImport } from '#core/resolve.mjs'
@@ -156,7 +160,27 @@ function phaseApplyCoverage(graph, testFiles, projectContext) {
 }
 
 function countTestCases(content) {
-  return [...content.matchAll(/(?:^|[^\w$])(?:it|test)(?:\.(?:only|skip|todo|concurrent|each))?\s*\(/g)].length
+  const sourceFile = parseTypeScript(content)
+  let count = 0
+  walkTypeScript(sourceFile, (node) => {
+    if (!ts.isCallExpression(node)) {
+      return
+    }
+    const expression = node.expression
+    if (ts.isIdentifier(expression) && ['it', 'test'].includes(expression.text)) {
+      count += 1
+      return
+    }
+    if (
+      ts.isPropertyAccessExpression(expression) &&
+      ['only', 'skip', 'todo', 'concurrent', 'each'].includes(typeScriptCallName(expression)) &&
+      ts.isIdentifier(expression.expression) &&
+      ['it', 'test'].includes(expression.expression.text)
+    ) {
+      count += 1
+    }
+  })
+  return count
 }
 
 function phaseTrackInternals(graph) {

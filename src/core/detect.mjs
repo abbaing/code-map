@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { typescript as ts } from '#core/source-analysis.mjs'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -30,22 +31,13 @@ function readJson(filePath, files) {
 
 function extractTsconfigPaths(filePath, files) {
   try {
-    const raw = files.readText(filePath)
-    // Extract the paths block with a targeted regex instead of full JSON parse
-    const pathsMatch = raw.match(/"paths"\s*:\s*\{([^}]+)\}/s)
-    if (!pathsMatch) {
-      return {}
-    }
-    const pathsBlock = pathsMatch[1]
-    const result = {}
-    for (const match of pathsBlock.matchAll(/"([^"]+)"\s*:\s*\[([^\]]+)\]/g)) {
-      const key = match[1]
-      const valMatch = match[2].match(/"([^"]+)"/)
-      if (valMatch) {
-        result[key] = [valMatch[1]]
-      }
-    }
-    return result
+    const parsed = ts.parseConfigFileTextToJson(filePath, files.readText(filePath)).config
+    const paths = parsed?.compilerOptions?.paths
+    return Object.fromEntries(
+      Object.entries(paths ?? {})
+        .filter(([, values]) => Array.isArray(values) && typeof values[0] === 'string')
+        .map(([key, values]) => [key, [values[0]]])
+    )
   } catch {
     return {}
   }

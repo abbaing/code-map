@@ -1,6 +1,7 @@
 import path from 'node:path'
+import { csharpName, csharpTypeDeclarations, parseCSharp, walkCSharp } from '#core/csharp-analysis.mjs'
 import { classifyBack, featureFromRepoPath } from '#core/classify.mjs'
-import { displayLabel, escapeRegExp, stripCSharpComments, stripCSharpStringLiterals } from '#core/source-analysis.mjs'
+import { displayLabel } from '#core/source-analysis.mjs'
 
 export function scanBackFiles(graph, files, projectContext, session, sourceReader) {
   const { toRepoPath } = projectContext
@@ -31,10 +32,18 @@ export function scanBackFiles(graph, files, projectContext, session, sourceReade
 }
 
 function isDbContextFile(file, sourceReader) {
-  const content = stripCSharpComments(stripCSharpStringLiterals(sourceReader.readText(file)))
-  return (
-    /\bclass\s+\w+\s*(?:\([^)]*\))?\s*:\s*DbContext\b/.test(content) || /\bDbSet<\w+>\s+\w+\s*(?:\{|=>)/.test(content)
-  )
+  const content = sourceReader.readText(file)
+  if (csharpTypeDeclarations(content).some((declaration) => declaration.baseTypes.includes('DbContext'))) {
+    return true
+  }
+  const tree = parseCSharp(content)
+  let found = false
+  walkCSharp(tree.rootNode, (node) => {
+    if (node.type === 'generic_name' && csharpName(node) === 'DbSet') {
+      found = true
+    }
+  })
+  return found
 }
 
 function isImplementedRepositoryInterface(file, session) {
@@ -44,8 +53,14 @@ function isImplementedRepositoryInterface(file, session) {
 
 function isRequestHandlerFile(file, sourceReader) {
   const stem = path.basename(file, '.cs')
-  const content = stripCSharpComments(stripCSharpStringLiterals(sourceReader.readText(file)))
-  return /\bIRequestHandler\s*</.test(content) || /(?:Command|Query)Handler$/.test(stem)
+  const tree = parseCSharp(sourceReader.readText(file))
+  let implementsHandler = false
+  walkCSharp(tree.rootNode, (node) => {
+    if (node.type === 'generic_name' && csharpName(node) === 'IRequestHandler') {
+      implementsHandler = true
+    }
+  })
+  return implementsHandler || /(?:Command|Query)Handler$/u.test(stem)
 }
 
 function semanticBackendRole(repoPath, type, layer) {
@@ -94,5 +109,7 @@ function isMarkerInterfaceFile(file, sourceReader) {
   if (!looksLikeInterface) {
     return false
   }
-  return new RegExp(`\\binterface\\s+${escapeRegExp(stem)}\\b`).test(sourceReader.readText(file))
+  return csharpTypeDeclarations(sourceReader.readText(file)).some(
+    (declaration) => declaration.kind === 'interface' && declaration.name === stem
+  )
 }

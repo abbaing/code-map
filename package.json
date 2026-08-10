@@ -106,6 +106,8 @@
   ],
   "license": "AGPL-3.0-only",
   "dependencies": {
+    "tree-sitter": "0.25.1",
+    "tree-sitter-c-sharp": "0.23.5",
     "typescript": "5.9.3"
   }
 }

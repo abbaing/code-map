@@ -1,17 +1,21 @@
-import { escapeRegExp } from '#core/source-analysis.mjs'
+import {
+  csharpDescendants,
+  csharpInvocationName,
+  csharpSimpleTypeName,
+  parseCSharp,
+  walkCSharp
+} from '#core/csharp-analysis.mjs'
+import {
+  escapeRegExp,
+  parseTypeScript,
+  typeScriptCallName,
+  typescript as ts,
+  walkTypeScript
+} from '#core/source-analysis.mjs'
 import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from '#rules/rule-runner.mjs'
 
-const reactStateHooks = /\buse(State|Effect|Memo|Callback|Reducer|Ref)\s*\(/g
-const reactRoutingHooks = /\buse(Navigate|Params|SearchParams|Location)\s*\(/g
-const apiOrRepositoryAccess = /\b(?:fetch|apiClient)\b|\.request\s*\(|\.(?:get|post|put|patch|delete)\s*</g
-const browserSideEffects = /\b(?:window\.|document\.|location\.|localStorage|sessionStorage)\b/g
-
-const ORCHESTRATION_SIGNALS = [
-  { pattern: reactStateHooks, label: 'React orchestration hook' },
-  { pattern: reactRoutingHooks, label: 'routing hook' },
-  { pattern: apiOrRepositoryAccess, label: 'API/service/repository access' },
-  { pattern: browserSideEffects, label: 'browser side effect' }
-]
+const stateHooks = new Set(['useState', 'useEffect', 'useMemo', 'useCallback', 'useReducer', 'useRef'])
+const routingHooks = new Set(['useNavigate', 'useParams', 'useSearchParams', 'useLocation'])
 
 export const ARCHITECTURE_RULES = [
   {
@@ -70,17 +74,12 @@ export const ARCHITECTURE_RULES = [
       if (!isAllowedEntryPath(repoPath, this, projectMapRules)) {
         return
       }
-      for (const { pattern, label } of ORCHESTRATION_SIGNALS) {
-        const match = pattern.exec(content)
-        pattern.lastIndex = 0
-        if (!match) {
-          continue
-        }
+      for (const { index, label } of orchestrationSignals(content, repoPath)) {
         findingSink.add({
           ...findingBase(this),
           nodeId,
           path: repoPath,
-          line: lineOfIndex(content, match.index),
+          line: lineOfIndex(content, index),
           evidence: label
         })
       }
@@ -151,7 +150,14 @@ export const ARCHITECTURE_RULES = [
       const hookPrefix = ruleOption(projectMapRules, this, 'hookPrefix') ?? 'use'
       const hookSuffix = ruleOption(projectMapRules, this, 'hookSuffix') ?? ''
       const expectedHook = `${hookPrefix}${componentName}${hookSuffix}`
-      if (new RegExp(`\\b${escapeRegExp(expectedHook)}\\s*\\(`).test(content)) {
+      const sourceFile = parseTypeScript(content, repoPath)
+      let callsExpectedHook = false
+      walkTypeScript(sourceFile, (node) => {
+        if (ts.isCallExpression(node) && typeScriptCallName(node.expression) === expectedHook) {
+          callsExpectedHook = true
+        }
+      })
+      if (callsExpectedHook) {
         return
       }
       findingSink.add({ ...findingBase(this), nodeId, path: repoPath, line: 1, evidence: expectedHook })
@@ -208,26 +214,32 @@ export const ARCHITECTURE_RULES = [
       if (!repoPath.includes('/Controllers/') || !repoPath.endsWith('Controller.cs')) {
         return
       }
-      const checks = [
-        { pattern: /\b_dbContext\b|\bDbContext\b|\bSet\s*</, label: 'direct persistence access' },
-        { pattern: /\bSaveChangesAsync\s*\(/, label: 'direct save changes' },
-        { pattern: /\bforeach\s*\(|\bwhile\s*\(|\bfor\s*\(/, label: 'loop in controller action' },
-        {
-          pattern: /\bif\s*\([\s\S]{0,120}\)\s*\{[\s\S]{0,220}\bawait\b[\s\S]{0,220}\bawait\b/,
-          label: 'branch with multiple awaits'
+      const tree = parseCSharp(content)
+      const matches = new Map()
+      walkCSharp(tree.rootNode, (node) => {
+        if (
+          (node.type === 'identifier' && ['_dbContext', 'DbContext'].includes(node.text)) ||
+          (node.type === 'generic_name' && csharpSimpleTypeName(node) === 'Set')
+        ) {
+          matches.set('direct persistence access', node.startPosition.row + 1)
         }
-      ]
-      for (const check of checks) {
-        const match = content.match(check.pattern)
-        if (!match) {
-          continue
+        if (node.type === 'invocation_expression' && csharpInvocationName(node) === 'SaveChangesAsync') {
+          matches.set('direct save changes', node.startPosition.row + 1)
         }
+        if (['for_statement', 'for_each_statement', 'while_statement'].includes(node.type)) {
+          matches.set('loop in controller action', node.startPosition.row + 1)
+        }
+        if (node.type === 'if_statement' && csharpDescendants(node, 'await_expression').length >= 2) {
+          matches.set('branch with multiple awaits', node.startPosition.row + 1)
+        }
+      })
+      for (const [evidence, line] of matches) {
         findingSink.add({
           ...findingBase(this),
           nodeId,
           path: repoPath,
-          line: lineOfIndex(content, match.index),
-          evidence: check.label
+          line,
+          evidence
         })
       }
     }
@@ -250,17 +262,21 @@ export const ARCHITECTURE_RULES = [
       if (forbidden.length === 0) {
         return
       }
+      const tree = parseCSharp(content)
+      const usings = csharpDescendants(tree.rootNode, 'using_directive')
       for (const item of forbidden) {
-        const pattern = new RegExp(`^\\s*using\\s+${escapeRegExp(item)}(?:\\.|;)`, 'm')
-        const match = content.match(pattern)
-        if (!match) {
+        const using = usings.find((node) => {
+          const namespace = node.namedChildren.at(-1)?.text ?? ''
+          return namespace === item || namespace.startsWith(`${item}.`)
+        })
+        if (!using) {
           continue
         }
         findingSink.add({
           ...findingBase(this),
           nodeId,
           path: repoPath,
-          line: lineOfIndex(content, match.index),
+          line: using.startPosition.row + 1,
           evidence: `using ${item}`
         })
       }
@@ -283,6 +299,40 @@ export function runArchitectureGuardrails(files, defaultRules, projectContext, f
 
 export function getArchitectureGuardrailMetadata() {
   return getRuleMetadata(ARCHITECTURE_RULES)
+}
+
+function orchestrationSignals(content, fileName) {
+  const sourceFile = parseTypeScript(content, fileName)
+  const matches = new Map()
+  const record = (label, node) => {
+    if (!matches.has(label)) {
+      matches.set(label, node.getStart(sourceFile))
+    }
+  }
+  walkTypeScript(sourceFile, (node) => {
+    if (ts.isCallExpression(node)) {
+      const name = typeScriptCallName(node.expression)
+      if (stateHooks.has(name)) {
+        record('React orchestration hook', node)
+      }
+      if (routingHooks.has(name)) {
+        record('routing hook', node)
+      }
+      if (['fetch', 'request', 'get', 'post', 'put', 'patch', 'delete'].includes(name)) {
+        record('API/service/repository access', node)
+      }
+    }
+    if (ts.isIdentifier(node) && node.text === 'apiClient') {
+      record('API/service/repository access', node)
+    }
+    if (
+      ts.isIdentifier(node) &&
+      ['window', 'document', 'location', 'localStorage', 'sessionStorage'].includes(node.text)
+    ) {
+      record('browser side effect', node)
+    }
+  })
+  return [...matches].map(([label, index]) => ({ label, index }))
 }
 
 function featureFromPath(repoPath, projectContext) {

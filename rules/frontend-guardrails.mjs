@@ -1,4 +1,5 @@
 import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from '#rules/rule-runner.mjs'
+import { parseTypeScript, typeScriptCallName, typescript as ts, walkTypeScript } from '#core/source-analysis.mjs'
 
 // Rule interface: { id, defaultEnabled, meta, check(nodeId, repoPath, content, type, projectMap) }
 
@@ -88,23 +89,31 @@ export const RULES = [
       docsPath: 'docs/frontend-rules.md'
     },
     check({ nodeId, repoPath, content, findingSink }) {
-      const patterns = [
-        { pattern: /\bas\s+any\b/g, label: 'as any' },
-        { pattern: /:\s*any\b/g, label: ': any' },
-        { pattern: /<\s*any\s*>/g, label: '<any>' },
-        { pattern: /\bArray\s*<\s*any\s*>/g, label: 'Array<any>' }
-      ]
-      for (const { pattern, label } of patterns) {
-        for (const match of content.matchAll(pattern)) {
-          findingSink.add({
-            ...findingBase(this),
-            nodeId,
-            path: repoPath,
-            line: lineOfIndex(content, match.index),
-            evidence: label
-          })
+      const sourceFile = parseTypeScript(content, repoPath)
+      walkTypeScript(sourceFile, (node) => {
+        if (node.kind !== ts.SyntaxKind.AnyKeyword) {
+          return
         }
-      }
+        const parent = node.parent
+        const evidence =
+          parent && ts.isAsExpression(parent)
+            ? 'as any'
+            : parent &&
+                ts.isTypeReferenceNode(parent) &&
+                ts.isIdentifier(parent.typeName) &&
+                parent.typeName.text === 'Array'
+              ? 'Array<any>'
+              : parent && ts.isTypeAssertionExpression(parent)
+                ? '<any>'
+                : ': any'
+        findingSink.add({
+          ...findingBase(this),
+          nodeId,
+          path: repoPath,
+          line: lineOfIndex(content, node.getStart(sourceFile)),
+          evidence
+        })
+      })
     }
   },
   {
@@ -129,26 +138,33 @@ export const RULES = [
       if (!repoPath.endsWith('/routes/index.tsx') && !repoPath.endsWith('/routes/index.jsx')) {
         return
       }
-      const checks = [
-        { rule: /\blazy\s*\(/g, label: 'lazy()' },
-        { rule: /\bSuspense\b/g, label: 'Suspense' },
-        { rule: /\bRequirePermission\b/g, label: 'RequirePermission' },
-        { rule: /\bAccessDenied\b/g, label: 'AccessDenied' },
-        { rule: /\bReact\.ComponentType\b/g, label: 'React.ComponentType' },
-        { rule: /\bpermission\s*:/g, label: 'permission in route config' }
-      ]
-      for (const check of checks) {
-        const match = check.rule.exec(content)
-        check.rule.lastIndex = 0
-        if (!match) {
-          continue
+      const sourceFile = parseTypeScript(content, repoPath)
+      const matches = new Map()
+      walkTypeScript(sourceFile, (node) => {
+        if (ts.isCallExpression(node) && typeScriptCallName(node.expression) === 'lazy') {
+          matches.set('lazy()', node.expression.getStart(sourceFile))
         }
+        if (ts.isIdentifier(node) && ['Suspense', 'RequirePermission', 'AccessDenied'].includes(node.text)) {
+          matches.set(node.text, node.getStart(sourceFile))
+        }
+        if (ts.isPropertyAccessExpression(node) && node.getText(sourceFile) === 'React.ComponentType') {
+          matches.set('React.ComponentType', node.getStart(sourceFile))
+        }
+        if (
+          ts.isPropertyAssignment(node) &&
+          ((ts.isIdentifier(node.name) && node.name.text === 'permission') ||
+            (ts.isStringLiteralLike(node.name) && node.name.text === 'permission'))
+        ) {
+          matches.set('permission in route config', node.getStart(sourceFile))
+        }
+      })
+      for (const [evidence, index] of matches) {
         findingSink.add({
           ...findingBase(this),
           nodeId,
           path: repoPath,
-          line: lineOfIndex(content, match.index),
-          evidence: check.label
+          line: lineOfIndex(content, index),
+          evidence
         })
       }
     }
