@@ -1,4 +1,4 @@
-import { displayLabel, importsOf, stripTsComments } from '#core/source-analysis.mjs'
+import { displayLabel, moduleReferencesOf } from '#core/source-analysis.mjs'
 import { classifyFront, featureFromRepoPath } from '#core/classify.mjs'
 import { addEndpoint, extractFrontendEndpoints } from '#core/endpoints.mjs'
 import { resolveTsImport } from '#core/resolve.mjs'
@@ -53,27 +53,14 @@ export function scanFront(graph, files, projectContext, sourceReader) {
         : {}
     })
 
-    for (const { specifier } of importsOf(content)) {
+    for (const { specifier, kind } of moduleReferencesOf(content, file)) {
       const resolved = resolveTsImport(file, specifier, projectContext)
       if (resolved) {
         const target = `file:${toRepoPath(resolved)}`
-        graph.addEdge(id, target, 'imports', {
+        graph.addEdge(id, target, kind === 'dynamic' ? 'lazy-imports' : 'imports', {
           confidence: 'high',
-          source: 'typescript-import',
+          source: kind === 'dynamic' ? 'typescript-dynamic-import' : 'typescript-import',
           evidence: specifier
-        })
-      }
-    }
-
-    const dynamicImports = stripTsComments(content).matchAll(/import\(\s*['"]([^'"]+)['"]\s*\)/g)
-    for (const match of dynamicImports) {
-      const resolved = resolveTsImport(file, match[1], projectContext)
-      if (resolved) {
-        const target = `file:${toRepoPath(resolved)}`
-        graph.addEdge(id, target, 'lazy-imports', {
-          confidence: 'high',
-          source: 'typescript-dynamic-import',
-          evidence: match[1]
         })
       }
     }

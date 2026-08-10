@@ -8,6 +8,7 @@ import {
   isBackTestFile,
   isTestFile,
   kebab,
+  moduleReferencesOf,
   normalizePath,
   stripCSharpComments,
   stripCSharpStringLiterals,
@@ -96,6 +97,20 @@ assert.deepEqual(
   importsOf(typeScriptSource).map(({ specifier }) => specifier),
   ['./value.js', './item.js']
 )
+assert.deepEqual(moduleReferencesOf(typeScriptSource), [
+  { specifier: './value.js', index: typeScriptSource.indexOf('import value'), kind: 'static' },
+  { specifier: './item.js', index: typeScriptSource.indexOf('export { item }'), kind: 'static' }
+])
+
+const lazySource = `
+const example = "import('./string.js')"
+// import('./comment.js')
+const lazy = import(\`./lazy.js\`)
+const computed = import('./features/' + name)
+`
+assert.deepEqual(moduleReferencesOf(lazySource, 'lazy.tsx'), [
+  { specifier: './lazy.js', index: lazySource.indexOf('import(`'), kind: 'dynamic' }
+])
 assert.match(stripTsComments(typeScriptSource), /https:\/\/example\.test/u)
 assert.doesNotMatch(stripTsComments(typeScriptSource), /ignored/u)
 

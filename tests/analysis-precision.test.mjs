@@ -2,30 +2,43 @@ import assert from 'node:assert/strict'
 import { normalizeProjectMap } from '#core/config.mjs'
 import { extractFrontendEndpoints } from '#core/endpoints.mjs'
 import { Graph } from '#core/graph.mjs'
-import { importsOf } from '#core/source-analysis.mjs'
+import { moduleReferencesOf } from '#core/source-analysis.mjs'
 import { createBackScanSession, scanControllers } from '#scanners/scan-back.mjs'
 
 const importCases = [
   {
     id: 'TS-01',
     source: "import value, { helper } from './value.js'",
-    expected: ['./value.js']
+    expected: [{ specifier: './value.js', kind: 'static' }]
   },
-  { id: 'TS-02', source: "import './setup.js'", expected: ['./setup.js'] },
-  { id: 'TS-03', source: "import type { Account } from './account.js'", expected: ['./account.js'] },
-  { id: 'TS-04', source: "export { account } from './account.js'", expected: ['./account.js'] },
+  { id: 'TS-02', source: "import './setup.js'", expected: [{ specifier: './setup.js', kind: 'static' }] },
+  {
+    id: 'TS-03',
+    source: "import type { Account } from './account.js'",
+    expected: [{ specifier: './account.js', kind: 'static' }]
+  },
+  {
+    id: 'TS-04',
+    source: "export { account } from './account.js'",
+    expected: [{ specifier: './account.js', kind: 'static' }]
+  },
   {
     id: 'TS-05',
     source: "// import ignored from './comment.js'\nconst example = \"import fake from './string.js'\"",
     expected: []
   },
-  { id: 'TS-06', source: "const module = import('./dynamic.js')", expected: [] },
-  { id: 'TS-07', source: "const module = require('./commonjs.js')", expected: [] }
+  {
+    id: 'TS-06',
+    source: "const module = import('./dynamic.js')",
+    expected: [{ specifier: './dynamic.js', kind: 'dynamic' }]
+  },
+  { id: 'TS-07', source: "const module = require('./commonjs.js')", expected: [] },
+  { id: 'TS-08', source: "const module = import('./features/' + name)", expected: [] }
 ]
 
 for (const fixture of importCases) {
   assert.deepEqual(
-    importsOf(fixture.source).map(({ specifier }) => specifier),
+    moduleReferencesOf(fixture.source).map(({ specifier, kind }) => ({ specifier, kind })),
     fixture.expected,
     fixture.id
   )
@@ -106,7 +119,7 @@ for (const fixture of controllerCases) {
   assert.deepEqual(extractControllerEndpoints(fixture.source), fixture.expected, fixture.id)
 }
 
-assert.equal(importCases.length + endpointCases.length + controllerCases.length, 15)
+assert.equal(importCases.length + endpointCases.length + controllerCases.length, 16)
 console.log('analysis precision fixtures passed')
 
 function extractControllerEndpoints(source) {

@@ -17,8 +17,9 @@ code-map uses bounded static heuristics rather than building or executing the ta
 | TS-03   | Imports       | Supported        | Type-only imports are detected.                                  |
 | TS-04   | Imports       | Supported        | Re-exports with `from` are detected.                             |
 | TS-05   | Imports       | Supported        | Commented imports and import-shaped string values are ignored.   |
-| TS-06   | Imports       | Known limitation | Dynamic `import()` expressions are not dependency edges.         |
+| TS-06   | Imports       | Supported        | Literal dynamic `import()` calls produce lazy dependency edges.  |
 | TS-07   | Imports       | Known limitation | CommonJS `require()` calls are not dependency edges.             |
+| TS-08   | Imports       | Known limitation | Computed dynamic import specifiers are not resolved.             |
 | HTTP-01 | Frontend HTTP | Supported        | Literal `fetch()` calls and literal methods are detected.        |
 | HTTP-02 | Frontend HTTP | Supported        | Bound base URLs in instance methods are detected.                |
 | HTTP-03 | Frontend HTTP | Heuristic        | Template parameters are normalized to `{}`.                      |
@@ -33,7 +34,7 @@ The fixtures live in `tests/analysis-precision.test.mjs`. When support changes, 
 ## General limits
 
 - Runtime-only relationships, reflection, generated code, and dependency injection behavior may require `project.runtimeLinks`.
-- Multiline template literals containing import-shaped code examples can resemble real static imports.
+- TypeScript and JavaScript module references are parsed without executing the target application.
 - Computed HTTP methods fall back to the extractor default when no literal method is available.
 - Confidence metadata distinguishes confirmed and inferred graph relationships where the scanner has enough evidence.
 - Serialized edges retain `confidence`, `source`, and `evidence`; the viewer exposes all three on connected relations.

@@ -104,5 +104,8 @@
     "static-analysis",
     "developer-tools"
   ],
-  "license": "AGPL-3.0-only"
+  "license": "AGPL-3.0-only",
+  "dependencies": {
+    "typescript": "5.9.3"
+  }
 }
