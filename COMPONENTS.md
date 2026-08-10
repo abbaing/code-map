@@ -110,4 +110,4 @@ A new or materially changed component is complete only when:
 7. architecture, contract, behavior, and coverage tests pass;
 8. documentation names any public contract or compatibility impact.
 
-S17 will turn the target dependency rules into automated fitness functions, and S18 will close the remaining controlled gaps before requiring every applicable status to be `pass`.
+The architecture and component contract suites enforce the dependency fitness functions, complete ownership inventory, and required `pass` status for every applicable design quality.
