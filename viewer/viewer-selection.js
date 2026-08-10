@@ -340,7 +340,10 @@ function qualityMetricHtml(label, score, title, barClassName) {
 function edgeLine(edge) {
   const otherId = edge.from === state.selectedId ? edge.to : edge.from
   const other = state.graph.nodes.find((node) => node.id === otherId)
-  return `<div class="border border-gray-200 rounded px-2 py-1.5 cursor-pointer hover:border-blue-400 text-sm" data-pick="${escapeHtml(otherId)}"><strong class="block">${escapeHtml(edge.label)}</strong><span class="text-gray-500 text-xs">${escapeHtml(other?.label ?? otherId)}</span></div>`
+  const provenance = [edge.confidence ? `${edge.confidence} confidence` : null, edge.source, edge.evidence]
+    .filter(Boolean)
+    .join(' · ')
+  return `<div class="border border-gray-200 rounded px-2 py-1.5 cursor-pointer hover:border-blue-400 text-sm" data-pick="${escapeHtml(otherId)}"><strong class="block">${escapeHtml(edge.label)}</strong><span class="text-gray-500 text-xs block">${escapeHtml(other?.label ?? otherId)}</span>${provenance ? `<span class="text-gray-400 text-xs block break-words">${escapeHtml(provenance)}</span>` : ''}</div>`
 }
 
 function connectedEdgeIds(nodeId) {

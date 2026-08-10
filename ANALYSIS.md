@@ -36,3 +36,4 @@ The fixtures live in `tests/analysis-precision.test.mjs`. When support changes, 
 - Multiline template literals containing import-shaped code examples can resemble real static imports.
 - Computed HTTP methods fall back to the extractor default when no literal method is available.
 - Confidence metadata distinguishes confirmed and inferred graph relationships where the scanner has enough evidence.
+- Serialized edges retain `confidence`, `source`, and `evidence`; the viewer exposes all three on connected relations.

@@ -98,7 +98,8 @@ function phaseApplyRuntimeLinks(graph, projectContext) {
     graph.addEdge(from, to, link.type ?? 'runtime-link', {
       label: link.reason ?? link.type ?? 'runtime-link',
       confidence: link.confidence ?? 'manual',
-      source: 'runtime-links'
+      source: 'runtime-links',
+      evidence: link.reason ?? `${link.from} -> ${link.to}`
     })
   }
 }

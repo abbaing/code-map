@@ -334,8 +334,17 @@ export function connectEndpoints(graph, frontEndpointIds, controllerEndpoints) {
     for (const controller of controllerEndpoints) {
       const methodMatches = front.meta.method === 'ANY' || controller.method === front.meta.method
       if (methodMatches && endpointCompatible(front.meta.url, controller.url)) {
-        graph.addEdge(front.id, controller.controllerId, 'resolved-controller', { confidence: 'medium' })
-        graph.addEdge(front.id, controller.id, 'matches-endpoint', { confidence: 'medium' })
+        const evidence = `${controller.method} ${controller.url}`
+        graph.addEdge(front.id, controller.controllerId, 'resolved-controller', {
+          confidence: 'medium',
+          source: 'endpoint-matcher',
+          evidence
+        })
+        graph.addEdge(front.id, controller.id, 'matches-endpoint', {
+          confidence: 'medium',
+          source: 'endpoint-matcher',
+          evidence
+        })
       }
     }
   }

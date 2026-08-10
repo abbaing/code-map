@@ -35,7 +35,8 @@ export class Graph {
       type,
       label: data.label ?? type,
       confidence: data.confidence ?? 'medium',
-      source: data.source ?? 'scanner'
+      source: data.source ?? 'scanner',
+      evidence: data.evidence
     })
   }
 

@@ -20,6 +20,7 @@ export interface MapEdge {
   label?: string
   confidence?: string
   source?: string
+  evidence?: string
   [key: string]: unknown
 }
 

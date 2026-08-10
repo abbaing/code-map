@@ -27,13 +27,15 @@ assert.deepEqual(
   'repeated node discoveries must merge metadata without losing classification'
 )
 
-graph.addEdge('a', 'b', 'imports', { confidence: 'high', source: 'test' })
+graph.addEdge('a', 'b', 'imports', { confidence: 'high', source: 'test', evidence: './dependency.js' })
 graph.addEdge('a', 'b', 'imports', { confidence: 'low', source: 'duplicate' })
 graph.addEdge('a', 'a', 'imports')
 graph.addEdge('a', 'missing', 'imports')
 graph.addEdge('', 'b', 'imports')
 assert.equal(graph.allEdges().length, 1, 'edges must be unique, non-self-referential, and connect existing nodes')
 assert.equal(graph.getEdge('a::imports::b').confidence, 'high', 'a duplicate edge must not replace its first evidence')
+assert.equal(graph.getEdge('a::imports::b').source, 'test', 'edges must retain their provenance')
+assert.equal(graph.getEdge('a::imports::b').evidence, './dependency.js', 'edges must retain their evidence')
 
 graph.clear()
 assert.deepEqual([graph.allNodes().length, graph.allEdges().length], [0, 0], 'clear must reset both graph indexes')

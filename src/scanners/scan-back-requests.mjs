@@ -47,7 +47,11 @@ export function scanControllers(graph, files, projectContext, session, sourceRea
           }
         })
         endpoints.push({ id: endpoint, url: fullUrl, method, controllerId: id, action: action.name })
-        graph.addEdge(endpoint, id, 'handled-by', { confidence: 'high' })
+        graph.addEdge(endpoint, id, 'handled-by', {
+          confidence: 'high',
+          source: 'dotnet-controller-route',
+          evidence: `${method} ${fullUrl}`
+        })
         for (const requestName of collectDispatchedRequests(action.source)) {
           linkRequest(
             graph,
@@ -246,7 +250,12 @@ function linkRequest(graph, sourceId, requestName, module, confidence, source, p
     module,
     path: requestPath ? projectContext.toRepoPath(requestPath) : undefined
   })
-  graph.addEdge(sourceId, target, 'sends', { confidence, label: source ? `dispatches in ${source}` : 'sends' })
+  graph.addEdge(sourceId, target, 'sends', {
+    confidence,
+    label: source ? `dispatches in ${source}` : 'sends',
+    source: 'dotnet-request-dispatch',
+    evidence: requestName
+  })
 }
 
 export function scanRequestDispatches(graph, files, projectContext, session, sourceReader) {
@@ -288,7 +297,11 @@ export function scanRequestHandlers(graph, files, projectContext, session) {
       projectContext
     )
     if (requestPath) {
-      graph.addEdge(`file:${toRepoPath(requestPath)}`, `file:${repoPath}`, 'handled-by', { confidence: 'high' })
+      graph.addEdge(`file:${toRepoPath(requestPath)}`, `file:${repoPath}`, 'handled-by', {
+        confidence: 'high',
+        source: 'dotnet-request-handler',
+        evidence: requestName
+      })
     }
   }
 }

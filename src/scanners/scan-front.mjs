@@ -57,7 +57,11 @@ export function scanFront(graph, files, projectContext, sourceReader) {
       const resolved = resolveTsImport(file, specifier, projectContext)
       if (resolved) {
         const target = `file:${toRepoPath(resolved)}`
-        graph.addEdge(id, target, 'imports', { confidence: 'high' })
+        graph.addEdge(id, target, 'imports', {
+          confidence: 'high',
+          source: 'typescript-import',
+          evidence: specifier
+        })
       }
     }
 
@@ -66,7 +70,11 @@ export function scanFront(graph, files, projectContext, sourceReader) {
       const resolved = resolveTsImport(file, match[1], projectContext)
       if (resolved) {
         const target = `file:${toRepoPath(resolved)}`
-        graph.addEdge(id, target, 'lazy-imports', { confidence: 'high' })
+        graph.addEdge(id, target, 'lazy-imports', {
+          confidence: 'high',
+          source: 'typescript-dynamic-import',
+          evidence: match[1]
+        })
       }
     }
 
@@ -81,7 +89,11 @@ export function scanFront(graph, files, projectContext, sourceReader) {
       const endpoint = addEndpoint(graph, runtimeUrl, method, module)
       if (endpoint) {
         frontEndpointNodes.push(endpoint)
-        graph.addEdge(id, endpoint, 'calls-api', { confidence: 'medium' })
+        graph.addEdge(id, endpoint, 'calls-api', {
+          confidence: 'medium',
+          source: 'frontend-http',
+          evidence: `${method} ${runtimeUrl}`
+        })
       }
     }
   }

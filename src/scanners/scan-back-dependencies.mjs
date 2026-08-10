@@ -51,7 +51,9 @@ export function scanBackDependencies(graph, files, projectContext, session, sour
       }
       graph.addEdge(sourceId, targetId, 'depends-on', {
         confidence: target.implementation && !target.ambiguous ? 'high' : 'medium',
-        label: dependency.display
+        label: dependency.display,
+        source: 'dotnet-constructor-dependency',
+        evidence: dependency.display
       })
     }
   }

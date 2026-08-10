@@ -298,6 +298,12 @@ assert.equal(
 const fetchEndpoint = architectureGraph.nodes.find((node) => node.id === 'endpoint:GET /api/reports')
 assert.equal(fetchEndpoint?.type, 'endpoint', 'native fetch calls should create GET endpoints by default')
 
+for (const edge of architectureGraph.edges) {
+  assert.notEqual(edge.source, 'scanner', `${edge.id} must identify the scanner that produced it`)
+  assert.equal(typeof edge.source === 'string' && edge.source.length > 0, true, `${edge.id} must declare provenance`)
+  assert.equal(typeof edge.evidence === 'string' && edge.evidence.length > 0, true, `${edge.id} must retain evidence`)
+}
+
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-map-test-'))
 
 try {

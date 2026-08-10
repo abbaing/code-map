@@ -40,7 +40,11 @@ function extractDbSets(graph, files, projectContext, session, sourceReader) {
         path: entityPath ? toRepoPath(entityPath) : undefined,
         meta: { dbSet, domain: { properties: [] } }
       })
-      graph.addEdge(dbId, entityId, 'dbset', { confidence: 'high' })
+      graph.addEdge(dbId, entityId, 'dbset', {
+        confidence: 'high',
+        source: 'entity-framework-dbset',
+        evidence: `DbSet<${entity}> ${dbSet}`
+      })
     }
   }
 
@@ -90,7 +94,11 @@ function extractTableNodes(graph, entityNodeByName, dbSetByEntity, tableByEntity
       module: entityModule(entity, entityNodeByName, projectContext),
       meta: { entity }
     })
-    graph.addEdge(entityId, tableId, 'maps-to-table', { confidence: tableByEntity.has(entity) ? 'high' : 'medium' })
+    graph.addEdge(entityId, tableId, 'maps-to-table', {
+      confidence: tableByEntity.has(entity) ? 'high' : 'medium',
+      source: 'entity-framework-table-map',
+      evidence: `${entity} -> ${tableName}`
+    })
   }
   return tableNodeByEntity
 }
@@ -108,7 +116,9 @@ function extractEntityRelationships(graph, entityNodeByName, entityPropertiesByN
         }
         graph.addEdge(entityId, entityNodeByName.get(relatedEntity), 'domain-relation', {
           label: property.name,
-          confidence: 'medium'
+          confidence: 'medium',
+          source: 'entity-property-type',
+          evidence: `${property.name}: ${property.type}`
         })
       }
     }
@@ -138,12 +148,19 @@ function extractEntityUsage(
         continue
       }
       const sourceId = `file:${repoPath}`
-      graph.addEdge(sourceId, entityId, 'uses-entity', { confidence: usage.confidence, label: usage.reason })
+      graph.addEdge(sourceId, entityId, 'uses-entity', {
+        confidence: usage.confidence,
+        label: usage.reason,
+        source: 'entity-framework-usage',
+        evidence: `${entity}: ${usage.reason}`
+      })
       const tableId = tableNodeByEntity.get(entity)
       if (tableId && usage.persistence) {
         graph.addEdge(sourceId, tableId, 'queries-table', {
           confidence: usage.confidence,
-          label: `ORM ${usage.reason}`
+          label: `ORM ${usage.reason}`,
+          source: 'entity-framework-query',
+          evidence: `${entity}: ${usage.reason}`
         })
       }
     }
@@ -155,10 +172,20 @@ function extractEntityUsage(
     if (!entityId || node.type !== 'repository') {
       continue
     }
-    graph.addEdge(node.id, entityId, 'uses-entity', { confidence: 'high', label: `generic repository ${entity}` })
+    graph.addEdge(node.id, entityId, 'uses-entity', {
+      confidence: 'high',
+      label: `generic repository ${entity}`,
+      source: 'entity-framework-generic-repository',
+      evidence: entity
+    })
     const tableId = tableNodeByEntity.get(entity)
     if (tableId) {
-      graph.addEdge(node.id, tableId, 'queries-table', { confidence: 'high', label: `ORM repository ${entity}` })
+      graph.addEdge(node.id, tableId, 'queries-table', {
+        confidence: 'high',
+        label: `ORM repository ${entity}`,
+        source: 'entity-framework-generic-repository',
+        evidence: entity
+      })
     }
   }
 }

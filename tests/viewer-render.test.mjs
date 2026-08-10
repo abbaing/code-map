@@ -11,6 +11,7 @@ import {
   renderingStrategies
 } from '#viewer/viewer-graph.js'
 import { layoutNodes, layoutSystemModules } from '#viewer/viewer-layouts.js'
+import { edgeLine } from '#viewer/viewer-selection.js'
 import { nodeGraphSvg } from '#viewer/viewer-svg.js'
 import {
   colors,
@@ -269,6 +270,18 @@ Object.assign(layerLabels, {})
 Object.assign(typeLabels, {})
 Object.assign(colors, {})
 layerOrder.splice(0)
+
+state.selectedId = 'front'
+const provenanceMarkup = edgeLine({
+  from: 'front',
+  to: 'back',
+  label: 'calls API',
+  confidence: 'medium',
+  source: 'endpoint-matcher',
+  evidence: 'GET /api/users'
+})
+assert.match(provenanceMarkup, /medium confidence · endpoint-matcher · GET \/api\/users/u)
+state.selectedId = null
 
 render()
 assert.match(svg.innerHTML, /class="node system-module-node"/u, 'graph overview must render module cards')
