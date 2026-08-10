@@ -2,6 +2,7 @@ import path from 'node:path'
 import { createSourceReader, readText, walk, maxSourceFileBytes } from '#core/scan-utils.mjs'
 import {
   findComponentDirIndex,
+  importsOf,
   isBackTestFile,
   isTestFile,
   normalizePath,
@@ -120,9 +121,8 @@ function phaseApplyCoverage(graph, testFiles, projectContext) {
 
     const content = readText(testFile, fileSystem, maxSourceFileBytes, projectContext.toRepoPath)
     testCaseCountByFile.set(toRepoPath(testFile), countTestCases(content))
-    const imports = content.matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]/g)
-    for (const match of imports) {
-      const resolved = resolveTsImport(testFile, match[1], projectContext)
+    for (const { specifier } of importsOf(content, testFile)) {
+      const resolved = resolveTsImport(testFile, specifier, projectContext)
       if (resolved && !isTestFile(resolved)) {
         covered.add(resolved)
       }

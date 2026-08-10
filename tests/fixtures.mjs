@@ -14,6 +14,16 @@ export default item
 }
 
 export const architectureFixture = {
+  'architecture/front/src/features/testing/coverage.spec.ts': `import tested from './tested'
+
+const example = "import uncovered from './uncovered'"
+
+test('uses the tested module', () => tested)
+`,
+  'architecture/front/src/features/testing/tested.ts': `export default 'tested'
+`,
+  'architecture/front/src/features/testing/uncovered.ts': `export default 'uncovered'
+`,
   'architecture/back/Demo.API/Controllers/AccountsCommandController.cs': `using MediatR;
 using Microsoft.AspNetCore.Mvc;
 

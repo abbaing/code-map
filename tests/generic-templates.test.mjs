@@ -148,6 +148,21 @@ assert.equal(
 
 const architectureGraph = scanArchitectureFixture('architecture-template-fixture')
 const architectureRules = new Set(architectureGraph.findings.map((finding) => finding.ruleId))
+const testedNode = architectureGraph.nodes.find((node) => node.label === 'tested.ts')
+const uncoveredNode = architectureGraph.nodes.find((node) => node.label === 'uncovered.ts')
+
+assert.ok(testedNode, 'the covered fixture source must be scanned')
+assert.ok(uncoveredNode, 'the uncovered fixture source must be scanned')
+assert.deepEqual(testedNode.meta?.coverage, {
+  hasCoverage: true,
+  tests: [testedNode.path.replace(/tested\.ts$/u, 'coverage.spec.ts')],
+  testCaseCount: 1
+})
+assert.equal(
+  uncoveredNode?.meta?.coverage,
+  undefined,
+  'import-shaped strings in tests must not attribute source coverage'
+)
 
 for (const ruleId of [
   'framework.react.component-folder-entry',
