@@ -24,7 +24,8 @@ export async function runNodeScan({ platform = nodePlatform } = {}) {
     allow: argv.includes('--allow-plugins')
   })
   const outArgIndex = argv.indexOf('--out')
-  const outputPath = outArgIndex >= 0 ? path.resolve(argv[outArgIndex + 1]) : projectContext.resolveGraphOutputPath()
+  const outputPath =
+    outArgIndex >= 0 ? path.resolve(projectRoot, argv[outArgIndex + 1]) : projectContext.resolveGraphOutputPath()
   const result = writeGraph(outputPath, projectContext, {
     registry: buildTemplateRegistry(projectContext.projectMap),
     writer: nodeTextWriter
