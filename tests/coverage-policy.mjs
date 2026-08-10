@@ -10,6 +10,11 @@ const groups = [
     thresholds: { lines: 78, statements: 78, branches: 77, functions: 80 }
   },
   {
+    id: 'server',
+    includes: (file) => file === 'server.mjs',
+    thresholds: { lines: 86, statements: 86, branches: 83, functions: 100 }
+  },
+  {
     id: 'viewer',
     includes: (file) => file.startsWith('viewer/'),
     thresholds: { lines: 54, statements: 54, branches: 69, functions: 61 }
