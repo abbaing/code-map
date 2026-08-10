@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import http from 'node:http'
+import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 import { ApplicationInputError } from '#app/server-app.mjs'
@@ -9,7 +10,13 @@ import { SubmapError } from '#submap/errors.mjs'
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-map-http-'))
 const graphPath = path.join(tempRoot, 'graph.json')
-const graph = { version: 1, generatedAt: '2030-01-02T03:04:05.000Z', stats: { nodes: 1 }, nodes: [], edges: [] }
+const graph = {
+  version: 1,
+  generatedAt: '2030-01-02T03:04:05.000Z',
+  stats: { nodes: 0, edges: 0 },
+  nodes: [],
+  edges: []
+}
 fs.writeFileSync(graphPath, `${JSON.stringify(graph)}\n`, 'utf8')
 
 let activeGraphPath = graphPath
@@ -133,6 +140,17 @@ try {
   const originalConsoleError = console.error
   console.error = (error) => loggedErrors.push(error)
   try {
+    fs.writeFileSync(graphPath, '{ invalid graph', 'utf8')
+    const malformedGraph = await request(port, 'GET', '/graph.json')
+    assert.equal(malformedGraph.status, 500)
+    assert.equal(JSON.parse(malformedGraph.body).error, 'Internal server error.')
+
+    fs.writeFileSync(graphPath, JSON.stringify({ ...graph, stats: { nodes: 1, edges: 0 } }), 'utf8')
+    const inconsistentGraph = await request(port, 'GET', '/graph.json')
+    assert.equal(inconsistentGraph.status, 500)
+    assert.equal(JSON.parse(inconsistentGraph.body).error, 'Internal server error.')
+    fs.writeFileSync(graphPath, `${JSON.stringify(graph)}\n`, 'utf8')
+
     traceError = new SubmapError('SUBMAP_INTERNAL', 'private submap detail', {}, 1)
     const internalSubmap = await request(port, 'POST', '/api/submaps/from-trace', '{}', session)
     assert.equal(internalSubmap.status, 500)
@@ -148,10 +166,11 @@ try {
     scanError = undefined
     traceError = undefined
   }
-  assert.equal(loggedErrors.length, 2)
+  assert.equal(loggedErrors.length, 4)
 
   assert.equal((await request(port, 'POST', '/missing', '', session)).status, 404)
   assert.equal((await request(port, 'GET', '/missing')).status, 404)
+  assert.equal(await requestWithoutHost(port), 400)
   assert.equal((await request(port, 'GET', '/', '', { Host: `127.0.0.1:${port + 1}` })).status, 400)
   assert.equal((await request(port, 'GET', '/', '', { Host: `user@127.0.0.1:${port}` })).status, 400)
   assert.equal((await request(port, 'GET', '/', '', { Host: '[invalid' })).status, 400)
@@ -181,5 +200,17 @@ function request(port, method, pathname, body = '', headers = {}) {
       request.write(body)
     }
     request.end()
+  })
+}
+
+function requestWithoutHost(port) {
+  return new Promise((resolve, reject) => {
+    const socket = net.createConnection({ host: '127.0.0.1', port })
+    const chunks = []
+    socket.setEncoding('utf8')
+    socket.on('connect', () => socket.write('GET / HTTP/1.0\r\n\r\n'))
+    socket.on('data', (chunk) => chunks.push(chunk))
+    socket.on('end', () => resolve(Number(/^HTTP\/1\.1 (\d{3})/u.exec(chunks.join(''))?.[1])))
+    socket.on('error', reject)
   })
 }

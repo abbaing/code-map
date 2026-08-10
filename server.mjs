@@ -4,6 +4,7 @@ import http from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { getConfigPathFromArgs, loadProjectContext } from '#core/config.mjs'
+import { validateGraphDocument } from '#core/graph.mjs'
 import { detect } from '#node/detect-node.mjs'
 import { loadTemplatePlugins } from '#templates/registry.mjs'
 import { ApplicationInputError, assertServerApplication, createServerApplication } from '#app/server-app.mjs'
@@ -116,6 +117,14 @@ function sendFile(response, filePath, headers = {}) {
   }
   response.writeHead(200, responseHeaders(contentTypes[path.extname(filePath)] ?? 'application/octet-stream', headers))
   response.end(fs.readFileSync(filePath))
+}
+
+function sendGraphFile(response, filePath) {
+  if (!fs.existsSync(filePath)) {
+    return send(response, 404, 'Not found')
+  }
+  const graph = validateGraphDocument(JSON.parse(fs.readFileSync(filePath, 'utf8')))
+  sendJson(response, 200, graph)
 }
 
 function readRequestBody(request) {
@@ -241,7 +250,7 @@ function createRoutes(sessionToken, application) {
       id: 'viewer.graph',
       method: 'GET',
       matches: (pathname) => pathname === '/graph.json',
-      handle: ({ response }) => sendFile(response, application.graphPath())
+      handle: ({ response }) => sendGraphFile(response, application.graphPath())
     }),
     defineRoute({
       id: 'viewer.project-map',
