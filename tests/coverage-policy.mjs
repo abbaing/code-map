@@ -22,7 +22,7 @@ const groups = [
   {
     id: 'viewer',
     includes: (file) => file.startsWith('viewer/'),
-    thresholds: { lines: 54, statements: 54, branches: 69, functions: 61 }
+    thresholds: { lines: 57, statements: 57, branches: 69, functions: 61 }
   },
   {
     id: 'platform',
