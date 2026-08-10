@@ -264,8 +264,12 @@ function accessSelector(options, level) {
 }
 
 function readSpec(specPath, positionalId, documents, cwd) {
-  const request =
+  const request = structuredClone(
     specPath === '-' ? documents.readStdin() : documents.read(path.resolve(cwd, specPath), 'submap request')
+  )
+  if (!request || typeof request !== 'object' || Array.isArray(request)) {
+    throw new SubmapError('SUBMAP_INVALID_SPEC', 'Submap request must be a JSON object.')
+  }
   if (positionalId && request.id && positionalId !== request.id) {
     throw new SubmapError('SUBMAP_ID_CONFLICT', 'Positional id and spec id do not match.', {
       positionalId,
@@ -283,9 +287,7 @@ function resolveGraphPath(options, cwd, platform) {
     return path.resolve(cwd, last(options.graph))
   }
   const projectContext = loadOptionalProjectContext(options, cwd, platform)
-  return projectContext
-    ? projectContext.resolveRepoPath(projectContext.projectMap.project.graphOutput)
-    : path.join(cwd, 'graph.json')
+  return projectContext ? projectContext.resolveGraphOutputPath() : path.join(cwd, 'graph.json')
 }
 
 function resolveSubmapsDirectory(options, cwd, platform) {

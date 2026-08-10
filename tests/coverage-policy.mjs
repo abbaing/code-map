@@ -17,7 +17,7 @@ const groups = [
   {
     id: 'submap',
     includes: (file) => file.startsWith('submap/'),
-    thresholds: { lines: 81, statements: 81, branches: 81, functions: 90 }
+    thresholds: { lines: 83, statements: 83, branches: 83, functions: 91 }
   },
   {
     id: 'viewer',
