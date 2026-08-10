@@ -446,7 +446,7 @@ Validation without `--against` checks internal consistency, IDs, access classifi
 
 ### Programmatic API
 
-The submap entry exposes pure graph operations alongside explicit Node.js filesystem helpers such as `readGraph` and `writeSubmap`:
+The package validates graph topology at scan output and before submap operations. The submap entry exposes pure graph operations alongside explicit Node.js filesystem helpers such as `readGraph` and `writeSubmap`:
 
 ```js
 import { createSubmap, readGraph, validateSubmap, writeSubmap } from '@abbaing/code-map/submap'
@@ -466,7 +466,7 @@ const validation = validateSubmap(submap)
 if (validation.valid) writeSubmap('.code-map/submaps/auth-refresh.submap.json', submap)
 ```
 
-Public JSON Schemas are exported at `@abbaing/code-map/schemas/submap` and `@abbaing/code-map/schemas/submap-request`. TypeScript declarations are included with the package.
+Use `validateGraphDocument` from the root package to validate externally supplied graphs explicitly. Public JSON Schemas are exported at `@abbaing/code-map/schemas/graph`, `@abbaing/code-map/schemas/submap`, and `@abbaing/code-map/schemas/submap-request`. TypeScript declarations are included with the package.
 
 ### Exit codes
 

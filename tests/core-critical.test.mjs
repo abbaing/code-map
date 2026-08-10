@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { Graph } from '#core/graph.mjs'
+import { Graph, validateGraphDocument } from '#core/graph.mjs'
 import { createProjectContext, loadProjectContext, normalizeProjectMap, validateProjectMap } from '#core/config.mjs'
 import { buildTemplateRegistry, loadTemplatePlugins, registerTemplate } from '#templates/registry.mjs'
 import { SubmapError, readJson, writeJsonAtomic } from '#submap/index.mjs'
@@ -36,6 +36,55 @@ assert.equal(graph.allEdges().length, 1, 'edges must be unique, non-self-referen
 assert.equal(graph.getEdge('a::imports::b').confidence, 'high', 'a duplicate edge must not replace its first evidence')
 assert.equal(graph.getEdge('a::imports::b').source, 'test', 'edges must retain their provenance')
 assert.equal(graph.getEdge('a::imports::b').evidence, './dependency.js', 'edges must retain their evidence')
+
+const validGraphDocument = {
+  version: 1,
+  generatedAt: '2030-01-02T03:04:05.000Z',
+  stats: { nodes: 2, edges: 1 },
+  nodes: graph.allNodes(),
+  edges: graph.allEdges()
+}
+assert.equal(validateGraphDocument(validGraphDocument), validGraphDocument)
+assert.throws(() => validateGraphDocument(null), /Graph document must be an object/u)
+assert.throws(
+  () => validateGraphDocument({ version: 1, generatedAt: '2030-01-02T03:04:05.000Z', stats: {} }),
+  (error) =>
+    ['nodes must be an array', 'edges must be an array'].every((message) => error.message.includes(message)) &&
+    error.issues.length === 2,
+  'graph validation must report missing collections together'
+)
+assert.throws(
+  () =>
+    validateGraphDocument({
+      version: 0,
+      generatedAt: 'not-a-date',
+      stats: { nodes: 1, edges: -1 },
+      nodes: [
+        { id: 'a', label: '', type: 'service', layer: 'application', module: 'shared' },
+        { id: 'a', label: 'Duplicate', type: 'service', layer: 'application', module: 'shared' }
+      ],
+      edges: [
+        { id: 'wrong', from: 'a', to: 'missing', type: 'imports' },
+        { id: 'wrong', from: 'missing', to: 'a', type: '' },
+        null
+      ]
+    }),
+  (error) =>
+    [
+      'version must be a positive integer',
+      'generatedAt must be a valid date-time string',
+      'stats.nodes must equal 2',
+      'stats.edges must be a non-negative integer',
+      'nodes[0].label must be a non-empty string',
+      'nodes[1].id duplicates node a',
+      'edges[0].to references missing node missing',
+      'edges[0].id must match its endpoints and type',
+      'edges[1].id duplicates edge wrong',
+      'edges[1].from references missing node missing',
+      'edges[2] must be an object'
+    ].every((message) => error.message.includes(message)),
+  'graph validation must aggregate identity, count, and topology errors'
+)
 
 graph.clear()
 assert.deepEqual([graph.allNodes().length, graph.allEdges().length], [0, 0], 'clear must reset both graph indexes')

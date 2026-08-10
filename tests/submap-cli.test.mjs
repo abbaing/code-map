@@ -16,6 +16,7 @@ const configPath = path.join(tempRoot, 'project-map.json')
 const graph = {
   version: 1,
   generatedAt: '2026-08-05T00:00:00.000Z',
+  stats: { nodes: 2, edges: 1 },
   projectMap: { project: { name: 'CLI Fixture' } },
   nodes: [
     { id: 'a', label: 'A', type: 'service', layer: 'application', module: 'demo', path: 'src/a.ts', meta: {} },

@@ -7,7 +7,7 @@ import {
   normalizePath,
   tsExtensions
 } from '#core/source-analysis.mjs'
-import { Graph } from '#core/graph.mjs'
+import { Graph, validateGraphDocument } from '#core/graph.mjs'
 import { resolveTsImport } from '#core/resolve.mjs'
 import { isEntryPoint } from '#core/quality.mjs'
 import { createFindingCollector } from '#rules/findings.mjs'
@@ -593,7 +593,7 @@ export function writeGraph(
   assertCapabilityRegistry(registry)
   assertTextWriter(writer)
   const targetPath = outputPath ?? projectContext.resolveGraphOutputPath()
-  const result = buildGraph(projectContext, registry, pipeline)
+  const result = validateGraphDocument(buildGraph(projectContext, registry, pipeline))
   writer.writeText(targetPath, `${JSON.stringify(result, null, 2)}\n`)
   removeLegacyDefaultGraph(targetPath, projectContext)
   return result

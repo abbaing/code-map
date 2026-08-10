@@ -2,6 +2,7 @@ import { calculateGraphDigest, calculateSubmapUid } from '#submap/digest.mjs'
 import { ACCESS_LEVELS, normalizeRequest, selectorIsEmpty } from '#submap/selectors.mjs'
 import { SubmapError } from '#submap/errors.mjs'
 import { resolveNodeAccess, resolveSubmapStrategies, selectNodeIds, traverseNodeIds } from '#submap/strategies.mjs'
+import { validateGraphDocument } from '#core/graph.mjs'
 
 export function createSubmap(graph, request, options = {}) {
   const clock = options.clock
@@ -178,8 +179,15 @@ function pickBoundaryNode(node) {
 }
 
 function assertGraph(graph) {
-  if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
-    throw new SubmapError('SUBMAP_INVALID_GRAPH', 'A code-map graph with nodes and edges is required.', {}, 4)
+  try {
+    validateGraphDocument(graph)
+  } catch (error) {
+    throw new SubmapError(
+      'SUBMAP_INVALID_GRAPH',
+      'A valid code-map graph document is required.',
+      { issues: error.issues ?? [error.message] },
+      4
+    )
   }
 }
 

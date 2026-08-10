@@ -37,7 +37,12 @@ export interface MapFinding {
 
 export interface CodeMapGraph {
   version: number
-  generatedAt?: string
+  generatedAt: string
+  stats: {
+    nodes: number
+    edges: number
+    [key: string]: unknown
+  }
   projectMap?: Record<string, any>
   nodes: MapNode[]
   edges: MapEdge[]

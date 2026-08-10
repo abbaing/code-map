@@ -1,3 +1,4 @@
+import { validateGraphDocument } from '#core/graph.mjs'
 import { calculateGraphDigest, calculateSubmapUid, canonicalStringify } from '#submap/digest.mjs'
 import { ACCESS_LEVELS } from '#submap/selectors.mjs'
 import { validationIssue } from '#submap/errors.mjs'
@@ -159,8 +160,14 @@ export function validateSubmapAgainstGraph(submap, graph, hash) {
   const result = validateSubmap(submap, hash)
   const errors = [...result.errors]
   const warnings = [...result.warnings]
-  if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
-    errors.push(validationIssue('SUBMAP_INVALID_GRAPH', 'A graph with nodes and edges is required.'))
+  try {
+    validateGraphDocument(graph)
+  } catch (error) {
+    errors.push(
+      validationIssue('SUBMAP_INVALID_GRAPH', 'A valid code-map graph document is required.', {
+        issues: error.issues ?? [error.message]
+      })
+    )
     return { valid: false, errors, warnings }
   }
   if (!isRecord(submap)) {

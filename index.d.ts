@@ -130,6 +130,8 @@ export class Graph {
   clear(): void
 }
 
+export function validateGraphDocument(document: unknown): CodeMapGraph
+
 export interface ScanPhase {
   readonly id: string
   readonly requires: readonly string[]

@@ -68,6 +68,7 @@ try {
   const graph = {
     version: 1,
     generatedAt: clock.nowIso(),
+    stats: { nodes: 1, edges: 0 },
     projectMap: context.projectMap,
     nodes: [{ id: 'a', label: 'A', type: 'service', layer: 'application', module: 'shared' }],
     edges: []

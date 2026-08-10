@@ -128,6 +128,18 @@ assert.throws(
   () => createSubmap(graph, { id: 'typo', selectors: { nodeId: ['auth:service'] } }),
   (error) => error instanceof SubmapError && error.code === 'SUBMAP_UNKNOWN_REQUEST_PROPERTY'
 )
+assert.throws(
+  () =>
+    createSubmap(
+      { ...graph, stats: { ...graph.stats, edges: graph.edges.length + 1 } },
+      { id: 'invalid-graph', selectors: { nodeIds: ['auth:service'] } }
+    ),
+  (error) =>
+    error instanceof SubmapError &&
+    error.code === 'SUBMAP_INVALID_GRAPH' &&
+    error.details.issues.some((issue) => issue.includes('stats.edges')),
+  'submap creation must reject structurally inconsistent source graphs'
+)
 
 const recreated = createSubmap(
   { ...graph, generatedAt: '2030-01-01T00:00:00.000Z' },
@@ -189,6 +201,7 @@ function fixtureGraph() {
   return {
     version: 1,
     generatedAt: '2026-08-05T00:00:00.000Z',
+    stats: { nodes: nodes.length, edges: edges.length },
     projectMap: {
       project: { name: 'Fixture' },
       modules: { labels: { auth: 'Authentication' } },

@@ -10,6 +10,7 @@ import {
 const graph = {
   version: 1,
   generatedAt: '2026-08-09T00:00:00.000Z',
+  stats: { nodes: 2, edges: 1 },
   projectMap: { project: { name: 'Strategy Fixture' } },
   nodes: [
     { id: 'a', label: 'A', type: 'service', layer: 'application', module: 'one' },

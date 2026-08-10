@@ -27,6 +27,7 @@ for (const name of [
   'createSubmap',
   'defineScanPhase',
   'loadProjectContext',
+  'validateGraphDocument',
   'validateSubmap',
   'writeGraph'
 ]) {

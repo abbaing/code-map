@@ -1,4 +1,4 @@
-export { Graph } from '#core/graph.mjs'
+export { Graph, validateGraphDocument } from '#core/graph.mjs'
 import { createProjectContext as createContext, loadProjectContext as loadContext } from '#core/config.mjs'
 import { writeGraph as writeGraphWithContext } from '#app/scan.mjs'
 import { nodeTextWriter } from '#node/json-io.mjs'

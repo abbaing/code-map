@@ -109,6 +109,7 @@ assert.equal(
 const missingSourceGraph = structuredClone(graph)
 missingSourceGraph.nodes = []
 missingSourceGraph.edges = []
+missingSourceGraph.stats = { ...missingSourceGraph.stats, nodes: 0, edges: 0 }
 const missingSourceResult = validateSubmapAgainstGraph(validSubmap, missingSourceGraph)
 assert.equal(
   missingSourceResult.errors.some((issue) => issue.code === 'SUBMAP_SOURCE_NODE_MISSING'),
@@ -144,6 +145,7 @@ function fixtureGraph() {
   return {
     version: 1,
     generatedAt: '2030-01-01T00:00:00.000Z',
+    stats: { nodes: nodes.length, edges: edges.length },
     projectMap: { project: { name: 'Validation Fixture' }, modules: { labels: {} }, layers: [], types: {} },
     nodes,
     edges,
