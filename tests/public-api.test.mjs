@@ -6,9 +6,16 @@ assert.deepEqual(Object.keys(packageDocument.exports), [
   '.',
   './submap',
   './schemas/graph',
+  './schemas/project-map',
   './schemas/submap',
   './schemas/submap-request'
 ])
+const graphSchema = JSON.parse(fs.readFileSync(new URL(import.meta.resolve('@abbaing/code-map/schemas/graph')), 'utf8'))
+const projectMapSchema = JSON.parse(
+  fs.readFileSync(new URL(import.meta.resolve('@abbaing/code-map/schemas/project-map')), 'utf8')
+)
+assert.equal(graphSchema.properties.version.const, 1)
+assert.equal(projectMapSchema.properties.schemaVersion.const, 1)
 for (const developmentDirectory of ['architecture/', 'tests/']) {
   assert.equal(
     packageDocument.files.includes(developmentDirectory),

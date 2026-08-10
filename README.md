@@ -466,7 +466,9 @@ const validation = validateSubmap(submap)
 if (validation.valid) writeSubmap('.code-map/submaps/auth-refresh.submap.json', submap)
 ```
 
-Use `validateGraphDocument` from the root package to validate externally supplied graphs explicitly. Public JSON Schemas are exported at `@abbaing/code-map/schemas/graph`, `@abbaing/code-map/schemas/submap`, and `@abbaing/code-map/schemas/submap-request`. TypeScript declarations are included with the package.
+Use `validateGraphDocument` from the root package to validate externally supplied graphs explicitly. Public JSON Schemas are exported at `@abbaing/code-map/schemas/graph`, `@abbaing/code-map/schemas/project-map`, `@abbaing/code-map/schemas/submap`, and `@abbaing/code-map/schemas/submap-request`. TypeScript declarations are included with the package.
+
+Project maps, graphs, and submaps currently support version `1`. Documents declaring later versions are rejected until an explicit compatibility path or migration is implemented.
 
 ### Exit codes
 

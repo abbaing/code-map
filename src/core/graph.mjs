@@ -61,14 +61,18 @@ export class Graph {
   }
 }
 
+const supportedGraphDocumentVersion = 1
+
 export function validateGraphDocument(document) {
   const issues = []
   if (!isRecord(document)) {
     throw graphDocumentError(['Graph document must be an object.'])
   }
 
-  if (!Number.isInteger(document.version) || document.version < 1) {
-    issues.push('version must be a positive integer.')
+  if (!Number.isInteger(document.version)) {
+    issues.push('version must be an integer.')
+  } else if (document.version !== supportedGraphDocumentVersion) {
+    issues.push(`Only graph document version ${supportedGraphDocumentVersion} is supported.`)
   }
   if (typeof document.generatedAt !== 'string' || Number.isNaN(Date.parse(document.generatedAt))) {
     issues.push('generatedAt must be a valid date-time string.')

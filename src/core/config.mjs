@@ -260,8 +260,8 @@ export function validateProjectMap(
   } else {
     if (!Number.isInteger(projectMap.schemaVersion)) {
       errors.push('schemaVersion must be an integer.')
-    } else if (projectMap.schemaVersion < 1) {
-      errors.push('schemaVersion must be at least 1.')
+    } else if (projectMap.schemaVersion !== 1) {
+      errors.push('Only project map schema version 1 is supported.')
     }
     if (projectMap.$schema !== undefined && typeof projectMap.$schema !== 'string') {
       errors.push('$schema must be a string.')

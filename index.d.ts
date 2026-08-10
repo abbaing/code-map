@@ -2,7 +2,7 @@ import type { CodeMapGraph, MapEdge, MapNode } from './submap/index.js'
 export * from './submap/index.js'
 
 export interface ProjectMap {
-  readonly schemaVersion: number
+  readonly schemaVersion: 1
   readonly project: {
     readonly name: string
     readonly graphOutput: string

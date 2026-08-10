@@ -39,6 +39,7 @@
       "import": "./submap/index.mjs"
     },
     "./schemas/graph": "./schemas/graph.schema.json",
+    "./schemas/project-map": "./schemas/project-map.schema.json",
     "./schemas/submap": "./schemas/submap.schema.json",
     "./schemas/submap-request": "./schemas/submap-request.schema.json"
   },

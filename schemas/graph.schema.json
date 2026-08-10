@@ -5,7 +5,7 @@
   "type": "object",
   "required": ["version", "generatedAt", "stats", "nodes", "edges"],
   "properties": {
-    "version": { "type": "integer", "minimum": 1 },
+    "version": { "const": 1 },
     "projectMap": { "$ref": "./project-map.schema.json" },
     "generatedAt": { "type": "string", "format": "date-time" },
     "repoRoot": false,

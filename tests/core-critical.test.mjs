@@ -47,6 +47,11 @@ const validGraphDocument = {
 assert.equal(validateGraphDocument(validGraphDocument), validGraphDocument)
 assert.throws(() => validateGraphDocument(null), /Graph document must be an object/u)
 assert.throws(
+  () => validateGraphDocument({ ...validGraphDocument, version: 2 }),
+  /Only graph document version 1 is supported/u,
+  'future graph versions must require an explicit compatibility decision'
+)
+assert.throws(
   () => validateGraphDocument({ version: 1, generatedAt: '2030-01-02T03:04:05.000Z', stats: {} }),
   (error) =>
     ['nodes must be an array', 'edges must be an array'].every((message) => error.message.includes(message)) &&
@@ -71,7 +76,7 @@ assert.throws(
     }),
   (error) =>
     [
-      'version must be a positive integer',
+      'Only graph document version 1 is supported',
       'generatedAt must be a valid date-time string',
       'stats.nodes must equal 2',
       'stats.edges must be a non-negative integer',
@@ -200,7 +205,7 @@ try {
       }),
     (error) =>
       [
-        'schemaVersion must be at least 1',
+        'Only project map schema version 1 is supported',
         'project.name must be a non-empty string',
         'project.graphOutput must be a non-empty string',
         'sourceRoots.frontend must be a non-empty string',
@@ -223,6 +228,17 @@ try {
         'backend must be an object'
       ].every((message) => error.message.includes(message)),
     'config validation must aggregate nested type and shape errors'
+  )
+
+  assert.throws(
+    () =>
+      validateProjectMap({
+        schemaVersion: 2,
+        project: { name: 'Future project map' },
+        sourceRoots: { frontend: 'src' }
+      }),
+    /Only project map schema version 1 is supported/u,
+    'future project map versions must require an explicit migration'
   )
 
   assert.throws(

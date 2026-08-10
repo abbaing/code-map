@@ -36,7 +36,7 @@ export interface MapFinding {
 }
 
 export interface CodeMapGraph {
-  version: number
+  version: 1
   generatedAt: string
   stats: {
     nodes: number
