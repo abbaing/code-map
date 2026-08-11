@@ -61,11 +61,11 @@ export function createSourceDocumentStore({ parserRegistry, sourceReader }) {
     documentOf,
     requireDocumentOf,
     isTest: (file) => Boolean(parserRegistry.parserFor(file)?.isTest?.(file)),
-    factsOf(file, factName) {
+    factsOf(file, factName, input) {
       const parser = parserRegistry.parserFor(file)
       const document = documentOf(file)
       const fact = parser?.facts?.[factName]
-      return document && fact ? fact(document) : undefined
+      return document && fact ? fact(document, input) : undefined
     },
     resolveReference(file, reference, context) {
       return parserRegistry.parserFor(file)?.resolveReference?.({ file, reference, context })

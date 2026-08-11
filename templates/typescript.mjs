@@ -1,4 +1,5 @@
 import { isTestFile, tsExtensions, typescriptParser } from '#parsers/typescript.mjs'
+import { typescriptFrontendFacts } from '#parsers/typescript-frontend.mjs'
 import { runFrontendGuardrails } from '#rules/frontend-guardrails.mjs'
 import { runTypeScriptArchitectureGuardrails } from '#rules/typescript-architecture-guardrails.mjs'
 import { pickRuleMetadata } from '#templates/rule-metadata.mjs'
@@ -12,7 +13,12 @@ export const typescriptTemplate = {
   },
   ruleMetadata: pickRuleMetadata(['technology.typescript.relative-imports', 'technology.typescript.no-any']),
   capabilities: {
-    parsers: [typescriptParser],
+    parsers: [
+      Object.freeze({
+        ...typescriptParser,
+        facts: Object.freeze({ ...typescriptParser.facts, ...typescriptFrontendFacts })
+      })
+    ],
     fileKinds: [
       {
         id: 'frontend-source',

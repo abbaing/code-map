@@ -89,6 +89,7 @@ export const components = [
     files: [
       'src/adapters/parsers/typescript.mjs',
       'src/adapters/parsers/typescript-files.mjs',
+      'src/adapters/parsers/typescript-frontend.mjs',
       'src/adapters/parsers/typescript-resolver.mjs',
       'src/adapters/parsers/typescript-endpoints.mjs'
     ],
