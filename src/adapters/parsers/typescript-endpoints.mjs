@@ -367,4 +367,4 @@ import {
   typeScriptLiteralValue,
   typescript as ts,
   walkTypeScript
-} from '#core/source-analysis.mjs'
+} from '#parsers/typescript.mjs'

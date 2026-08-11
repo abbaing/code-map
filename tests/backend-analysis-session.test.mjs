@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { createBackendAnalysisSession } from '#core/backend-analysis-session.mjs'
-import { csharpTypeDeclarations } from '#core/csharp-analysis.mjs'
+import { csharpTypeDeclarations } from '#parsers/csharp.mjs'
 
 assert.deepEqual(
   csharpTypeDeclarations(`

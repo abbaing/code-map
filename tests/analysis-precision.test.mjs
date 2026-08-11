@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict'
 import { normalizeProjectMap } from '#core/config.mjs'
-import { extractFrontendEndpoints } from '#core/endpoints.mjs'
+import { extractFrontendEndpoints } from '#parsers/typescript-endpoints.mjs'
 import { Graph } from '#core/graph.mjs'
-import { moduleReferencesOf } from '#core/source-analysis.mjs'
+import { moduleReferencesOf } from '#parsers/typescript.mjs'
 import { createBackScanSession, scanControllers } from '#scanners/scan-back.mjs'
+import { createParserRegistry, createSourceDocumentStore } from '#core/source-documents.mjs'
+import { csharpParser } from '#parsers/csharp.mjs'
 
 const importCases = [
   {
@@ -161,8 +163,12 @@ function extractControllerEndpoints(source) {
     })
   }
   const graph = new Graph()
-  const session = createBackScanSession([file], sourceReader)
-  return scanControllers(graph, [file], projectContext, session, sourceReader).map(({ url, method, action }) => ({
+  const sourceDocuments = createSourceDocumentStore({
+    parserRegistry: createParserRegistry([csharpParser]),
+    sourceReader
+  })
+  const session = createBackScanSession([file], sourceDocuments)
+  return scanControllers(graph, [file], projectContext, session, sourceDocuments).map(({ url, method, action }) => ({
     url,
     method,
     action

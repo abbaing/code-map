@@ -4,21 +4,15 @@ import {
   displayLabel,
   escapeRegExp,
   findComponentDirIndex,
-  importsOf,
   isBackTestFile,
-  isTestFile,
   kebab,
-  moduleReferencesOf,
-  normalizePath,
-  stripCSharpComments,
-  stripCSharpStringLiterals,
-  stripTsComments,
-  tsExtensions
+  normalizePath
 } from '#core/source-analysis.mjs'
+import { importsOf, isTestFile, moduleReferencesOf, stripTsComments, tsExtensions } from '#parsers/typescript.mjs'
+import { stripCSharpComments, stripCSharpStringLiterals } from '#parsers/csharp.mjs'
 import {
   SourceFileTooLargeError,
   createSourceReader,
-  importsOf as compatibleImportsOf,
   normalizePath as compatibleNormalizePath,
   walk
 } from '#core/scan-utils.mjs'
@@ -83,7 +77,6 @@ assert.throws(
   /requires a child path resolver/u
 )
 assert.equal(Object.isFrozen(componentContainerDirs), true)
-assert.equal(compatibleImportsOf, importsOf, 'the source adapter must preserve analysis re-exports')
 assert.equal(compatibleNormalizePath, normalizePath)
 
 const typeScriptSource = `

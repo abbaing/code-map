@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import { Graph } from '#core/graph.mjs'
+import { createParserRegistry, createSourceDocumentStore } from '#core/source-documents.mjs'
+import { csharpParser } from '#parsers/csharp.mjs'
 import { createBackScanSession, scanDatabase } from '#scanners/scan-back.mjs'
 
 const files = {
@@ -28,7 +30,13 @@ public class AccountRepository
 }
 `
 }
-const sourceReader = { readText: (filePath) => files[filePath] }
+let sourceReads = 0
+const sourceReader = {
+  readText(filePath) {
+    sourceReads += 1
+    return files[filePath]
+  }
+}
 const projectContext = {
   toRepoPath: (filePath) => filePath,
   projectMap: {
@@ -50,8 +58,13 @@ for (const filePath of Object.keys(files)) {
   })
 }
 
-const session = createBackScanSession(Object.keys(files), sourceReader)
-scanDatabase(graph, Object.keys(files), projectContext, session, sourceReader)
+const sourceDocuments = createSourceDocumentStore({
+  parserRegistry: createParserRegistry([csharpParser]),
+  sourceReader
+})
+const session = createBackScanSession(Object.keys(files), sourceDocuments)
+scanDatabase(graph, Object.keys(files), projectContext, session, sourceDocuments)
+assert.equal(sourceReads, Object.keys(files).length, 'backend syntax documents must be parsed once per scan session')
 
 const entityId = 'file:back/Domain/Entities/Accounts/Account.cs'
 const tableId = 'table:accounts'

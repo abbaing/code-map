@@ -55,6 +55,20 @@ function assertFileKind(kind, templateId) {
   }
 }
 
+function assertParserCapability(parser, templateId) {
+  if (!parser || typeof parser !== 'object') {
+    throw new TypeError(`Template ${templateId} parser capabilities must be objects.`)
+  }
+  assertNonEmptyString(parser.id, `Template ${templateId} parser id`)
+  assertArray(parser.extensions, `Parser ${parser.id} extensions`)
+  if (parser.extensions.length === 0 || parser.extensions.some((extension) => typeof extension !== 'string')) {
+    throw new TypeError(`Parser ${parser.id} extensions must be non-empty strings.`)
+  }
+  if (typeof parser.parse !== 'function') {
+    throw new TypeError(`Parser ${parser.id} must implement parse(content, file).`)
+  }
+}
+
 function assertUniqueIds(items, label, templateId) {
   const ids = new Set()
   for (const item of items) {
@@ -82,15 +96,19 @@ export function assertTemplate(template) {
   assertRecord(template.capabilities ?? {}, `Template ${template.id} capabilities`)
   const capabilities = template.capabilities ?? {}
   const fileKinds = capabilities.fileKinds ?? []
+  const parsers = capabilities.parsers ?? []
   const scanners = capabilities.scanners ?? []
   const enrichers = capabilities.enrichers ?? []
   assertArray(fileKinds, `Template ${template.id} file kinds`)
+  assertArray(parsers, `Template ${template.id} parsers`)
   assertArray(scanners, `Template ${template.id} scanners`)
   assertArray(enrichers, `Template ${template.id} enrichers`)
   fileKinds.forEach((kind) => assertFileKind(kind, template.id))
+  parsers.forEach((parser) => assertParserCapability(parser, template.id))
   scanners.forEach((scanner) => assertCapability(scanner, 'scanner', template.id))
   enrichers.forEach((enricher) => assertCapability(enricher, 'enricher', template.id))
   assertUniqueIds(fileKinds, 'file kind', template.id)
+  assertUniqueIds(parsers, 'parser', template.id)
   assertUniqueIds(scanners, 'scanner', template.id)
   assertUniqueIds(enrichers, 'enricher', template.id)
   return template
@@ -100,6 +118,7 @@ export function assertCapabilityRegistry(registry) {
   const capabilities = registry?.capabilities
   assertRecord(capabilities, 'Template registry capabilities')
   assertUniqueIds(capabilities.fileKinds, 'file kind', 'effective registry')
+  assertUniqueIds(capabilities.parsers, 'parser', 'effective registry')
   assertUniqueIds(capabilities.scanners, 'scanner', 'effective registry')
   assertUniqueIds(capabilities.enrichers, 'enricher', 'effective registry')
   return registry

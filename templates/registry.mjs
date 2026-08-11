@@ -12,6 +12,7 @@ const baseTemplate = {
   rules: { enabled: [], options: {} },
   capabilities: {
     fileKinds: [],
+    parsers: [],
     scanners: [],
     enrichers: []
   },
@@ -54,6 +55,7 @@ export function resolveTemplateIds(projectMap) {
     'architecture.feature-sliced',
     'architecture.mvvm',
     'http-endpoints',
+    'csharp',
     'dotnet-api',
     'architecture.mvc',
     'architecture.clean-architecture',
@@ -117,6 +119,7 @@ function normalizeTemplate(template) {
     },
     capabilities: {
       fileKinds: template.capabilities?.fileKinds ?? [],
+      parsers: template.capabilities?.parsers ?? [],
       scanners: template.capabilities?.scanners ?? [],
       enrichers: template.capabilities?.enrichers ?? []
     },
@@ -141,6 +144,7 @@ function mergeRegistry(registry, template) {
     },
     capabilities: {
       fileKinds: mergeFileKinds(registry.capabilities.fileKinds, template.capabilities.fileKinds),
+      parsers: [...registry.capabilities.parsers, ...template.capabilities.parsers],
       scanners: [...registry.capabilities.scanners, ...template.capabilities.scanners],
       enrichers: [...registry.capabilities.enrichers, ...template.capabilities.enrichers]
     },

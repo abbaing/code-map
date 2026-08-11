@@ -4,14 +4,14 @@ import {
   csharpSimpleTypeName,
   parseCSharp,
   walkCSharp
-} from '#core/csharp-analysis.mjs'
+} from '#parsers/csharp.mjs'
 import {
   escapeRegExp,
   parseTypeScript,
   typeScriptCallName,
   typescript as ts,
   walkTypeScript
-} from '#core/source-analysis.mjs'
+} from '#parsers/typescript.mjs'
 import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from '#rules/rule-runner.mjs'
 
 const stateHooks = new Set(['useState', 'useEffect', 'useMemo', 'useCallback', 'useReducer', 'useRef'])
@@ -64,7 +64,7 @@ export const ARCHITECTURE_RULES = [
         'Move orchestration into a view-model hook or controller and keep the entry component as a small bridge to the view.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content, type, projectMapRules, findingSink }) {
+    check({ nodeId, repoPath, content, syntax, type, projectMapRules, findingSink }) {
       if (!matchesAny(type, ruleOption(projectMapRules, this, 'types') ?? ['main-component'])) {
         return
       }
@@ -74,7 +74,7 @@ export const ARCHITECTURE_RULES = [
       if (!isAllowedEntryPath(repoPath, this, projectMapRules)) {
         return
       }
-      for (const { index, label } of orchestrationSignals(content, repoPath)) {
+      for (const { index, label } of orchestrationSignals(content, repoPath, syntax)) {
         findingSink.add({
           ...findingBase(this),
           nodeId,
@@ -99,12 +99,12 @@ export const ARCHITECTURE_RULES = [
         'Move the shared contract to a public feature entrypoint or shared/application layer, or declare an explicit allowed edge.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content, projectMapRules, projectContext, findingSink }) {
+    check({ nodeId, repoPath, content, syntax, projectMapRules, projectContext, findingSink }) {
       const sourceFeature = featureFromPath(repoPath, projectContext)
       if (!sourceFeature) {
         return
       }
-      for (const { specifier, index } of importsOf(content)) {
+      for (const { specifier, index } of importsOf(content, repoPath, syntax)) {
         const targetFeature = featureFromSpecifier(specifier, this, projectMapRules)
         if (!targetFeature || targetFeature === sourceFeature) {
           continue
@@ -135,7 +135,7 @@ export const ARCHITECTURE_RULES = [
       fixHint: 'Create or import the expected view-model hook and keep the component entry as a prop bridge.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content, type, projectMapRules, findingSink }) {
+    check({ nodeId, repoPath, content, syntax, type, projectMapRules, findingSink }) {
       if (!matchesAny(type, ruleOption(projectMapRules, this, 'types') ?? ['main-component'])) {
         return
       }
@@ -150,7 +150,7 @@ export const ARCHITECTURE_RULES = [
       const hookPrefix = ruleOption(projectMapRules, this, 'hookPrefix') ?? 'use'
       const hookSuffix = ruleOption(projectMapRules, this, 'hookSuffix') ?? ''
       const expectedHook = `${hookPrefix}${componentName}${hookSuffix}`
-      const sourceFile = parseTypeScript(content, repoPath)
+      const sourceFile = syntax ?? parseTypeScript(content, repoPath)
       let callsExpectedHook = false
       walkTypeScript(sourceFile, (node) => {
         if (ts.isCallExpression(node) && typeScriptCallName(node.expression) === expectedHook) {
@@ -177,12 +177,12 @@ export const ARCHITECTURE_RULES = [
         'Move UI-facing types to shared contracts, feature types, or schema modules and keep adapters limited to API/data concerns.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content, type, projectMapRules, findingSink }) {
+    check({ nodeId, repoPath, content, syntax, type, projectMapRules, findingSink }) {
       const adapterTypes = ruleOption(projectMapRules, this, 'types') ?? ['repository']
       if (!adapterTypes.includes(type)) {
         return
       }
-      for (const { specifier, index } of importsOf(content)) {
+      for (const { specifier, index } of importsOf(content, repoPath, syntax)) {
         if (!isUiImport(specifier, this, projectMapRules)) {
           continue
         }
@@ -210,11 +210,11 @@ export const ARCHITECTURE_RULES = [
         'Move branching, persistence, and business logic into application handlers and keep controller actions as request/response adapters.',
       docsPath: 'docs/backend-rules.md'
     },
-    check({ nodeId, repoPath, content, findingSink }) {
+    check({ nodeId, repoPath, content, syntax, findingSink }) {
       if (!repoPath.includes('/Controllers/') || !repoPath.endsWith('Controller.cs')) {
         return
       }
-      const tree = parseCSharp(content)
+      const tree = syntax?.tree ?? parseCSharp(content)
       const matches = new Map()
       walkCSharp(tree.rootNode, (node) => {
         if (
@@ -257,12 +257,12 @@ export const ARCHITECTURE_RULES = [
       fixHint: 'Move shared contracts inward or invert the dependency through application/domain abstractions.',
       docsPath: 'docs/backend-rules.md'
     },
-    check({ nodeId, repoPath, content, projectMapRules, findingSink }) {
+    check({ nodeId, repoPath, content, syntax, projectMapRules, findingSink }) {
       const forbidden = forbiddenBackendUsings(repoPath, this, projectMapRules)
       if (forbidden.length === 0) {
         return
       }
-      const tree = parseCSharp(content)
+      const tree = syntax?.tree ?? parseCSharp(content)
       const usings = csharpDescendants(tree.rootNode, 'using_directive')
       for (const item of forbidden) {
         const using = usings.find((node) => {
@@ -284,7 +284,14 @@ export const ARCHITECTURE_RULES = [
   }
 ]
 
-export function runArchitectureGuardrails(files, defaultRules, projectContext, findingSink, sourceReader) {
+export function runArchitectureGuardrails(
+  files,
+  defaultRules,
+  projectContext,
+  findingSink,
+  sourceReader,
+  sourceDocuments
+) {
   runFileRules(
     files,
     ARCHITECTURE_RULES,
@@ -293,7 +300,8 @@ export function runArchitectureGuardrails(files, defaultRules, projectContext, f
     projectContext,
     findingSink,
     undefined,
-    sourceReader
+    sourceReader,
+    sourceDocuments
   )
 }
 
@@ -301,8 +309,8 @@ export function getArchitectureGuardrailMetadata() {
   return getRuleMetadata(ARCHITECTURE_RULES)
 }
 
-function orchestrationSignals(content, fileName) {
-  const sourceFile = parseTypeScript(content, fileName)
+function orchestrationSignals(content, fileName, syntax) {
+  const sourceFile = syntax ?? parseTypeScript(content, fileName)
   const matches = new Map()
   const record = (label, node) => {
     if (!matches.has(label)) {

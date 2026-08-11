@@ -73,6 +73,7 @@ assertUniqueContracts([...RULES, ...ARCHITECTURE_RULES], 'rule', (rule) => {
 
 const capabilityIds = {
   fileKind: new Set(),
+  parser: new Set(),
   scanner: new Set(),
   enricher: new Set()
 }
@@ -81,6 +82,11 @@ assertUniqueContracts(templateCatalog, 'template', (template) => {
   for (const kind of template.capabilities?.fileKinds ?? []) {
     assert.match(kind.id, /\S/u, `template ${template.id} has a file kind without id`)
     assertUniqueCapability(capabilityIds.fileKind, kind.id, 'file kind')
+  }
+  for (const parser of template.capabilities?.parsers ?? []) {
+    assert.match(parser.id, /\S/u, `template ${template.id} has a parser without id`)
+    assertUniqueCapability(capabilityIds.parser, parser.id, 'parser')
+    assert.equal(typeof parser.parse, 'function', `parser ${parser.id} must implement parse(content, file)`)
   }
   for (const scanner of template.capabilities?.scanners ?? []) {
     assert.match(scanner.id, /\S/u, `template ${template.id} has a scanner without id`)

@@ -1,19 +1,8 @@
 import path from 'node:path'
 import { createSourceReader, readText, walk, maxSourceFileBytes } from '#core/scan-utils.mjs'
-import {
-  findComponentDirIndex,
-  importsOf,
-  isBackTestFile,
-  isTestFile,
-  normalizePath,
-  parseTypeScript,
-  typeScriptCallName,
-  typescript as ts,
-  tsExtensions,
-  walkTypeScript
-} from '#core/source-analysis.mjs'
+import { findComponentDirIndex, normalizePath } from '#core/source-analysis.mjs'
+import { createParserRegistry, createSourceDocumentStore } from '#core/source-documents.mjs'
 import { Graph, validateGraphDocument } from '#core/graph.mjs'
-import { resolveTsImport } from '#core/resolve.mjs'
 import { isEntryPoint } from '#core/quality.mjs'
 import { createFindingCollector } from '#rules/findings.mjs'
 import { createScanPipeline, defineScanPhase } from '#core/scan-pipeline.mjs'
@@ -23,7 +12,7 @@ import { assertTextWriter } from '#core/writer-contract.mjs'
 // ── Phase functions ───────────────────────────────────────────────────────────
 
 function phaseWalkFiles(projectContext, registry) {
-  const { projectMap, resolveRepoPath, resolveChildPath, toRepoPath } = projectContext
+  const { projectMap, resolveChildPath, toRepoPath } = projectContext
   const skippedByPath = new Map()
   const walkOptions = {
     maxFileBytes: maxSourceFileBytes,
@@ -38,16 +27,9 @@ function phaseWalkFiles(projectContext, registry) {
     byKind.set(kind.id, collectFileKind(projectContext, kind, walkOptions))
   }
 
-  const frontRoot = resolveRepoPath(projectMap.sourceRoots.frontend)
-  const backRoot = projectMap.sourceRoots.backend ? resolveRepoPath(projectMap.sourceRoots.backend) : null
-  const allFrontFiles = walk(frontRoot, (file) => tsExtensions.includes(path.extname(file)), walkOptions)
-  const frontTestFiles = byKind.get('frontend-test') ?? allFrontFiles.filter(isTestFile)
-  const frontFiles = byKind.get('frontend-source') ?? allFrontFiles.filter((file) => !isTestFile(file))
-  const allBackFiles =
-    byKind.get('backend-source') ??
-    (backRoot
-      ? walk(backRoot, (file) => path.extname(file) === '.cs' && !isBackTestFile(toRepoPath(file)), walkOptions)
-      : [])
+  const frontTestFiles = byKind.get('frontend-test') ?? []
+  const frontFiles = byKind.get('frontend-source') ?? []
+  const allBackFiles = byKind.get('backend-source') ?? []
   const backInternalFragments = [
     projectMap.backend?.dtoPathFragment,
     projectMap.backend?.validatorPathFragment,
@@ -109,7 +91,7 @@ function phaseApplyRuntimeLinks(graph, projectContext) {
   }
 }
 
-function phaseApplyCoverage(graph, testFiles, projectContext) {
+function phaseApplyCoverage(graph, testFiles, projectContext, sourceDocuments) {
   const { toRepoPath } = projectContext
   const { fileSystem } = projectContext.platform
   const coverageBySource = new Map()
@@ -117,17 +99,16 @@ function phaseApplyCoverage(graph, testFiles, projectContext) {
 
   for (const testFile of testFiles) {
     const covered = new Set()
-    for (const candidate of sourceCandidatesForTest(testFile)) {
-      if (candidate && fileSystem.exists(candidate) && !isTestFile(candidate)) {
+    for (const candidate of sourceCandidatesForTest(testFile, sourceDocuments.extensions())) {
+      if (candidate && fileSystem.exists(candidate) && !sourceDocuments.isTest(candidate)) {
         covered.add(candidate)
       }
     }
 
-    const content = readText(testFile, fileSystem, maxSourceFileBytes, projectContext.toRepoPath)
-    testCaseCountByFile.set(toRepoPath(testFile), countTestCases(content))
-    for (const { specifier } of importsOf(content, testFile)) {
-      const resolved = resolveTsImport(testFile, specifier, projectContext)
-      if (resolved && !isTestFile(resolved)) {
+    testCaseCountByFile.set(toRepoPath(testFile), sourceDocuments.factsOf(testFile, 'testCaseCount') ?? 0)
+    for (const { specifier } of sourceDocuments.factsOf(testFile, 'moduleReferences') ?? []) {
+      const resolved = sourceDocuments.resolveReference(testFile, specifier, projectContext)
+      if (resolved && !sourceDocuments.isTest(resolved)) {
         covered.add(resolved)
       }
     }
@@ -159,30 +140,6 @@ function phaseApplyCoverage(graph, testFiles, projectContext) {
   }
 }
 
-function countTestCases(content) {
-  const sourceFile = parseTypeScript(content)
-  let count = 0
-  walkTypeScript(sourceFile, (node) => {
-    if (!ts.isCallExpression(node)) {
-      return
-    }
-    const expression = node.expression
-    if (ts.isIdentifier(expression) && ['it', 'test'].includes(expression.text)) {
-      count += 1
-      return
-    }
-    if (
-      ts.isPropertyAccessExpression(expression) &&
-      ['only', 'skip', 'todo', 'concurrent', 'each'].includes(typeScriptCallName(expression)) &&
-      ts.isIdentifier(expression.expression) &&
-      ['it', 'test'].includes(expression.expression.text)
-    ) {
-      count += 1
-    }
-  })
-  return count
-}
-
 function phaseTrackInternals(graph) {
   trackInternalComponents(graph)
 }
@@ -211,19 +168,19 @@ function resolveRuntimeNode(graph, value) {
   return null
 }
 
-function sourceCandidatesForTest(testFile) {
+function sourceCandidatesForTest(testFile, extensions) {
   const ext = path.extname(testFile)
   const baseWithoutExt = testFile.slice(0, -ext.length)
   const withoutTestSuffix = baseWithoutExt.replace(/\.(spec|test)$/u, '')
   const candidates = []
 
-  for (const sourceExt of tsExtensions) {
+  for (const sourceExt of extensions) {
     candidates.push(`${withoutTestSuffix}${sourceExt}`)
   }
 
   const basename = path.basename(withoutTestSuffix)
   if (basename === 'index') {
-    for (const sourceExt of tsExtensions) {
+    for (const sourceExt of extensions) {
       candidates.push(path.join(path.dirname(testFile), `index${sourceExt}`))
     }
   }
@@ -327,12 +284,11 @@ function findPathParent(graph, node) {
   for (let index = internalIndex - 1; index >= 0; index -= 1) {
     const candidateSegments = relativeSegments.slice(0, index + 1)
     const candidateBase = [...segments.slice(0, dirIndex + 1), ...candidateSegments].join('/')
-    for (const extension of tsExtensions) {
-      const candidateId = `file:${candidateBase}/index${extension}`
-      const candidate = graph.getNode(candidateId)
-      if (candidate && !isInternalComponentNode(candidate)) {
-        return candidateId
-      }
+    const candidate = graph
+      .allNodes()
+      .find((node) => node.path?.startsWith(`${candidateBase}/index.`) && !isInternalComponentNode(node))
+    if (candidate) {
+      return candidate.id
     }
   }
 
@@ -455,8 +411,30 @@ export function createDefaultScanPipeline() {
       run: ({ projectContext, registry }) => ({ files: phaseWalkFiles(projectContext, registry) })
     }),
     defineScanPhase({
+      id: 'prepare-source-documents',
+      requires: ['projectContext', 'registry'],
+      provides: ['sourceReader', 'sourceDocuments'],
+      run: ({ projectContext, registry }) => {
+        const sourceReader = createSourceReader(projectContext.platform.fileSystem, projectContext.toRepoPath)
+        const parserRegistry = createParserRegistry(registry.capabilities.parsers)
+        return {
+          sourceReader,
+          sourceDocuments: createSourceDocumentStore({ parserRegistry, sourceReader })
+        }
+      }
+    }),
+    defineScanPhase({
       id: 'run-scanners',
-      requires: ['graph', 'projectContext', 'registry', 'files', 'findingSink', 'findingSource'],
+      requires: [
+        'graph',
+        'projectContext',
+        'registry',
+        'files',
+        'findingSink',
+        'findingSource',
+        'sourceReader',
+        'sourceDocuments'
+      ],
       provides: ['scannerResults'],
       run: (input) => {
         const capabilities = createScanCapabilities(input)
@@ -470,7 +448,17 @@ export function createDefaultScanPipeline() {
     }),
     defineScanPhase({
       id: 'run-enrichers',
-      requires: ['graph', 'projectContext', 'registry', 'files', 'findingSink', 'findingSource', 'scannerResults'],
+      requires: [
+        'graph',
+        'projectContext',
+        'registry',
+        'files',
+        'findingSink',
+        'findingSource',
+        'scannerResults',
+        'sourceReader',
+        'sourceDocuments'
+      ],
       run: ({ scannerResults, ...input }) =>
         phaseRunRegisteredEnrichers(input.registry, createScanCapabilities(input), scannerResults)
     }),
@@ -567,9 +555,17 @@ function mergeById(left = [], right = []) {
   return [...byId.values()]
 }
 
-function createScanCapabilities({ graph, projectContext, registry, files, findingSink, findingSource }) {
+function createScanCapabilities({
+  graph,
+  projectContext,
+  registry,
+  files,
+  findingSink,
+  findingSource,
+  sourceReader,
+  sourceDocuments
+}) {
   const { projectMap, toRepoPath } = projectContext
-  const sourceReader = createSourceReader(projectContext.platform.fileSystem, toRepoPath)
   return {
     graph,
     projectMap,
@@ -579,11 +575,12 @@ function createScanCapabilities({ graph, projectContext, registry, files, findin
     findingSink,
     findingSource,
     sourceReader,
+    sourceDocuments,
     controllerFiles: () =>
       files.backFiles.filter((file) =>
         toRepoPath(file).includes(projectMap.backend?.controllerPathFragment ?? '/Controllers/')
       ),
-    applyCoverage: () => phaseApplyCoverage(graph, files.frontTestFiles, projectContext),
+    applyCoverage: () => phaseApplyCoverage(graph, files.frontTestFiles, projectContext, sourceDocuments),
     trackInternalComponents: () => phaseTrackInternals(graph)
   }
 }

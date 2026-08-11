@@ -6,37 +6,44 @@ import {
   csharpName,
   csharpSimpleTypeName,
   csharpStringValue,
-  csharpTypeDeclarations,
   csharpTypeIdentifiers,
-  parseCSharp,
   walkCSharp
-} from '#core/csharp-analysis.mjs'
+} from '#parsers/csharp.mjs'
 import { featureFromRepoPath } from '#core/classify.mjs'
 import { findBackFileByName } from '#scanners/scan-back-session.mjs'
 
-export function scanDatabase(graph, files, projectContext, session, sourceReader) {
+export function scanDatabase(graph, files, projectContext, session, sourceDocuments) {
   const { entityNodeByName, dbSetByEntity, tableByEntity } = extractDbSets(
     graph,
     files,
     projectContext,
     session,
-    sourceReader
+    sourceDocuments
   )
-  const entityPropertiesByName = extractEntityProperties(graph, entityNodeByName, session, sourceReader)
+  const entityPropertiesByName = extractEntityProperties(graph, entityNodeByName, session, sourceDocuments)
   const tableNodeByEntity = extractTableNodes(graph, entityNodeByName, dbSetByEntity, tableByEntity, projectContext)
   extractEntityRelationships(graph, entityNodeByName, entityPropertiesByName)
-  extractEntityUsage(graph, files, entityNodeByName, dbSetByEntity, tableNodeByEntity, projectContext, sourceReader)
+  extractEntityUsage(
+    graph,
+    files,
+    entityNodeByName,
+    dbSetByEntity,
+    tableNodeByEntity,
+    projectContext,
+    session,
+    sourceDocuments
+  )
 }
 
-function extractDbSets(graph, files, projectContext, session, sourceReader) {
+function extractDbSets(graph, files, projectContext, session, sourceDocuments) {
   const { toRepoPath } = projectContext
   const entityNodeByName = new Map()
   const dbSetByEntity = new Map()
   const tableByEntity = new Map()
 
-  for (const dbContextPath of findDbContextFiles(files, sourceReader)) {
+  for (const dbContextPath of findDbContextFiles(files, sourceDocuments)) {
     const dbId = `file:${toRepoPath(dbContextPath)}`
-    const tree = parseCSharp(sourceReader.readText(dbContextPath))
+    const tree = sourceDocuments.requireDocumentOf(dbContextPath).syntax.tree
     for (const property of csharpDescendants(tree.rootNode, 'property_declaration')) {
       const type =
         property.childForFieldName('type') ?? property.namedChildren.find((child) => child.type === 'generic_name')
@@ -71,7 +78,7 @@ function extractDbSets(graph, files, projectContext, session, sourceReader) {
   for (const file of files.filter((file) =>
     toRepoPath(file).includes(projectContext.projectMap.backend.entityConfigurationPathFragment)
   )) {
-    const tree = parseCSharp(sourceReader.readText(file))
+    const tree = sourceDocuments.requireDocumentOf(file).syntax.tree
     const configName = path.basename(file, '.cs')
     const entity = configName.replace(/Configuration$/, '')
     const toTable = csharpDescendants(tree.rootNode, 'invocation_expression').find(
@@ -86,7 +93,7 @@ function extractDbSets(graph, files, projectContext, session, sourceReader) {
   return { entityNodeByName, dbSetByEntity, tableByEntity }
 }
 
-function extractEntityProperties(graph, entityNodeByName, session, sourceReader) {
+function extractEntityProperties(graph, entityNodeByName, session, sourceDocuments) {
   const entityPropertiesByName = new Map()
   for (const [entity, entityId] of entityNodeByName) {
     if (!entityId.startsWith('file:')) {
@@ -97,7 +104,8 @@ function extractEntityProperties(graph, entityNodeByName, session, sourceReader)
     if (!fullPath) {
       continue
     }
-    const propertyAnalysis = parseEntityProperties(sourceReader.readText(fullPath))
+    const tree = sourceDocuments.requireDocumentOf(fullPath).syntax.tree
+    const propertyAnalysis = parseEntityProperties(tree)
     entityPropertiesByName.set(entity, propertyAnalysis)
     graph.addNode(entityId, {
       meta: { domain: { properties: propertyAnalysis.map(({ name, type }) => ({ name, type })) } }
@@ -157,7 +165,8 @@ function extractEntityUsage(
   dbSetByEntity,
   tableNodeByEntity,
   projectContext,
-  sourceReader
+  session,
+  sourceDocuments
 ) {
   const { toRepoPath } = projectContext
   const usageFiles = files.filter((file) =>
@@ -165,7 +174,7 @@ function extractEntityUsage(
   )
   for (const file of usageFiles) {
     const repoPath = toRepoPath(file)
-    const tree = parseCSharp(sourceReader.readText(file))
+    const tree = sourceDocuments.requireDocumentOf(file).syntax.tree
     for (const [entity, entityId] of entityNodeByName) {
       const dbSet = dbSetByEntity.get(entity)
       const usage = detectEntityUsage(tree.rootNode, entity, dbSet)
@@ -215,13 +224,14 @@ function extractEntityUsage(
   }
 }
 
-function findDbContextFiles(files, sourceReader) {
+function findDbContextFiles(files, sourceDocuments) {
   return files.filter((file) => {
-    const content = sourceReader.readText(file)
-    if (csharpTypeDeclarations(content).some((declaration) => declaration.baseTypes.includes('DbContext'))) {
+    const document = sourceDocuments.requireDocumentOf(file).syntax
+    const declarations = document.declarations
+    if (declarations.some((declaration) => declaration.baseTypes.includes('DbContext'))) {
       return true
     }
-    const tree = parseCSharp(content)
+    const tree = document.tree
     return csharpDescendants(tree.rootNode, 'generic_name').some((node) => csharpSimpleTypeName(node) === 'DbSet')
   })
 }
@@ -250,10 +260,9 @@ function detectEntityUsage(root, entity, dbSet) {
   return usage
 }
 
-function parseEntityProperties(content) {
+function parseEntityProperties(tree) {
   const properties = []
   const seen = new Set()
-  const tree = parseCSharp(content)
   for (const property of csharpDescendants(tree.rootNode, 'property_declaration')) {
     if (!property.namedChildren.some((child) => child.type === 'modifier' && child.text === 'public')) {
       continue

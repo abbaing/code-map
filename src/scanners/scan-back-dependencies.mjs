@@ -2,16 +2,14 @@ import {
   csharpDescendants,
   csharpName,
   csharpSimpleTypeName,
-  csharpTypeDeclarations,
   csharpTypeIdentifiers,
-  parseCSharp,
   walkCSharp
-} from '#core/csharp-analysis.mjs'
+} from '#parsers/csharp.mjs'
 import { featureFromRepoPath } from '#core/classify.mjs'
 
-export { csharpTypeDeclarations } from '#core/csharp-analysis.mjs'
+export { csharpTypeDeclarations } from '#parsers/csharp.mjs'
 
-export function scanBackDependencies(graph, files, projectContext, session, sourceReader) {
+export function scanBackDependencies(graph, files, projectContext, session, sourceDocuments) {
   const { toRepoPath } = projectContext
   for (const file of files) {
     const repoPath = toRepoPath(file)
@@ -19,13 +17,14 @@ export function scanBackDependencies(graph, files, projectContext, session, sour
     if (!graph.hasNode(sourceId)) {
       continue
     }
-    const content = sourceReader.readText(file)
-    const declaration = csharpTypeDeclarations(content).find((item) => item.kind === 'class')
+    const document = sourceDocuments.requireDocumentOf(file).syntax
+    const declaration = document.declarations.find((item) => item.kind === 'class')
     if (!declaration) {
       continue
     }
 
-    for (const dependency of collectConstructorDependencies(content, declaration.name)) {
+    const tree = document.tree
+    for (const dependency of collectConstructorDependencies(tree, declaration.name)) {
       const target = resolveDependencyTarget(dependency.name, repoPath, projectContext, session)
       if (!target || target.file === file) {
         continue
@@ -76,8 +75,7 @@ function dependencyRole(typeName) {
     : 'service'
 }
 
-function collectConstructorDependencies(content, className) {
-  const tree = parseCSharp(content)
+function collectConstructorDependencies(tree, className) {
   let declaration = null
   walkCSharp(tree.rootNode, (node) => {
     if (!declaration && node.type === 'class_declaration' && csharpName(node) === className) {

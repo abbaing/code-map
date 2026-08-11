@@ -1,4 +1,4 @@
-import { isTestFile, tsExtensions } from '#core/source-analysis.mjs'
+import { isTestFile, tsExtensions, typescriptParser } from '#parsers/typescript.mjs'
 import { pickRuleMetadata } from '#templates/rule-metadata.mjs'
 
 export const typescriptTemplate = {
@@ -10,6 +10,7 @@ export const typescriptTemplate = {
   },
   ruleMetadata: pickRuleMetadata(['technology.typescript.relative-imports', 'technology.typescript.no-any']),
   capabilities: {
+    parsers: [typescriptParser],
     fileKinds: [
       {
         id: 'frontend-source',

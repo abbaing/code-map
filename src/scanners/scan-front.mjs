@@ -1,18 +1,17 @@
 import {
   displayLabel,
   moduleReferencesOf,
-  parseTypeScript,
   typeScriptCallName,
   typeScriptLiteralValue,
   typescript as ts,
   walkTypeScript
-} from '#core/source-analysis.mjs'
+} from '#parsers/typescript.mjs'
 import { classifyFront, featureFromRepoPath } from '#core/classify.mjs'
-import { addEndpoint, extractFrontendEndpoints } from '#core/endpoints.mjs'
-import { resolveTsImport } from '#core/resolve.mjs'
+import { addEndpoint, extractFrontendEndpoints } from '#parsers/typescript-endpoints.mjs'
+import { resolveTsImport } from '#parsers/typescript-resolver.mjs'
 
 export function detectFrontBehavior(content, parsedSourceFile) {
-  const sourceFile = parsedSourceFile ?? parseTypeScript(content)
+  const sourceFile = parsedSourceFile
   const reasons = new Set()
   const hookNames = new Set([
     'useState',
@@ -70,13 +69,13 @@ export function detectFrontBehavior(content, parsedSourceFile) {
   return { reasons: order.filter((reason) => reasons.has(reason)) }
 }
 
-export function scanFront(graph, files, projectContext, sourceReader) {
+export function scanFront(graph, files, projectContext, sourceDocuments) {
   const { toRepoPath } = projectContext
   const frontEndpointNodes = []
   const sources = new Map(
     files.map((file) => {
-      const content = sourceReader.readText(file)
-      return [file, { content, sourceFile: parseTypeScript(content, file) }]
+      const document = sourceDocuments.documentOf(file)
+      return [file, { content: document.content, sourceFile: document.syntax }]
     })
   )
   const apiVersionPrefix = detectApiVersionPrefix(files, sources)
@@ -186,7 +185,7 @@ function collectExportedEndpointBindings(files, toRepoPath, sources) {
 function resolveImportedEndpointBindings(file, content, exportedBindings, projectContext, parsedSourceFile) {
   const { toRepoPath } = projectContext
   const result = new Map()
-  const sourceFile = parsedSourceFile ?? parseTypeScript(content, file)
+  const sourceFile = parsedSourceFile
   for (const statement of sourceFile.statements) {
     if (!ts.isImportDeclaration(statement) || !ts.isStringLiteralLike(statement.moduleSpecifier)) {
       continue

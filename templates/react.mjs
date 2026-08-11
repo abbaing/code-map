@@ -61,9 +61,9 @@ export const reactTemplate = {
       {
         id: 'react.frontend',
         assign: 'frontEndpointIds',
-        requires: ['graph', 'files', 'projectContext', 'sourceReader'],
+        requires: ['graph', 'files', 'projectContext', 'sourceDocuments'],
         run: (context) =>
-          scanFront(context.graph, context.files.frontFiles, context.projectContext, context.sourceReader)
+          scanFront(context.graph, context.files.frontFiles, context.projectContext, context.sourceDocuments)
       }
     ]
   }

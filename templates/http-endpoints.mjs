@@ -1,4 +1,4 @@
-import { connectEndpoints } from '#core/endpoints.mjs'
+import { connectEndpoints } from '#parsers/typescript-endpoints.mjs'
 
 export const httpEndpointsTemplate = {
   id: 'http-endpoints',

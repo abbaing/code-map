@@ -1,5 +1,5 @@
 import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from '#rules/rule-runner.mjs'
-import { parseTypeScript, typeScriptCallName, typescript as ts, walkTypeScript } from '#core/source-analysis.mjs'
+import { parseTypeScript, typeScriptCallName, typescript as ts, walkTypeScript } from '#parsers/typescript.mjs'
 
 // Rule interface: { id, defaultEnabled, meta, check(nodeId, repoPath, content, type, projectMap) }
 
@@ -18,8 +18,8 @@ export const RULES = [
       fixHint: 'Replace the relative import with the configured alias, usually @/...',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content, findingSink }) {
-      for (const { specifier, index } of importsOf(content)) {
+    check({ nodeId, repoPath, content, syntax, findingSink }) {
+      for (const { specifier, index } of importsOf(content, repoPath, syntax)) {
         if (!specifier.startsWith('.')) {
           continue
         }
@@ -88,8 +88,8 @@ export const RULES = [
         'Replace with a concrete type, generic contract, discriminated union, or bounded unknown with explicit narrowing.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content, findingSink }) {
-      const sourceFile = parseTypeScript(content, repoPath)
+    check({ nodeId, repoPath, content, syntax, findingSink }) {
+      const sourceFile = syntax ?? parseTypeScript(content, repoPath)
       walkTypeScript(sourceFile, (node) => {
         if (node.kind !== ts.SyntaxKind.AnyKeyword) {
           return
@@ -131,14 +131,14 @@ export const RULES = [
         'Statically import pages, use RouteConfig[] with { path, component }, and move permissions into PermissionedPage.',
       docsPath: 'docs/frontend-rules.md'
     },
-    check({ nodeId, repoPath, content, type, findingSink }) {
+    check({ nodeId, repoPath, content, syntax, type, findingSink }) {
       if (type !== 'route') {
         return
       }
       if (!repoPath.endsWith('/routes/index.tsx') && !repoPath.endsWith('/routes/index.jsx')) {
         return
       }
-      const sourceFile = parseTypeScript(content, repoPath)
+      const sourceFile = syntax ?? parseTypeScript(content, repoPath)
       const matches = new Map()
       walkTypeScript(sourceFile, (node) => {
         if (ts.isCallExpression(node) && typeScriptCallName(node.expression) === 'lazy') {
@@ -171,7 +171,7 @@ export const RULES = [
   }
 ]
 
-export function runFrontendGuardrails(files, defaultRules, projectContext, findingSink, sourceReader) {
+export function runFrontendGuardrails(files, defaultRules, projectContext, findingSink, sourceReader, sourceDocuments) {
   runFileRules(
     files,
     RULES,
@@ -180,7 +180,8 @@ export function runFrontendGuardrails(files, defaultRules, projectContext, findi
     projectContext,
     findingSink,
     undefined,
-    sourceReader
+    sourceReader,
+    sourceDocuments
   )
 }
 

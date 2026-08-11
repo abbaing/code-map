@@ -1,11 +1,11 @@
 import path from 'node:path'
 import { createBackendAnalysisSession } from '#core/backend-analysis-session.mjs'
-import { csharpTypeDeclarations } from '#core/csharp-analysis.mjs'
 import { featureFromRepoPath } from '#core/classify.mjs'
 
-export function createBackScanSession(allBackFiles, sourceReader) {
+export function createBackScanSession(allBackFiles, sourceDocuments) {
   const entries = allBackFiles.map((file) => {
-    return { file, fileName: path.basename(file), declarations: csharpTypeDeclarations(sourceReader.readText(file)) }
+    const document = sourceDocuments.requireDocumentOf(file)
+    return { file, fileName: path.basename(file), declarations: document.syntax.declarations }
   })
   return createBackendAnalysisSession(entries)
 }

@@ -16,16 +16,17 @@ export const entityFrameworkTemplate = {
     scanners: [
       {
         id: 'entity-framework.database',
-        requires: ['graph', 'files', 'projectContext', 'sourceReader'],
+        requires: ['graph', 'files', 'projectContext', 'sourceDocuments'],
         optionalRequires: ['backSession'],
         run: (context) => {
-          const session = context.backSession ?? createBackScanSession(context.files.allBackFiles, context.sourceReader)
+          const session =
+            context.backSession ?? createBackScanSession(context.files.allBackFiles, context.sourceDocuments)
           return scanDatabase(
             context.graph,
             context.files.backFiles,
             context.projectContext,
             session,
-            context.sourceReader
+            context.sourceDocuments
           )
         }
       }

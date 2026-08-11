@@ -71,7 +71,14 @@ assert.throws(
 
 assert.deepEqual(
   createDefaultScanPipeline().phases.map((phase) => phase.id),
-  ['discover-files', 'run-scanners', 'apply-runtime-links', 'run-enrichers', 'finalize-document'],
+  [
+    'discover-files',
+    'prepare-source-documents',
+    'run-scanners',
+    'apply-runtime-links',
+    'run-enrichers',
+    'finalize-document'
+  ],
   'the default scan order must remain explicit and reviewable'
 )
 const defaultPhases = createDefaultScanPipeline().phases

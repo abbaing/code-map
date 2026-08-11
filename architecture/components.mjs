@@ -83,23 +83,47 @@ export const components = [
   },
   {
     id: 'resolution',
-    responsibility: 'Resolve configured aliases and local TypeScript or JavaScript imports.',
-    role: 'core',
-    files: ['src/core/resolve.mjs'],
-    contracts: ['ImportResolver'],
+    responsibility: 'Adapt TypeScript and JavaScript syntax, imports, and endpoint evidence to source contracts.',
+    role: 'adapter',
+    files: [
+      'src/adapters/parsers/typescript.mjs',
+      'src/adapters/parsers/typescript-resolver.mjs',
+      'src/adapters/parsers/typescript-endpoints.mjs'
+    ],
+    contracts: ['Parser', 'ImportResolver', 'EndpointAnalyzer'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Compose ordered import strategies over ProjectContext path policy and an injected existence capability.'
+    decision: 'Contain the TypeScript compiler API and language conventions behind registered parser capabilities.'
   },
   {
     id: 'source-analysis',
-    responsibility: 'Parse and analyze source text and repository-relative paths without executing target code.',
+    responsibility: 'Provide language-neutral repository path and naming helpers.',
     role: 'core',
-    files: ['src/core/source-analysis.mjs', 'src/core/csharp-analysis.mjs'],
-    contracts: ['SourceAnalyzer'],
+    files: ['src/core/source-analysis.mjs'],
+    contracts: ['SourcePath'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Keep deterministic TypeScript and C# syntax analysis independent from source acquisition.'
+    decision: 'Keep language syntax outside core and expose only stable path policy here.'
+  },
+  {
+    id: 'source-documents',
+    responsibility: 'Register language parsers and cache opaque source documents for one scan execution.',
+    role: 'core',
+    files: ['src/core/source-documents.mjs'],
+    contracts: ['Parser', 'ParserRegistry', 'SourceDocumentStore'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Treat parser syntax as opaque and expose language facts through registered capabilities.'
+  },
+  {
+    id: 'csharp-parser',
+    responsibility: 'Adapt Tree-sitter C# syntax and declarations to the language-neutral parser contract.',
+    role: 'adapter',
+    files: ['src/adapters/parsers/csharp.mjs'],
+    contracts: ['Parser'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Contain Tree-sitter and C# syntax conventions as an optional registered language feature.'
   },
   {
     id: 'source-files',
@@ -110,16 +134,6 @@ export const components = [
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'pass'),
     decision: 'Keep bounded reads and deterministic walking behind injected filesystem and path capabilities.'
-  },
-  {
-    id: 'endpoints',
-    responsibility: 'Normalize, extract, match, and connect HTTP endpoint evidence.',
-    role: 'core',
-    files: ['src/core/endpoints.mjs'],
-    contracts: ['EndpointAnalyzer'],
-    compositionRoot: false,
-    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Add client conventions as ordered endpoint extractors with shared normalization.'
   },
   {
     id: 'quality',
@@ -164,7 +178,7 @@ export const components = [
   {
     id: 'frontend-scanner',
     responsibility: 'Extract frontend files, imports, behavior, and endpoint evidence.',
-    role: 'extension',
+    role: 'adapter',
     files: ['src/scanners/scan-front.mjs'],
     contracts: ['Scanner'],
     compositionRoot: false,
@@ -173,18 +187,18 @@ export const components = [
   },
   {
     id: 'backend-analysis-session',
-    responsibility: 'Own immutable per-run indexes for backend files, declarations, and implementations.',
+    responsibility: 'Own immutable backend declaration indexes without retaining parser documents.',
     role: 'core',
     files: ['src/core/backend-analysis-session.mjs'],
     contracts: ['BackendAnalysisSession'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Expose read-only index queries and keep all indexed data scoped to one scan execution.'
+    decision: 'Expose semantic lookup queries while the language-neutral document store owns parsed syntax.'
   },
   {
     id: 'backend-scanner',
     responsibility: 'Expose the stable backend scanner module surface.',
-    role: 'extension',
+    role: 'adapter',
     files: ['src/scanners/scan-back.mjs'],
     contracts: ['BackendScannerApi'],
     compositionRoot: false,
@@ -194,7 +208,7 @@ export const components = [
   {
     id: 'backend-classification-scanner',
     responsibility: 'Classify backend source files using configured and semantic evidence.',
-    role: 'extension',
+    role: 'adapter',
     files: ['src/scanners/scan-back-classification.mjs'],
     contracts: ['Scanner', 'BackendAnalysisSession'],
     compositionRoot: false,
@@ -204,7 +218,7 @@ export const components = [
   {
     id: 'backend-persistence-scanner',
     responsibility: 'Extract backend contexts, entities, tables, domain relationships, and ORM usage.',
-    role: 'extension',
+    role: 'adapter',
     files: ['src/scanners/scan-back-persistence.mjs'],
     contracts: ['Scanner', 'BackendAnalysisSession'],
     compositionRoot: false,
@@ -214,7 +228,7 @@ export const components = [
   {
     id: 'backend-session-builder',
     responsibility: 'Build and query execution-scoped backend analysis sessions from source declarations.',
-    role: 'extension',
+    role: 'adapter',
     files: ['src/scanners/scan-back-session.mjs'],
     contracts: ['BackendAnalysisSession'],
     compositionRoot: false,
@@ -224,7 +238,7 @@ export const components = [
   {
     id: 'backend-request-scanner',
     responsibility: 'Extract controller endpoints, request dispatches, and handler relationships.',
-    role: 'extension',
+    role: 'adapter',
     files: ['src/scanners/scan-back-requests.mjs'],
     contracts: ['Scanner', 'BackendAnalysisSession'],
     compositionRoot: false,
@@ -234,7 +248,7 @@ export const components = [
   {
     id: 'backend-dependency-scanner',
     responsibility: 'Resolve backend constructor dependencies to concrete or logical graph nodes.',
-    role: 'extension',
+    role: 'adapter',
     files: ['src/scanners/scan-back-dependencies.mjs'],
     contracts: ['Scanner', 'BackendAnalysisSession'],
     compositionRoot: false,
@@ -244,13 +258,23 @@ export const components = [
   },
   {
     id: 'rules',
-    responsibility: 'Evaluate configured architectural rules against source evidence.',
+    responsibility: 'Run language-neutral file rules against source evidence.',
     role: 'extension',
-    files: ['rules/rule-runner.mjs', 'rules/frontend-guardrails.mjs', 'rules/architecture-guardrails.mjs'],
+    files: ['rules/rule-runner.mjs'],
     contracts: ['Rule'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision: 'Rules receive isolated finding and source capabilities through registered enrichers.'
+  },
+  {
+    id: 'language-rules',
+    responsibility: 'Adapt TypeScript and C# syntax into architectural rule findings.',
+    role: 'adapter',
+    files: ['rules/frontend-guardrails.mjs', 'rules/architecture-guardrails.mjs'],
+    contracts: ['Rule'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep language AST APIs in optional rule adapters outside the core rule runner.'
   },
   {
     id: 'findings',
@@ -269,6 +293,7 @@ export const components = [
     files: [
       'templates/architectures.mjs',
       'templates/catalog.mjs',
+      'templates/csharp.mjs',
       'templates/core.mjs',
       'templates/dotnet-api.mjs',
       'templates/entity-framework.mjs',
@@ -279,7 +304,7 @@ export const components = [
       'templates/rule-metadata.mjs',
       'templates/typescript.mjs'
     ],
-    contracts: ['Template', 'TemplateRegistry', 'Scanner', 'GraphEnricher', 'FileKind'],
+    contracts: ['Template', 'TemplateRegistry', 'Parser', 'Scanner', 'GraphEnricher', 'FileKind'],
     compositionRoot: true,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision: 'Validate capabilities at registration and project only their declared required and optional inputs.'
@@ -289,7 +314,7 @@ export const components = [
     responsibility: 'Validate templates, capability registries, and focused capability inputs.',
     role: 'core',
     files: ['templates/contracts.mjs'],
-    contracts: ['Template', 'TemplateRegistry', 'Scanner', 'GraphEnricher', 'FileKind'],
+    contracts: ['Template', 'TemplateRegistry', 'Parser', 'Scanner', 'GraphEnricher', 'FileKind'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision: 'Keep capability validation and input projection independent from template composition.'

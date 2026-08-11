@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { typescript as ts } from '#core/source-analysis.mjs'
+import { parse as parseJsonc } from 'jsonc-parser'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -31,7 +31,7 @@ function readJson(filePath, files) {
 
 function extractTsconfigPaths(filePath, files) {
   try {
-    const parsed = ts.parseConfigFileTextToJson(filePath, files.readText(filePath)).config
+    const parsed = parseJsonc(files.readText(filePath))
     const paths = parsed?.compilerOptions?.paths
     return Object.fromEntries(
       Object.entries(paths ?? {})
@@ -602,6 +602,7 @@ export function detect(repoRoot, { files, detectors = createStackDetectorRegistr
         'http-endpoints',
         ...(backendStack === 'dotnet'
           ? [
+              'csharp',
               'dotnet-api',
               'architecture.mvc',
               'architecture.clean-architecture',

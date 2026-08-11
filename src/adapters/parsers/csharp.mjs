@@ -1,5 +1,6 @@
 import Parser from 'tree-sitter'
 import CSharp from 'tree-sitter-c-sharp/bindings/node/index.js'
+import { isBackTestFile } from '#core/source-analysis.mjs'
 
 const parser = new Parser()
 parser.setLanguage(CSharp)
@@ -7,6 +8,33 @@ parser.setLanguage(CSharp)
 export function parseCSharp(content) {
   return parser.parse(content)
 }
+
+export function stripCSharpStringLiterals(content) {
+  return content
+    .replace(/\$?"""[\s\S]*?"""/g, '""')
+    .replace(/@(?:"(?:""|[^"])*")/g, '""')
+    .replace(/\$?"(?:\\.|[^"\\])*"/g, '""')
+    .replace(/'(?:\\.|[^'\\])'/g, "''")
+}
+
+export function stripCSharpComments(content) {
+  return content.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
+}
+
+export function createCSharpDocument(content) {
+  const tree = parseCSharp(content)
+  return Object.freeze({ tree, declarations: Object.freeze(csharpTypeDeclarationsFromTree(tree)) })
+}
+
+export const csharpParser = Object.freeze({
+  id: 'csharp',
+  extensions: Object.freeze(['.cs']),
+  parse: (content) => createCSharpDocument(content),
+  isTest: isBackTestFile,
+  facts: Object.freeze({
+    typeDeclarations: (document) => document.syntax.declarations
+  })
+})
 
 export function walkCSharp(node, visitor) {
   visitor(node)
@@ -102,8 +130,11 @@ export function csharpAttributes(node) {
 }
 
 export function csharpTypeDeclarations(content) {
+  return createCSharpDocument(content).declarations
+}
+
+export function csharpTypeDeclarationsFromTree(tree) {
   const declarations = []
-  const tree = parseCSharp(content)
   walkCSharp(tree.rootNode, (node) => {
     if (
       !['class_declaration', 'interface_declaration', 'record_declaration', 'struct_declaration'].includes(node.type)

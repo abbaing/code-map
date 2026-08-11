@@ -192,6 +192,7 @@ export function normalizeProjectMap(projectMap, configPath = null, { repoRoot: p
         'architecture.feature-sliced',
         'architecture.mvvm',
         'http-endpoints',
+        'csharp',
         'dotnet-api',
         'architecture.mvc',
         'architecture.clean-architecture',

@@ -4,15 +4,9 @@ export {
   displayLabel,
   escapeRegExp,
   findComponentDirIndex,
-  importsOf,
   isBackTestFile,
-  isTestFile,
   kebab,
-  normalizePath,
-  stripCSharpComments,
-  stripCSharpStringLiterals,
-  stripTsComments,
-  tsExtensions
+  normalizePath
 } from '#core/source-analysis.mjs'
 
 export function readText(filePath, fileSystem, maxBytes = maxSourceFileBytes, displayPath = String) {

@@ -61,6 +61,7 @@ function scanArchitectureFixture(name) {
           'react',
           'architecture.feature-sliced',
           'architecture.mvvm',
+          'csharp',
           'dotnet-api',
           'architecture.mvc',
           'architecture.clean-architecture',

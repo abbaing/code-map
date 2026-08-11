@@ -6,7 +6,6 @@ import {
   scanRequestHandlers,
   createBackScanSession
 } from '#scanners/scan-back.mjs'
-import { isBackTestFile } from '#core/source-analysis.mjs'
 
 export const dotnetApiTemplate = {
   id: 'dotnet-api',
@@ -38,57 +37,48 @@ export const dotnetApiTemplate = {
     }
   },
   capabilities: {
-    fileKinds: [
-      {
-        id: 'backend-source',
-        rootKey: 'backend',
-        extensions: ['.cs'],
-        test: (file) => isBackTestFile(file),
-        includeTests: false
-      }
-    ],
     scanners: [
       {
         id: 'dotnet.index',
         assign: 'backSession',
-        requires: ['files', 'sourceReader'],
-        run: (context) => createBackScanSession(context.files.allBackFiles, context.sourceReader)
+        requires: ['files', 'sourceDocuments'],
+        run: (context) => createBackScanSession(context.files.allBackFiles, context.sourceDocuments)
       },
       {
         id: 'dotnet.files',
-        requires: ['graph', 'files', 'projectContext', 'backSession', 'sourceReader'],
+        requires: ['graph', 'files', 'projectContext', 'backSession', 'sourceDocuments'],
         run: (context) =>
           scanBackFiles(
             context.graph,
             context.files.backFiles,
             context.projectContext,
             context.backSession,
-            context.sourceReader
+            context.sourceDocuments
           )
       },
       {
         id: 'dotnet.controllers',
         assign: 'controllerEndpoints',
-        requires: ['graph', 'controllerFiles', 'projectContext', 'backSession', 'sourceReader'],
+        requires: ['graph', 'controllerFiles', 'projectContext', 'backSession', 'sourceDocuments'],
         run: (context) =>
           scanControllers(
             context.graph,
             context.controllerFiles(),
             context.projectContext,
             context.backSession,
-            context.sourceReader
+            context.sourceDocuments
           )
       },
       {
         id: 'dotnet.dispatches',
-        requires: ['graph', 'files', 'projectContext', 'backSession', 'sourceReader'],
+        requires: ['graph', 'files', 'projectContext', 'backSession', 'sourceDocuments'],
         run: (context) =>
           scanRequestDispatches(
             context.graph,
             context.files.backFiles,
             context.projectContext,
             context.backSession,
-            context.sourceReader
+            context.sourceDocuments
           )
       },
       {
@@ -99,14 +89,14 @@ export const dotnetApiTemplate = {
       },
       {
         id: 'dotnet.dependencies',
-        requires: ['graph', 'files', 'projectContext', 'backSession', 'sourceReader'],
+        requires: ['graph', 'files', 'projectContext', 'backSession', 'sourceDocuments'],
         run: (context) =>
           scanBackDependencies(
             context.graph,
             context.files.backFiles,
             context.projectContext,
             context.backSession,
-            context.sourceReader
+            context.sourceDocuments
           )
       }
     ]

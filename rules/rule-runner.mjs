@@ -1,4 +1,4 @@
-import { importsOf } from '#core/source-analysis.mjs'
+import { importsOf } from '#parsers/typescript.mjs'
 import { classifyFront } from '#core/classify.mjs'
 
 export function runFileRules(
@@ -9,7 +9,8 @@ export function runFileRules(
   projectContext,
   findingSink,
   classify = classifySource,
-  sourceReader = projectContext.sourceReader
+  sourceReader = projectContext.sourceReader,
+  sourceDocuments
 ) {
   if (!findingSink || typeof findingSink.add !== 'function') {
     throw new TypeError('Rule execution requires a finding sink.')
@@ -22,7 +23,9 @@ export function runFileRules(
 
   for (const file of files) {
     const repoPath = projectContext.toRepoPath(file)
-    const content = sourceReader.readText(file)
+    const sourceDocument = sourceDocuments?.documentOf(file)
+    const content = sourceDocument?.content ?? sourceReader.readText(file)
+    const syntax = sourceDocument?.syntax
     const classification = classify(repoPath, projectContext)
     const nodeId = `file:${repoPath}`
 
@@ -31,6 +34,7 @@ export function runFileRules(
         nodeId,
         repoPath,
         content,
+        syntax,
         type: classification.type,
         layer: classification.layer,
         projectMapRules: effectiveRules,

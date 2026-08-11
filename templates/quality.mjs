@@ -28,26 +28,28 @@ export const qualityTemplate = {
       },
       {
         id: 'quality.guardrails',
-        requires: ['files', 'registry', 'projectContext', 'findingSink', 'sourceReader'],
+        requires: ['files', 'registry', 'projectContext', 'findingSink', 'sourceReader', 'sourceDocuments'],
         run: (context) =>
           runFrontendGuardrails(
             context.files.frontFiles,
             context.registry.rules,
             context.projectContext,
             context.findingSink,
-            context.sourceReader
+            context.sourceReader,
+            context.sourceDocuments
           )
       },
       {
         id: 'quality.architecture-guardrails',
-        requires: ['files', 'registry', 'projectContext', 'findingSink', 'sourceReader'],
+        requires: ['files', 'registry', 'projectContext', 'findingSink', 'sourceReader', 'sourceDocuments'],
         run: (context) =>
           runArchitectureGuardrails(
             [...context.files.frontFiles, ...context.files.backFiles],
             context.registry.rules,
             context.projectContext,
             context.findingSink,
-            context.sourceReader
+            context.sourceReader,
+            context.sourceDocuments
           )
       },
       {

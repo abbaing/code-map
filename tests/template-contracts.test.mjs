@@ -16,6 +16,15 @@ assert.throws(
 assert.throws(
   () =>
     assertTemplate({
+      id: 'invalid-parser',
+      description: 'Invalid parser fixture.',
+      capabilities: { parsers: [{ id: 'parser', extensions: ['.x'] }] }
+    }),
+  /must implement parse/u
+)
+assert.throws(
+  () =>
+    assertTemplate({
       id: 'duplicate-capability',
       description: 'Duplicate scanner fixture.',
       capabilities: {

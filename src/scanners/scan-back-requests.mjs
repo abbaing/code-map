@@ -5,22 +5,20 @@ import {
   csharpInvocationName,
   csharpName,
   csharpSimpleTypeName,
-  parseCSharp,
   walkCSharp
-} from '#core/csharp-analysis.mjs'
+} from '#parsers/csharp.mjs'
 import { featureFromRepoPath } from '#core/classify.mjs'
-import { addEndpoint, normalizeEndpoint } from '#core/endpoints.mjs'
+import { addEndpoint, normalizeEndpoint } from '#parsers/typescript-endpoints.mjs'
 import { displayLabel } from '#core/source-analysis.mjs'
 import { findBackFileByName } from '#scanners/scan-back-session.mjs'
 
-export function scanControllers(graph, files, projectContext, session, sourceReader) {
+export function scanControllers(graph, files, projectContext, session, sourceDocuments) {
   const { toRepoPath } = projectContext
   const endpoints = []
 
   for (const file of files) {
     const repoPath = toRepoPath(file)
-    const content = sourceReader.readText(file)
-    const tree = parseCSharp(content)
+    const tree = sourceDocuments.requireDocumentOf(file).syntax.tree
     const controller = firstNode(tree.rootNode, 'class_declaration')
     const module = featureFromRepoPath(repoPath, projectContext)
     const id = `file:${repoPath}`
@@ -194,7 +192,7 @@ function linkRequest(graph, sourceId, requestName, module, confidence, source, p
   })
 }
 
-export function scanRequestDispatches(graph, files, projectContext, session, sourceReader) {
+export function scanRequestDispatches(graph, files, projectContext, session, sourceDocuments) {
   const { toRepoPath } = projectContext
   const controllerFragment = projectContext.projectMap.backend?.controllerPathFragment ?? '/Controllers/'
   for (const file of files) {
@@ -207,7 +205,7 @@ export function scanRequestDispatches(graph, files, projectContext, session, sou
       continue
     }
     const module = featureFromRepoPath(repoPath, projectContext)
-    const tree = parseCSharp(sourceReader.readText(file))
+    const tree = sourceDocuments.requireDocumentOf(file).syntax.tree
     const ownRequest = path.basename(file, '.cs').replace(/Handler$/u, '')
     for (const creation of csharpDescendants(tree.rootNode, 'object_creation_expression')) {
       const requestName = csharpSimpleTypeName(creation.namedChildren[0])
