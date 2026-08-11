@@ -1,4 +1,4 @@
-import { createBackScanSession, scanDatabase } from '#scanners/scan-back.mjs'
+import { createBackFileSet, createBackScanSession, scanDatabase } from '#scanners/scan-back.mjs'
 
 export const entityFrameworkTemplate = {
   id: 'entity-framework',
@@ -18,13 +18,13 @@ export const entityFrameworkTemplate = {
       {
         id: 'entity-framework.database',
         requires: ['graph', 'files', 'projectContext', 'sourceDocuments'],
-        optionalRequires: ['backSession'],
+        optionalRequires: ['backFileSet', 'backSession'],
         run: (context) => {
-          const session =
-            context.backSession ?? createBackScanSession(context.files.allBackFiles, context.sourceDocuments)
+          const backFileSet = context.backFileSet ?? createBackFileSet(context.files, context.projectContext)
+          const session = context.backSession ?? createBackScanSession(backFileSet.all, context.sourceDocuments)
           return scanDatabase(
             context.graph,
-            context.files.backFiles,
+            backFileSet.visible,
             context.projectContext,
             session,
             context.sourceDocuments

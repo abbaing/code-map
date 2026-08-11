@@ -172,10 +172,11 @@ export const components = [
     responsibility: 'Compose source discovery, scanners, enrichers, and graph serialization.',
     role: 'application',
     files: ['src/application/scan.mjs'],
-    contracts: ['ScanPhase', 'Scanner', 'GraphEnricher', 'TemplateRegistry', 'TextWriter'],
+    contracts: ['ScanPhase', 'SourceFileSets', 'Scanner', 'GraphEnricher', 'TemplateRegistry', 'TextWriter'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Pass immutable named scanner results between phases and project only declared inputs to each capability.'
+    decision:
+      'Expose immutable file sets by registered kind and pass only declared inputs and named results between phases.'
   },
   {
     id: 'node-scan',
@@ -203,7 +204,7 @@ export const components = [
     responsibility: 'Own immutable backend declaration indexes without retaining parser documents.',
     role: 'core',
     files: ['src/core/backend-analysis-session.mjs'],
-    contracts: ['BackendAnalysisSession'],
+    contracts: ['BackendFileSet', 'BackendAnalysisSession'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision: 'Expose semantic lookup queries while the language-neutral document store owns parsed syntax.'

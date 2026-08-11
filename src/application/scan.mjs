@@ -26,21 +26,19 @@ function phaseWalkFiles(projectContext, registry) {
   for (const kind of registry.capabilities.fileKinds) {
     byKind.set(kind.id, collectFileKind(projectContext, kind, walkOptions))
   }
-
-  const frontTestFiles = byKind.get('frontend-test') ?? []
-  const frontFiles = byKind.get('frontend-source') ?? []
-  const allBackFiles = byKind.get('backend-source') ?? []
-  const backInternalFragments = [
-    projectMap.backend?.dtoPathFragment,
-    projectMap.backend?.validatorPathFragment,
-    projectMap.backend?.mappingPathFragment
-  ].filter(Boolean)
-  const backFiles = allBackFiles.filter((file) => {
-    const rp = toRepoPath(file)
-    return backInternalFragments.every((fragment) => !rp.includes(fragment))
-  })
   const skippedFiles = [...skippedByPath.values()].sort((a, b) => a.filePath.localeCompare(b.filePath))
-  return { frontFiles, frontTestFiles, backFiles, allBackFiles, skippedFiles }
+  const kinds = registry.capabilities.fileKinds
+  const filesFor = (predicate) =>
+    Object.freeze([...new Set(kinds.filter(predicate).flatMap((kind) => byKind.get(kind.id) ?? []))].sort())
+  const sets = Object.freeze(Object.fromEntries([...byKind].map(([id, files]) => [id, Object.freeze(files)])))
+  return Object.freeze({
+    sets,
+    of: (kindId) => sets[kindId] ?? Object.freeze([]),
+    sourceFiles: filesFor((kind) => !kind.testsOnly),
+    testFiles: filesFor((kind) => kind.testsOnly),
+    allFiles: filesFor(() => true),
+    skippedFiles: Object.freeze(skippedFiles)
+  })
 }
 
 function collectFileKind(projectContext, kind, walkOptions) {
@@ -99,7 +97,7 @@ function phaseApplyCoverage(graph, testFiles, projectContext, sourceDocuments) {
 
   for (const testFile of testFiles) {
     const covered = new Set()
-    for (const candidate of sourceCandidatesForTest(testFile, sourceDocuments.extensions())) {
+    for (const candidate of sourceCandidatesForTest(testFile, sourceDocuments.extensionsFor(testFile))) {
       if (candidate && fileSystem.exists(candidate) && !sourceDocuments.isTest(candidate)) {
         covered.add(candidate)
       }
@@ -498,10 +496,11 @@ function finalizeGraphDocument({ graph, projectContext, registry, effectiveProje
       nodes: nodes.length,
       edges: edges.length,
       orphans: orphans.length,
-      frontFiles: files.frontFiles.length,
-      frontTestFiles: files.frontTestFiles.length,
-      backFiles: files.backFiles.length,
-      hiddenDtoFiles: files.allBackFiles.length - files.backFiles.length,
+      frontFiles: files.of('frontend-source').length,
+      frontTestFiles: files.of('frontend-test').length,
+      backFiles: countMappedFiles(graph, files.of('backend-source'), projectContext),
+      hiddenDtoFiles:
+        files.of('backend-source').length - countMappedFiles(graph, files.of('backend-source'), projectContext),
       findings: activeFindings.length,
       errorFindings: activeFindings.filter((finding) => finding.severity === 'error').length,
       suppressedFindings: suppressedFindings.length,
@@ -565,7 +564,7 @@ function createScanCapabilities({
   sourceReader,
   sourceDocuments
 }) {
-  const { projectMap, toRepoPath } = projectContext
+  const { projectMap } = projectContext
   return {
     graph,
     projectMap,
@@ -576,13 +575,13 @@ function createScanCapabilities({
     findingSource,
     sourceReader,
     sourceDocuments,
-    controllerFiles: () =>
-      files.backFiles.filter((file) =>
-        toRepoPath(file).includes(projectMap.backend?.controllerPathFragment ?? '/Controllers/')
-      ),
-    applyCoverage: () => phaseApplyCoverage(graph, files.frontTestFiles, projectContext, sourceDocuments),
+    applyCoverage: () => phaseApplyCoverage(graph, files.testFiles, projectContext, sourceDocuments),
     trackInternalComponents: () => phaseTrackInternals(graph)
   }
+}
+
+function countMappedFiles(graph, files, projectContext) {
+  return files.filter((file) => graph.hasNode(`file:${projectContext.toRepoPath(file)}`)).length
 }
 
 function phaseRunRegisteredScanners(registry, capabilities) {

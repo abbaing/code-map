@@ -31,7 +31,7 @@ export const qualityTemplate = {
         requires: ['files', 'registry', 'projectContext', 'findingSink', 'sourceReader', 'sourceDocuments'],
         run: (context) =>
           runFrontendGuardrails(
-            context.files.frontFiles,
+            context.files.of('frontend-source'),
             context.registry.rules,
             context.projectContext,
             context.findingSink,
@@ -44,7 +44,7 @@ export const qualityTemplate = {
         requires: ['files', 'registry', 'projectContext', 'findingSink', 'sourceReader', 'sourceDocuments'],
         run: (context) =>
           runArchitectureGuardrails(
-            [...context.files.frontFiles, ...context.files.backFiles],
+            context.files.sourceFiles,
             context.registry.rules,
             context.projectContext,
             context.findingSink,

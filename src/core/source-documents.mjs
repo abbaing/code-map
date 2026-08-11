@@ -70,6 +70,7 @@ export function createSourceDocumentStore({ parserRegistry, sourceReader }) {
     resolveReference(file, reference, context) {
       return parserRegistry.parserFor(file)?.resolveReference?.({ file, reference, context })
     },
+    extensionsFor: (file) => Object.freeze([...(parserRegistry.parserFor(file)?.extensions ?? [])]),
     extensions: () => parserRegistry.extensions()
   })
 }
