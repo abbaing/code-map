@@ -79,6 +79,11 @@ const capabilityIds = {
 }
 assertUniqueContracts(templateCatalog, 'template', (template) => {
   assert.equal(typeof template.description, 'string', `template ${template.id} must describe its capability`)
+  assert.equal(
+    Array.isArray(template.requiresTemplates ?? []),
+    true,
+    `template ${template.id} dependencies must be an array`
+  )
   for (const kind of template.capabilities?.fileKinds ?? []) {
     assert.match(kind.id, /\S/u, `template ${template.id} has a file kind without id`)
     assertUniqueCapability(capabilityIds.fileKind, kind.id, 'file kind')

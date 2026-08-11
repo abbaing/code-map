@@ -4,6 +4,7 @@ import { pickRuleMetadata } from '#templates/rule-metadata.mjs'
 export const reactTemplate = {
   id: 'react',
   stage: 'framework',
+  requiresTemplates: ['typescript'],
   description: 'React UI classification, component behavior signals, and React-specific guardrails.',
   layers: [
     { id: 'ui-route', label: 'Routes' },

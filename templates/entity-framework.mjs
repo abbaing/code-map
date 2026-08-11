@@ -3,6 +3,7 @@ import { createBackScanSession, scanDatabase } from '#scanners/scan-back.mjs'
 export const entityFrameworkTemplate = {
   id: 'entity-framework',
   stage: 'data',
+  requiresTemplates: ['csharp'],
   description: 'Entity Framework entities, DbSet declarations, table mappings, and ORM usage.',
   layers: [
     { id: 'domain', label: 'Entities' },

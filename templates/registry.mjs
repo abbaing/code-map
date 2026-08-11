@@ -89,7 +89,7 @@ export async function loadTemplatePlugins(projectMap, configPath, { allow = fals
 }
 
 export function buildTemplateRegistry(projectMap) {
-  const templateIds = resolveTemplateIds(projectMap)
+  const templateIds = expandTemplateDependencies(resolveTemplateIds(projectMap))
   const selected = templateIds.map((id) => {
     const template = templates.get(id)
     if (!template) {
@@ -108,6 +108,7 @@ export function buildTemplateRegistry(projectMap) {
 function normalizeTemplate(template) {
   return {
     ...template,
+    requiresTemplates: template.requiresTemplates ?? [],
     layers: template.layers ?? [],
     types: {
       labels: template.types?.labels ?? {},
@@ -126,6 +127,40 @@ function normalizeTemplate(template) {
     ruleMetadata: template.ruleMetadata ?? {},
     architecture: template.architecture ?? []
   }
+}
+
+function expandTemplateDependencies(templateIds) {
+  const ordered = []
+  const resolved = new Set()
+  const resolving = []
+
+  function visit(id) {
+    if (resolved.has(id)) {
+      return
+    }
+    const cycleIndex = resolving.indexOf(id)
+    if (cycleIndex >= 0) {
+      throw new Error(`Template dependency cycle: ${[...resolving.slice(cycleIndex), id].join(' -> ')}`)
+    }
+    const template = templates.get(id)
+    if (!template) {
+      const owner = resolving.at(-1)
+      const context = owner ? ` required by ${owner}` : ''
+      throw new Error(`Unknown code map template: ${id}${context}`)
+    }
+    resolving.push(id)
+    for (const dependency of template.requiresTemplates) {
+      visit(dependency)
+    }
+    resolving.pop()
+    resolved.add(id)
+    ordered.push(id)
+  }
+
+  for (const id of templateIds) {
+    visit(id)
+  }
+  return ordered
 }
 
 function mergeRegistry(registry, template) {

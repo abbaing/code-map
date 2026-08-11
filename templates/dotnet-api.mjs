@@ -10,6 +10,7 @@ import {
 export const dotnetApiTemplate = {
   id: 'dotnet-api',
   stage: 'backend',
+  requiresTemplates: ['csharp'],
   description: '.NET API controllers, request boundaries, and request handler relationships.',
   layers: [
     { id: 'api-controller', label: 'Controllers' },

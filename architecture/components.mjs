@@ -304,7 +304,7 @@ export const components = [
       'templates/rule-metadata.mjs',
       'templates/typescript.mjs'
     ],
-    contracts: ['Template', 'TemplateRegistry', 'Parser', 'Scanner', 'GraphEnricher', 'FileKind'],
+    contracts: ['Template', 'TemplateDependency', 'TemplateRegistry', 'Parser', 'Scanner', 'GraphEnricher', 'FileKind'],
     compositionRoot: true,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision: 'Validate capabilities at registration and project only their declared required and optional inputs.'
@@ -314,7 +314,7 @@ export const components = [
     responsibility: 'Validate templates, capability registries, and focused capability inputs.',
     role: 'core',
     files: ['templates/contracts.mjs'],
-    contracts: ['Template', 'TemplateRegistry', 'Parser', 'Scanner', 'GraphEnricher', 'FileKind'],
+    contracts: ['Template', 'TemplateDependency', 'TemplateRegistry', 'Parser', 'Scanner', 'GraphEnricher', 'FileKind'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision: 'Keep capability validation and input projection independent from template composition.'

@@ -88,6 +88,17 @@ export function assertTemplate(template) {
   if (template.stage !== undefined) {
     assertNonEmptyString(template.stage, `Template ${template.id} stage`)
   }
+  assertArray(template.requiresTemplates ?? [], `Template ${template.id} dependencies`)
+  const dependencies = template.requiresTemplates ?? []
+  if (
+    dependencies.some((dependency) => typeof dependency !== 'string' || dependency.length === 0) ||
+    new Set(dependencies).size !== dependencies.length
+  ) {
+    throw new TypeError(`Template ${template.id} dependencies must be unique non-empty names.`)
+  }
+  if (dependencies.includes(template.id)) {
+    throw new TypeError(`Template ${template.id} cannot depend on itself.`)
+  }
   assertArray(template.layers ?? [], `Template ${template.id} layers`)
   assertArray(template.architecture ?? [], `Template ${template.id} architecture`)
   assertRecord(template.types ?? {}, `Template ${template.id} types`)

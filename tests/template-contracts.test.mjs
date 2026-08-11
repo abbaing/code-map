@@ -40,6 +40,11 @@ assert.throws(
   () => assertTemplate({ id: 'invalid-shape', description: 'Invalid shape.', capabilities: [] }),
   /capabilities must be an object/u
 )
+assert.throws(
+  () =>
+    assertTemplate({ id: 'self-dependent', description: 'Invalid dependency.', requiresTemplates: ['self-dependent'] }),
+  /cannot depend on itself/u
+)
 
 const capability = {
   id: 'focused',
@@ -71,6 +76,34 @@ const registry = buildTemplateRegistry({ templates: { enabled: ['contract-fixtur
 assert.equal(Object.isFrozen(registry), true)
 assert.equal(Object.isFrozen(registry.capabilities.scanners), true)
 assert.deepEqual(registry.capabilities.scanners[0].requires, ['graph'])
+
+const dotnetRegistry = buildTemplateRegistry({ templates: { enabled: ['dotnet-api'] } })
+assert.deepEqual(dotnetRegistry.templates, ['base', 'csharp', 'dotnet-api'])
+assert.deepEqual(
+  dotnetRegistry.capabilities.parsers.map((parser) => parser.id),
+  ['csharp'],
+  'template dependencies must provide language services before dependent scanners'
+)
+
+const reactRegistry = buildTemplateRegistry({ templates: { enabled: ['react', 'typescript'] } })
+assert.deepEqual(reactRegistry.templates, ['base', 'typescript', 'react'])
+
+registerTemplate({
+  id: 'missing-template-dependency',
+  description: 'References an unavailable template.',
+  requiresTemplates: ['unavailable-template']
+})
+assert.throws(
+  () => buildTemplateRegistry({ templates: { enabled: ['missing-template-dependency'] } }),
+  /Unknown code map template: unavailable-template required by missing-template-dependency/u
+)
+
+registerTemplate({ id: 'cycle-a', description: 'Cycle fixture A.', requiresTemplates: ['cycle-b'] })
+registerTemplate({ id: 'cycle-b', description: 'Cycle fixture B.', requiresTemplates: ['cycle-a'] })
+assert.throws(
+  () => buildTemplateRegistry({ templates: { enabled: ['cycle-a'] } }),
+  /Template dependency cycle: cycle-a -> cycle-b -> cycle-a/u
+)
 
 registerTemplate({
   id: 'duplicate-contract-capability',
