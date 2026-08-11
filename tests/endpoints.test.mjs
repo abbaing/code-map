@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
-import { createEndpointExtractor, extractFrontendEndpoints } from '#parsers/typescript-endpoints.mjs'
+import { createEndpointExtractor } from '#core/endpoints.mjs'
+import { extractFrontendEndpoints } from '#parsers/typescript-endpoints.mjs'
 
 const source = `
   const baseUrl = '/api/users'

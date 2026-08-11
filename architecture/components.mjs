@@ -83,17 +83,28 @@ export const components = [
   },
   {
     id: 'resolution',
-    responsibility: 'Adapt TypeScript and JavaScript syntax, imports, and endpoint evidence to source contracts.',
+    language: 'typescript',
+    responsibility: 'Adapt TypeScript and JavaScript syntax, imports, and endpoint extraction to source contracts.',
     role: 'adapter',
     files: [
       'src/adapters/parsers/typescript.mjs',
       'src/adapters/parsers/typescript-resolver.mjs',
       'src/adapters/parsers/typescript-endpoints.mjs'
     ],
-    contracts: ['Parser', 'ImportResolver', 'EndpointAnalyzer'],
+    contracts: ['Parser', 'ImportResolver', 'EndpointExtractor'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision: 'Contain the TypeScript compiler API and language conventions behind registered parser capabilities.'
+  },
+  {
+    id: 'endpoints',
+    responsibility: 'Normalize, create, deduplicate, match, and connect language-neutral HTTP endpoint evidence.',
+    role: 'core',
+    files: ['src/core/endpoints.mjs'],
+    contracts: ['Endpoint', 'EndpointExtractor', 'EndpointMatcher'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep HTTP graph policy independent from the language adapters that extract endpoint evidence.'
   },
   {
     id: 'source-analysis',
@@ -117,6 +128,7 @@ export const components = [
   },
   {
     id: 'csharp-parser',
+    language: 'csharp',
     responsibility: 'Adapt Tree-sitter C# syntax and declarations to the language-neutral parser contract.',
     role: 'adapter',
     files: ['src/adapters/parsers/csharp.mjs'],
@@ -177,6 +189,7 @@ export const components = [
   },
   {
     id: 'frontend-scanner',
+    language: 'typescript',
     responsibility: 'Extract frontend files, imports, behavior, and endpoint evidence.',
     role: 'adapter',
     files: ['src/scanners/scan-front.mjs'],
@@ -197,6 +210,7 @@ export const components = [
   },
   {
     id: 'backend-scanner',
+    language: 'csharp',
     responsibility: 'Expose the stable backend scanner module surface.',
     role: 'adapter',
     files: ['src/scanners/scan-back.mjs'],
@@ -207,6 +221,7 @@ export const components = [
   },
   {
     id: 'backend-classification-scanner',
+    language: 'csharp',
     responsibility: 'Classify backend source files using configured and semantic evidence.',
     role: 'adapter',
     files: ['src/scanners/scan-back-classification.mjs'],
@@ -217,6 +232,7 @@ export const components = [
   },
   {
     id: 'backend-persistence-scanner',
+    language: 'csharp',
     responsibility: 'Extract backend contexts, entities, tables, domain relationships, and ORM usage.',
     role: 'adapter',
     files: ['src/scanners/scan-back-persistence.mjs'],
@@ -227,6 +243,7 @@ export const components = [
   },
   {
     id: 'backend-session-builder',
+    language: 'csharp',
     responsibility: 'Build and query execution-scoped backend analysis sessions from source declarations.',
     role: 'adapter',
     files: ['src/scanners/scan-back-session.mjs'],
@@ -237,6 +254,7 @@ export const components = [
   },
   {
     id: 'backend-request-scanner',
+    language: 'csharp',
     responsibility: 'Extract controller endpoints, request dispatches, and handler relationships.',
     role: 'adapter',
     files: ['src/scanners/scan-back-requests.mjs'],
@@ -247,6 +265,7 @@ export const components = [
   },
   {
     id: 'backend-dependency-scanner',
+    language: 'csharp',
     responsibility: 'Resolve backend constructor dependencies to concrete or logical graph nodes.',
     role: 'adapter',
     files: ['src/scanners/scan-back-dependencies.mjs'],

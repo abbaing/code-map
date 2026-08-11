@@ -41,6 +41,11 @@ for (const [source, targets] of dependencies) {
   for (const target of targets) {
     const targetComponent = componentByFile.get(target)
     assert.ok(targetComponent, `${relative(target)} must have a component owner`)
+    if (sourceComponent.language && targetComponent.language && sourceComponent.language !== targetComponent.language) {
+      assert.fail(
+        `${relative(source)} (${sourceComponent.language}) must not import ${relative(target)} (${targetComponent.language})`
+      )
+    }
     if (sourceComponent.id === targetComponent.id || allowedRoles.has(targetComponent.role)) {
       continue
     }

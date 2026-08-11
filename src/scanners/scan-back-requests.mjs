@@ -8,7 +8,7 @@ import {
   walkCSharp
 } from '#parsers/csharp.mjs'
 import { featureFromRepoPath } from '#core/classify.mjs'
-import { addEndpoint, normalizeEndpoint } from '#parsers/typescript-endpoints.mjs'
+import { addEndpoint, normalizeEndpoint } from '#core/endpoints.mjs'
 import { displayLabel } from '#core/source-analysis.mjs'
 import { findBackFileByName } from '#scanners/scan-back-session.mjs'
 

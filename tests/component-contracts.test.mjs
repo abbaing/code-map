@@ -22,6 +22,9 @@ for (const component of components) {
   assert.equal(typeof component.responsibility, 'string')
   assert.equal(component.responsibility.trim().length > 0, true, `${component.id} must state one responsibility`)
   assert.equal(roles.has(component.role), true, `${component.id} must declare a recognized architectural role`)
+  if (component.language !== undefined) {
+    assert.match(component.language, /^[a-z][a-z0-9-]*$/u, `${component.id} must declare a stable language id`)
+  }
   assert.equal(typeof component.compositionRoot, 'boolean')
   assert.equal(component.compositionRoot, component.role === 'composition-root')
   assert.equal(Array.isArray(component.contracts) && component.contracts.length > 0, true)

@@ -7,7 +7,8 @@ import {
   walkTypeScript
 } from '#parsers/typescript.mjs'
 import { classifyFront, featureFromRepoPath } from '#core/classify.mjs'
-import { addEndpoint, extractFrontendEndpoints } from '#parsers/typescript-endpoints.mjs'
+import { addEndpoint } from '#core/endpoints.mjs'
+import { extractFrontendEndpoints } from '#parsers/typescript-endpoints.mjs'
 import { resolveTsImport } from '#parsers/typescript-resolver.mjs'
 
 export function detectFrontBehavior(content, parsedSourceFile) {
