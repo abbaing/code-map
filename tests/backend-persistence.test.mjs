@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { Graph } from '#core/graph.mjs'
 import { createParserRegistry, createSourceDocumentStore } from '#core/source-documents.mjs'
-import { csharpParser } from '#parsers/csharp.mjs'
+import { csharpBackendParser } from '#parsers/csharp-backend.mjs'
 import { createBackScanSession, scanDatabase } from '#scanners/scan-back.mjs'
 
 const files = {
@@ -59,7 +59,7 @@ for (const filePath of Object.keys(files)) {
 }
 
 const sourceDocuments = createSourceDocumentStore({
-  parserRegistry: createParserRegistry([csharpParser]),
+  parserRegistry: createParserRegistry([csharpBackendParser]),
   sourceReader
 })
 const session = createBackScanSession(Object.keys(files), sourceDocuments)

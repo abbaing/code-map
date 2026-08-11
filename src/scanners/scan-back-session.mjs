@@ -23,8 +23,8 @@ export function createBackFileSet(files, projectContext) {
 
 export function createBackScanSession(allBackFiles, sourceDocuments) {
   const entries = allBackFiles.map((file) => {
-    const document = sourceDocuments.requireDocumentOf(file)
-    return { file, fileName: path.basename(file), declarations: document.syntax.declarations }
+    const declarations = sourceDocuments.factsOf(file, 'typeDeclarations')
+    return { file, fileName: path.basename(file), declarations }
   })
   return createBackendAnalysisSession(entries)
 }

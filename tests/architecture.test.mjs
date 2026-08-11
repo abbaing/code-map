@@ -98,6 +98,19 @@ for (const file of coreFiles) {
   )
 }
 
+const scannerFiles = components
+  .flatMap((component) => component.files)
+  .filter((file) => file.startsWith('src/scanners/'))
+for (const scannerFile of scannerFiles) {
+  const source = fs.readFileSync(path.join(root, scannerFile), 'utf8')
+  assert.equal(
+    importSpecifiers(source).some((specifier) => specifier.startsWith('#parsers/')),
+    false,
+    `${scannerFile} must consume registered source facts instead of importing a language parser`
+  )
+  assert.doesNotMatch(source, /\.syntax\b/u, `${scannerFile} must treat parsed syntax as opaque`)
+}
+
 const graphSource = fs.readFileSync(path.join(root, 'src/core/graph.mjs'), 'utf8')
 assert.deepEqual(
   importSpecifiers(graphSource),

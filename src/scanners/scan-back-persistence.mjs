@@ -1,14 +1,4 @@
 import path from 'node:path'
-import {
-  csharpArguments,
-  csharpDescendants,
-  csharpInvocationName,
-  csharpName,
-  csharpSimpleTypeName,
-  csharpStringValue,
-  csharpTypeIdentifiers,
-  walkCSharp
-} from '#parsers/csharp.mjs'
 import { featureFromRepoPath } from '#core/classify.mjs'
 import { findBackFileByName } from '#scanners/scan-back-session.mjs'
 
@@ -43,18 +33,7 @@ function extractDbSets(graph, files, projectContext, session, sourceDocuments) {
 
   for (const dbContextPath of findDbContextFiles(files, sourceDocuments)) {
     const dbId = `file:${toRepoPath(dbContextPath)}`
-    const tree = sourceDocuments.requireDocumentOf(dbContextPath).syntax.tree
-    for (const property of csharpDescendants(tree.rootNode, 'property_declaration')) {
-      const type =
-        property.childForFieldName('type') ?? property.namedChildren.find((child) => child.type === 'generic_name')
-      if (type?.type !== 'generic_name' || csharpSimpleTypeName(type) !== 'DbSet') {
-        continue
-      }
-      const entity = csharpDescendants(type, 'type_argument_list').flatMap(csharpTypeIdentifiers)[0]
-      const dbSet = csharpName(property)
-      if (!entity || !dbSet) {
-        continue
-      }
+    for (const { entity, name: dbSet } of sourceDocuments.factsOf(dbContextPath, 'dbSets')) {
       dbSetByEntity.set(entity, dbSet)
       const entityPath = findEntityFile(entity, projectContext, session)
       const entityId = entityPath ? `file:${toRepoPath(entityPath)}` : `entity:${entity}`
@@ -78,13 +57,9 @@ function extractDbSets(graph, files, projectContext, session, sourceDocuments) {
   for (const file of files.filter((file) =>
     toRepoPath(file).includes(projectContext.projectMap.backend.entityConfigurationPathFragment)
   )) {
-    const tree = sourceDocuments.requireDocumentOf(file).syntax.tree
     const configName = path.basename(file, '.cs')
     const entity = configName.replace(/Configuration$/, '')
-    const toTable = csharpDescendants(tree.rootNode, 'invocation_expression').find(
-      (invocation) => csharpInvocationName(invocation) === 'ToTable'
-    )
-    const tableName = csharpStringValue(csharpArguments(toTable)[0])
+    const tableName = sourceDocuments.factsOf(file, 'tableName')
     if (tableName) {
       tableByEntity.set(entity, tableName)
     }
@@ -104,8 +79,7 @@ function extractEntityProperties(graph, entityNodeByName, session, sourceDocumen
     if (!fullPath) {
       continue
     }
-    const tree = sourceDocuments.requireDocumentOf(fullPath).syntax.tree
-    const propertyAnalysis = parseEntityProperties(tree)
+    const propertyAnalysis = sourceDocuments.factsOf(fullPath, 'entityProperties')
     entityPropertiesByName.set(entity, propertyAnalysis)
     graph.addNode(entityId, {
       meta: { domain: { properties: propertyAnalysis.map(({ name, type }) => ({ name, type })) } }
@@ -174,10 +148,9 @@ function extractEntityUsage(
   )
   for (const file of usageFiles) {
     const repoPath = toRepoPath(file)
-    const tree = sourceDocuments.requireDocumentOf(file).syntax.tree
     for (const [entity, entityId] of entityNodeByName) {
       const dbSet = dbSetByEntity.get(entity)
-      const usage = detectEntityUsage(tree.rootNode, entity, dbSet)
+      const usage = sourceDocuments.factsOf(file, 'entityUsage', { entity, dbSet })
       if (!usage) {
         continue
       }
@@ -225,59 +198,7 @@ function extractEntityUsage(
 }
 
 function findDbContextFiles(files, sourceDocuments) {
-  return files.filter((file) => {
-    const document = sourceDocuments.requireDocumentOf(file).syntax
-    const declarations = document.declarations
-    if (declarations.some((declaration) => declaration.baseTypes.includes('DbContext'))) {
-      return true
-    }
-    const tree = document.tree
-    return csharpDescendants(tree.rootNode, 'generic_name').some((node) => csharpSimpleTypeName(node) === 'DbSet')
-  })
-}
-
-function detectEntityUsage(root, entity, dbSet) {
-  let usage = null
-  walkCSharp(root, (node) => {
-    if (usage?.confidence === 'high') {
-      return
-    }
-    if (node.type === 'generic_name') {
-      const name = csharpSimpleTypeName(node)
-      const argumentsList = csharpDescendants(node, 'type_argument_list').flatMap(csharpTypeIdentifiers)
-      if (argumentsList.includes(entity) && name === 'Set') {
-        usage = { reason: `ORM Set<${entity}>`, confidence: 'high', persistence: true }
-      } else if (argumentsList.includes(entity) && ['IRepository', 'IReadRepository', 'Repository'].includes(name)) {
-        usage = { reason: `repository ${entity}`, confidence: 'high', persistence: true }
-      }
-    }
-    if (dbSet && node.type === 'member_access_expression' && node.namedChildren.some((child) => child.text === dbSet)) {
-      usage = { reason: `DbSet ${dbSet}`, confidence: 'high', persistence: true }
-    } else if (!usage && node.type === 'identifier' && node.text === entity) {
-      usage = { reason: `entity ${entity}`, confidence: 'medium', persistence: false }
-    }
-  })
-  return usage
-}
-
-function parseEntityProperties(tree) {
-  const properties = []
-  const seen = new Set()
-  for (const property of csharpDescendants(tree.rootNode, 'property_declaration')) {
-    if (!property.namedChildren.some((child) => child.type === 'modifier' && child.text === 'public')) {
-      continue
-    }
-    const typeNode =
-      property.childForFieldName('type') ?? property.namedChildren.find((child) => child.type !== 'modifier')
-    const name = csharpName(property)
-    const type = typeNode?.text.replace(/\s+/gu, ' ').trim()
-    if (!name || !type || seen.has(name)) {
-      continue
-    }
-    seen.add(name)
-    properties.push({ name, type, typeNames: csharpTypeIdentifiers(typeNode) })
-  }
-  return properties
+  return files.filter((file) => sourceDocuments.factsOf(file, 'backendSemantics').isDbContext)
 }
 
 function entityTypesFromProperty(property, entityNodeByName) {

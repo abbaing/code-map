@@ -5,7 +5,7 @@ import { Graph } from '#core/graph.mjs'
 import { moduleReferencesOf } from '#parsers/typescript.mjs'
 import { createBackScanSession, scanControllers } from '#scanners/scan-back.mjs'
 import { createParserRegistry, createSourceDocumentStore } from '#core/source-documents.mjs'
-import { csharpParser } from '#parsers/csharp.mjs'
+import { csharpBackendParser } from '#parsers/csharp-backend.mjs'
 
 const importCases = [
   {
@@ -164,7 +164,7 @@ function extractControllerEndpoints(source) {
   }
   const graph = new Graph()
   const sourceDocuments = createSourceDocumentStore({
-    parserRegistry: createParserRegistry([csharpParser]),
+    parserRegistry: createParserRegistry([csharpBackendParser]),
     sourceReader
   })
   const session = createBackScanSession([file], sourceDocuments)

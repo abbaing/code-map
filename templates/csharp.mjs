@@ -1,4 +1,5 @@
-import { csharpParser, isCSharpTestFile } from '#parsers/csharp.mjs'
+import { isCSharpTestFile } from '#parsers/csharp.mjs'
+import { csharpBackendParser } from '#parsers/csharp-backend.mjs'
 import { runCSharpArchitectureGuardrails } from '#rules/csharp-architecture-guardrails.mjs'
 
 export const csharpTemplate = {
@@ -6,7 +7,7 @@ export const csharpTemplate = {
   stage: 'technology',
   description: 'C# source discovery and parser services.',
   capabilities: {
-    parsers: [csharpParser],
+    parsers: [csharpBackendParser],
     fileKinds: [
       {
         id: 'backend-source',

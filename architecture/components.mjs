@@ -131,9 +131,10 @@ export const components = [
   {
     id: 'csharp-parser',
     language: 'csharp',
-    responsibility: 'Adapt Tree-sitter C# syntax and declarations to the language-neutral parser contract.',
+    responsibility:
+      'Adapt Tree-sitter C# syntax, declarations, and backend facts to the language-neutral parser contract.',
     role: 'adapter',
-    files: ['src/adapters/parsers/csharp.mjs'],
+    files: ['src/adapters/parsers/csharp.mjs', 'src/adapters/parsers/csharp-backend.mjs'],
     contracts: ['Parser'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
