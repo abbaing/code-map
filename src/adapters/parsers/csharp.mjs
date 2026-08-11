@@ -1,6 +1,6 @@
 import Parser from 'tree-sitter'
 import CSharp from 'tree-sitter-c-sharp/bindings/node/index.js'
-import { isBackTestFile } from '#core/source-analysis.mjs'
+import { normalizePath } from '#core/source-analysis.mjs'
 
 const parser = new Parser()
 parser.setLanguage(CSharp)
@@ -21,6 +21,10 @@ export function stripCSharpComments(content) {
   return content.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
 }
 
+export function isCSharpTestFile(filePath) {
+  return /\/[^/]*\.Tests\//iu.test(normalizePath(filePath))
+}
+
 export function createCSharpDocument(content) {
   const tree = parseCSharp(content)
   return Object.freeze({ tree, declarations: Object.freeze(csharpTypeDeclarationsFromTree(tree)) })
@@ -30,7 +34,7 @@ export const csharpParser = Object.freeze({
   id: 'csharp',
   extensions: Object.freeze(['.cs']),
   parse: (content) => createCSharpDocument(content),
-  isTest: isBackTestFile,
+  isTest: isCSharpTestFile,
   facts: Object.freeze({
     typeDeclarations: (document) => document.syntax.declarations
   })

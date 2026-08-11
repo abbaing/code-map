@@ -4,7 +4,6 @@ export {
   displayLabel,
   escapeRegExp,
   findComponentDirIndex,
-  isBackTestFile,
   kebab,
   normalizePath
 } from '#core/source-analysis.mjs'

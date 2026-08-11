@@ -1,5 +1,4 @@
-import { csharpParser } from '#parsers/csharp.mjs'
-import { isBackTestFile } from '#core/source-analysis.mjs'
+import { csharpParser, isCSharpTestFile } from '#parsers/csharp.mjs'
 
 export const csharpTemplate = {
   id: 'csharp',
@@ -12,7 +11,7 @@ export const csharpTemplate = {
         id: 'backend-source',
         rootKey: 'backend',
         extensions: ['.cs'],
-        test: isBackTestFile,
+        test: isCSharpTestFile,
         includeTests: false
       }
     ]

@@ -4,33 +4,8 @@ import { resolveTsImport } from '#parsers/typescript-resolver.mjs'
 export { ts as typescript }
 
 export const tsExtensions = Object.freeze(['.ts', '.tsx', '.js', '.jsx'])
-export const componentContainerDirs = Object.freeze(['components', 'pages'])
-
-export function findComponentDirIndex(segments) {
-  return Math.max(...componentContainerDirs.map((dir) => segments.indexOf(dir)))
-}
-
 export function isTestFile(filePath) {
   return /\.(spec|test)\.[cm]?[jt]sx?$/u.test(filePath)
-}
-
-export function isBackTestFile(repoPath) {
-  return /\/[^/]*\.Tests\//iu.test(normalizePath(repoPath))
-}
-
-export function displayLabel(repoPath) {
-  const segments = normalizePath(repoPath).split('/').filter(Boolean)
-  const basename = segments.at(-1) ?? ''
-  const name = basename.replace(/\.[^.]+$/u, '')
-  return name === 'index' ? (segments.at(-2) ?? basename) : basename
-}
-
-export function normalizePath(input) {
-  return input.replaceAll('\\', '/')
-}
-
-export function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 export function stripTsComments(content) {
@@ -142,13 +117,6 @@ export const typescriptParser = Object.freeze({
   }),
   resolveReference: ({ file, reference, context }) => resolveTsImport(file, reference, context)
 })
-
-export function kebab(value) {
-  return value
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/[_\s]+/g, '-')
-    .toLowerCase()
-}
 
 function scriptKindOf(fileName) {
   const extension = fileName.toLowerCase().match(/\.[^.]+$/u)?.[0]

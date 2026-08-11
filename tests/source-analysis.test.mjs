@@ -4,12 +4,11 @@ import {
   displayLabel,
   escapeRegExp,
   findComponentDirIndex,
-  isBackTestFile,
   kebab,
   normalizePath
 } from '#core/source-analysis.mjs'
 import { importsOf, isTestFile, moduleReferencesOf, stripTsComments, tsExtensions } from '#parsers/typescript.mjs'
-import { stripCSharpComments, stripCSharpStringLiterals } from '#parsers/csharp.mjs'
+import { isCSharpTestFile, stripCSharpComments, stripCSharpStringLiterals } from '#parsers/csharp.mjs'
 import {
   SourceFileTooLargeError,
   createSourceReader,
@@ -23,8 +22,8 @@ assert.equal(displayLabel('src/features/orders/service.ts'), 'service.ts')
 assert.equal(displayLabel('index.ts'), 'index.ts')
 assert.equal(isTestFile('src/order.spec.tsx'), true)
 assert.equal(isTestFile('src/order.tsx'), false)
-assert.equal(isBackTestFile('src/Demo.Tests/OrderTests.cs'), true)
-assert.equal(isBackTestFile('src\\Demo.Tests\\OrderTests.cs'), true)
+assert.equal(isCSharpTestFile('src/Demo.Tests/OrderTests.cs'), true)
+assert.equal(isCSharpTestFile('src\\Demo.Tests\\OrderTests.cs'), true)
 assert.equal(findComponentDirIndex(['src', 'pages', 'home', 'components', 'card']), 3)
 assert.equal(kebab('OrderHistory_View'), 'order-history-view')
 assert.equal(escapeRegExp('orders[0].id'), 'orders\\[0\\]\\.id')

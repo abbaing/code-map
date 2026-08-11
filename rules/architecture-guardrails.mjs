@@ -5,13 +5,8 @@ import {
   parseCSharp,
   walkCSharp
 } from '#parsers/csharp.mjs'
-import {
-  escapeRegExp,
-  parseTypeScript,
-  typeScriptCallName,
-  typescript as ts,
-  walkTypeScript
-} from '#parsers/typescript.mjs'
+import { parseTypeScript, typeScriptCallName, typescript as ts, walkTypeScript } from '#parsers/typescript.mjs'
+import { escapeRegExp } from '#core/source-analysis.mjs'
 import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from '#rules/rule-runner.mjs'
 
 const stateHooks = new Set(['useState', 'useEffect', 'useMemo', 'useCallback', 'useReducer', 'useRef'])

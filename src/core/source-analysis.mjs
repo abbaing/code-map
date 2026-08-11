@@ -4,10 +4,6 @@ export function findComponentDirIndex(segments) {
   return Math.max(...componentContainerDirs.map((dir) => segments.indexOf(dir)))
 }
 
-export function isBackTestFile(repoPath) {
-  return /\/[^/]*\.Tests\//iu.test(normalizePath(repoPath))
-}
-
 export function displayLabel(repoPath) {
   const segments = normalizePath(repoPath).split('/').filter(Boolean)
   const basename = segments.at(-1) ?? ''
