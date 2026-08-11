@@ -1,5 +1,5 @@
 import { csharpParser, isCSharpTestFile } from '#parsers/csharp.mjs'
-import { runCSharpArchitectureGuardrails } from '#rules/architecture-guardrails.mjs'
+import { runCSharpArchitectureGuardrails } from '#rules/csharp-architecture-guardrails.mjs'
 
 export const csharpTemplate = {
   id: 'csharp',

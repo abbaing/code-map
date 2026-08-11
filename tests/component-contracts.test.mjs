@@ -4,7 +4,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { componentRoles, components, componentStatusValues } from '#architecture/components.mjs'
 import { Graph } from '#core/graph.mjs'
-import { ARCHITECTURE_RULES } from '#rules/architecture-guardrails.mjs'
+import { TYPESCRIPT_ARCHITECTURE_RULES } from '#rules/typescript-architecture-guardrails.mjs'
+import { CSHARP_ARCHITECTURE_RULES } from '#rules/csharp-architecture-guardrails.mjs'
 import { RULES } from '#rules/frontend-guardrails.mjs'
 import { templateCatalog } from '#templates/catalog.mjs'
 
@@ -69,7 +70,7 @@ for (const operation of ['addNode', 'addEdge', 'getNode', 'getEdge', 'hasNode', 
   assert.equal(typeof graph[operation], 'function', `Graph contract is missing ${operation}`)
 }
 
-assertUniqueContracts([...RULES, ...ARCHITECTURE_RULES], 'rule', (rule) => {
+assertUniqueContracts([...RULES, ...TYPESCRIPT_ARCHITECTURE_RULES, ...CSHARP_ARCHITECTURE_RULES], 'rule', (rule) => {
   assert.equal(typeof rule.check, 'function', `rule ${rule.id} must implement check(context)`)
   assert.equal(typeof rule.meta?.severity, 'string', `rule ${rule.id} must declare severity`)
 })

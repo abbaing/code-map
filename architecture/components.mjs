@@ -287,14 +287,26 @@ export const components = [
     decision: 'Rules receive isolated finding and source capabilities through registered enrichers.'
   },
   {
-    id: 'language-rules',
-    responsibility: 'Adapt TypeScript and C# syntax into architectural rule findings.',
+    id: 'typescript-language-rules',
+    language: 'typescript',
+    responsibility: 'Adapt TypeScript syntax into technology, React, and frontend architecture findings.',
     role: 'adapter',
-    files: ['rules/frontend-guardrails.mjs', 'rules/architecture-guardrails.mjs'],
+    files: ['rules/frontend-guardrails.mjs', 'rules/typescript-architecture-guardrails.mjs'],
     contracts: ['Rule'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Keep language AST APIs in optional rule adapters outside the core rule runner.'
+    decision: 'Keep TypeScript AST APIs in an optional language adapter outside the core rule runner.'
+  },
+  {
+    id: 'csharp-language-rules',
+    language: 'csharp',
+    responsibility: 'Adapt C# syntax into backend architecture findings.',
+    role: 'adapter',
+    files: ['rules/csharp-architecture-guardrails.mjs'],
+    contracts: ['Rule'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep C# AST APIs in an optional language adapter outside the core rule runner.'
   },
   {
     id: 'findings',

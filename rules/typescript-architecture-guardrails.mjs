@@ -1,10 +1,3 @@
-import {
-  csharpDescendants,
-  csharpInvocationName,
-  csharpSimpleTypeName,
-  parseCSharp,
-  walkCSharp
-} from '#parsers/csharp.mjs'
 import { parseTypeScript, typeScriptCallName, typescript as ts, walkTypeScript } from '#parsers/typescript.mjs'
 import { escapeRegExp } from '#core/source-analysis.mjs'
 import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from '#rules/rule-runner.mjs'
@@ -12,7 +5,7 @@ import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFi
 const stateHooks = new Set(['useState', 'useEffect', 'useMemo', 'useCallback', 'useReducer', 'useRef'])
 const routingHooks = new Set(['useNavigate', 'useParams', 'useSearchParams', 'useLocation'])
 
-export const ARCHITECTURE_RULES = [
+export const TYPESCRIPT_ARCHITECTURE_RULES = Object.freeze([
   {
     id: 'framework.react.component-folder-entry',
     legacyIds: ['frontend.component-folder-entry'],
@@ -190,101 +183,8 @@ export const ARCHITECTURE_RULES = [
         })
       }
     }
-  },
-  {
-    id: 'architecture.mvc.thin-controller',
-    defaultEnabled: true,
-    meta: {
-      severity: 'warning',
-      category: 'architecture',
-      confidence: 'medium',
-      effort: 'medium',
-      message: 'Controllers should stay thin and delegate behavior to application services or handlers.',
-      why: 'Controllers are request entry points. Business flow belongs in commands, queries, handlers, or application services.',
-      fixHint:
-        'Move branching, persistence, and business logic into application handlers and keep controller actions as request/response adapters.',
-      docsPath: 'docs/backend-rules.md'
-    },
-    check({ nodeId, repoPath, content, syntax, findingSink }) {
-      if (!repoPath.includes('/Controllers/') || !repoPath.endsWith('Controller.cs')) {
-        return
-      }
-      const tree = syntax?.tree ?? parseCSharp(content)
-      const matches = new Map()
-      walkCSharp(tree.rootNode, (node) => {
-        if (
-          (node.type === 'identifier' && ['_dbContext', 'DbContext'].includes(node.text)) ||
-          (node.type === 'generic_name' && csharpSimpleTypeName(node) === 'Set')
-        ) {
-          matches.set('direct persistence access', node.startPosition.row + 1)
-        }
-        if (node.type === 'invocation_expression' && csharpInvocationName(node) === 'SaveChangesAsync') {
-          matches.set('direct save changes', node.startPosition.row + 1)
-        }
-        if (['for_statement', 'for_each_statement', 'while_statement'].includes(node.type)) {
-          matches.set('loop in controller action', node.startPosition.row + 1)
-        }
-        if (node.type === 'if_statement' && csharpDescendants(node, 'await_expression').length >= 2) {
-          matches.set('branch with multiple awaits', node.startPosition.row + 1)
-        }
-      })
-      for (const [evidence, line] of matches) {
-        findingSink.add({
-          ...findingBase(this),
-          nodeId,
-          path: repoPath,
-          line,
-          evidence
-        })
-      }
-    }
-  },
-  {
-    id: 'architecture.clean-architecture.layer-boundaries',
-    defaultEnabled: true,
-    meta: {
-      severity: 'error',
-      category: 'architecture',
-      confidence: 'high',
-      effort: 'medium',
-      message: 'Backend layers must not depend in the wrong direction.',
-      why: 'Clean architecture depends inward. Domain stays pure and outer layers depend on inner boundaries, not the reverse.',
-      fixHint: 'Move shared contracts inward or invert the dependency through application/domain abstractions.',
-      docsPath: 'docs/backend-rules.md'
-    },
-    check({ nodeId, repoPath, content, syntax, projectMapRules, findingSink }) {
-      const forbidden = forbiddenBackendUsings(repoPath, this, projectMapRules)
-      if (forbidden.length === 0) {
-        return
-      }
-      const tree = syntax?.tree ?? parseCSharp(content)
-      const usings = csharpDescendants(tree.rootNode, 'using_directive')
-      for (const item of forbidden) {
-        const using = usings.find((node) => {
-          const namespace = node.namedChildren.at(-1)?.text ?? ''
-          return namespace === item || namespace.startsWith(`${item}.`)
-        })
-        if (!using) {
-          continue
-        }
-        findingSink.add({
-          ...findingBase(this),
-          nodeId,
-          path: repoPath,
-          line: using.startPosition.row + 1,
-          evidence: `using ${item}`
-        })
-      }
-    }
   }
-]
-
-const csharpRuleIds = new Set(['architecture.mvc.thin-controller', 'architecture.clean-architecture.layer-boundaries'])
-
-export const TYPESCRIPT_ARCHITECTURE_RULES = Object.freeze(
-  ARCHITECTURE_RULES.filter((rule) => !csharpRuleIds.has(rule.id))
-)
-export const CSHARP_ARCHITECTURE_RULES = Object.freeze(ARCHITECTURE_RULES.filter((rule) => csharpRuleIds.has(rule.id)))
+])
 
 export function runTypeScriptArchitectureGuardrails(
   files,
@@ -297,25 +197,6 @@ export function runTypeScriptArchitectureGuardrails(
   runArchitectureRules(
     files,
     TYPESCRIPT_ARCHITECTURE_RULES,
-    defaultRules,
-    projectContext,
-    findingSink,
-    sourceReader,
-    sourceDocuments
-  )
-}
-
-export function runCSharpArchitectureGuardrails(
-  files,
-  defaultRules,
-  projectContext,
-  findingSink,
-  sourceReader,
-  sourceDocuments
-) {
-  runArchitectureRules(
-    files,
-    CSHARP_ARCHITECTURE_RULES,
     defaultRules,
     projectContext,
     findingSink,
@@ -338,8 +219,8 @@ function runArchitectureRules(files, rules, defaultRules, projectContext, findin
   )
 }
 
-export function getArchitectureGuardrailMetadata() {
-  return getRuleMetadata(ARCHITECTURE_RULES)
+export function getTypeScriptArchitectureGuardrailMetadata() {
+  return getRuleMetadata(TYPESCRIPT_ARCHITECTURE_RULES)
 }
 
 function orchestrationSignals(content, fileName, syntax) {
@@ -455,29 +336,6 @@ function isUiImport(specifier, rule, projectMapRules) {
   return matchesAny(specifier, patterns)
 }
 
-function forbiddenBackendUsings(repoPath, rule, projectMapRules) {
-  const namespacePrefix = ruleOption(projectMapRules, rule, 'namespacePrefix')
-  const layerRules = ruleOption(projectMapRules, rule, 'layers')
-  if (Array.isArray(layerRules)) {
-    return layerRules
-      .filter((layer) => pathMatches(repoPath, layer.pathPattern))
-      .flatMap((layer) => layer.forbiddenUsings ?? [])
-  }
-  if (!namespacePrefix) {
-    return []
-  }
-  if (repoPath.includes(`/${namespacePrefix}.Domain/`)) {
-    return [`${namespacePrefix}.API`, `${namespacePrefix}.Application`, `${namespacePrefix}.Infrastructure`]
-  }
-  if (repoPath.includes(`/${namespacePrefix}.Application/`)) {
-    return [`${namespacePrefix}.API`]
-  }
-  if (repoPath.includes(`/${namespacePrefix}.Infrastructure/`)) {
-    return [`${namespacePrefix}.API`]
-  }
-  return []
-}
-
 function isAllowedEntryPath(repoPath, rule, projectMapRules) {
   const entryNames = ruleOption(projectMapRules, rule, 'entryNames') ?? ['index.tsx', 'index.jsx']
   return entryNames.some((entryName) => repoPath.endsWith(`/${entryName}`))
@@ -490,10 +348,6 @@ function isPathInRuleScope(repoPath, rule, projectMapRules) {
     return false
   }
   return !(Array.isArray(excludePatterns) && matchesAny(repoPath, excludePatterns))
-}
-
-function pathMatches(value, pattern) {
-  return pattern ? new RegExp(pattern).test(value) : false
 }
 
 function matchesAny(value, patterns) {

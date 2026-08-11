@@ -1,6 +1,6 @@
 import { isTestFile, tsExtensions, typescriptParser } from '#parsers/typescript.mjs'
 import { runFrontendGuardrails } from '#rules/frontend-guardrails.mjs'
-import { runTypeScriptArchitectureGuardrails } from '#rules/architecture-guardrails.mjs'
+import { runTypeScriptArchitectureGuardrails } from '#rules/typescript-architecture-guardrails.mjs'
 import { pickRuleMetadata } from '#templates/rule-metadata.mjs'
 
 export const typescriptTemplate = {
