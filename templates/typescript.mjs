@@ -1,4 +1,6 @@
 import { isTestFile, tsExtensions, typescriptParser } from '#parsers/typescript.mjs'
+import { runFrontendGuardrails } from '#rules/frontend-guardrails.mjs'
+import { runTypeScriptArchitectureGuardrails } from '#rules/architecture-guardrails.mjs'
 import { pickRuleMetadata } from '#templates/rule-metadata.mjs'
 
 export const typescriptTemplate = {
@@ -26,6 +28,31 @@ export const typescriptTemplate = {
         test: isTestFile,
         includeTests: true,
         testsOnly: true
+      }
+    ],
+    enrichers: [
+      {
+        id: 'typescript.guardrails',
+        requires: ['files', 'registry', 'projectContext', 'findingSink', 'sourceReader', 'sourceDocuments'],
+        run: (context) => {
+          const files = context.files.of('frontend-source')
+          runFrontendGuardrails(
+            files,
+            context.registry.rules,
+            context.projectContext,
+            context.findingSink,
+            context.sourceReader,
+            context.sourceDocuments
+          )
+          runTypeScriptArchitectureGuardrails(
+            files,
+            context.registry.rules,
+            context.projectContext,
+            context.findingSink,
+            context.sourceReader,
+            context.sourceDocuments
+          )
+        }
       }
     ]
   }

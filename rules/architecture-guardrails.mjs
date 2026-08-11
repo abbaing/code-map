@@ -279,7 +279,14 @@ export const ARCHITECTURE_RULES = [
   }
 ]
 
-export function runArchitectureGuardrails(
+const csharpRuleIds = new Set(['architecture.mvc.thin-controller', 'architecture.clean-architecture.layer-boundaries'])
+
+export const TYPESCRIPT_ARCHITECTURE_RULES = Object.freeze(
+  ARCHITECTURE_RULES.filter((rule) => !csharpRuleIds.has(rule.id))
+)
+export const CSHARP_ARCHITECTURE_RULES = Object.freeze(ARCHITECTURE_RULES.filter((rule) => csharpRuleIds.has(rule.id)))
+
+export function runTypeScriptArchitectureGuardrails(
   files,
   defaultRules,
   projectContext,
@@ -287,9 +294,40 @@ export function runArchitectureGuardrails(
   sourceReader,
   sourceDocuments
 ) {
+  runArchitectureRules(
+    files,
+    TYPESCRIPT_ARCHITECTURE_RULES,
+    defaultRules,
+    projectContext,
+    findingSink,
+    sourceReader,
+    sourceDocuments
+  )
+}
+
+export function runCSharpArchitectureGuardrails(
+  files,
+  defaultRules,
+  projectContext,
+  findingSink,
+  sourceReader,
+  sourceDocuments
+) {
+  runArchitectureRules(
+    files,
+    CSHARP_ARCHITECTURE_RULES,
+    defaultRules,
+    projectContext,
+    findingSink,
+    sourceReader,
+    sourceDocuments
+  )
+}
+
+function runArchitectureRules(files, rules, defaultRules, projectContext, findingSink, sourceReader, sourceDocuments) {
   runFileRules(
     files,
-    ARCHITECTURE_RULES,
+    rules,
     defaultRules,
     projectContext.projectMap.rules,
     projectContext,

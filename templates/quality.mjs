@@ -1,6 +1,4 @@
 import { applyQualityMetrics, defaultQualityScoringPolicy } from '#core/quality.mjs'
-import { runArchitectureGuardrails } from '#rules/architecture-guardrails.mjs'
-import { runFrontendGuardrails } from '#rules/frontend-guardrails.mjs'
 import { attachFindingsToNodes } from '#rules/findings.mjs'
 
 export const coverageTemplate = {
@@ -27,33 +25,8 @@ export const qualityTemplate = {
         run: (context) => context.trackInternalComponents()
       },
       {
-        id: 'quality.guardrails',
-        requires: ['files', 'registry', 'projectContext', 'findingSink', 'sourceReader', 'sourceDocuments'],
-        run: (context) =>
-          runFrontendGuardrails(
-            context.files.of('frontend-source'),
-            context.registry.rules,
-            context.projectContext,
-            context.findingSink,
-            context.sourceReader,
-            context.sourceDocuments
-          )
-      },
-      {
-        id: 'quality.architecture-guardrails',
-        requires: ['files', 'registry', 'projectContext', 'findingSink', 'sourceReader', 'sourceDocuments'],
-        run: (context) =>
-          runArchitectureGuardrails(
-            context.files.sourceFiles,
-            context.registry.rules,
-            context.projectContext,
-            context.findingSink,
-            context.sourceReader,
-            context.sourceDocuments
-          )
-      },
-      {
         id: 'quality.findings',
+        priority: 1000,
         requires: ['graph', 'findingSource'],
         run: (context) => attachFindingsToNodes(context.graph, context.findingSource.active())
       }

@@ -597,7 +597,10 @@ function phaseRunRegisteredScanners(registry, capabilities) {
 
 function phaseRunRegisteredEnrichers(registry, capabilities, scannerResults) {
   const context = { ...capabilities, ...scannerResults }
-  for (const enricher of registry.capabilities.enrichers) {
+  const enrichers = registry.capabilities.enrichers.toSorted(
+    (left, right) => (left.priority ?? 0) - (right.priority ?? 0)
+  )
+  for (const enricher of enrichers) {
     enricher.run(capabilityInput(enricher, context))
   }
 }

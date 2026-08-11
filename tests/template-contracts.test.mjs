@@ -16,6 +16,15 @@ assert.throws(
 assert.throws(
   () =>
     assertTemplate({
+      id: 'invalid-priority',
+      description: 'Invalid enricher priority.',
+      capabilities: { enrichers: [{ id: 'enricher', requires: [], priority: Number.NaN, run() {} }] }
+    }),
+  /priority must be a finite number/u
+)
+assert.throws(
+  () =>
+    assertTemplate({
       id: 'invalid-parser',
       description: 'Invalid parser fixture.',
       capabilities: { parsers: [{ id: 'parser', extensions: ['.x'] }] }

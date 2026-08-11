@@ -33,6 +33,9 @@ function assertCapability(capability, kind, templateId) {
   if (capability.assign !== undefined) {
     assertNonEmptyString(capability.assign, `${kind} ${capability.id} assignment`)
   }
+  if (capability.priority !== undefined && !Number.isFinite(capability.priority)) {
+    throw new TypeError(`${kind} ${capability.id} priority must be a finite number.`)
+  }
 }
 
 function assertFileKind(kind, templateId) {
