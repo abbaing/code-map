@@ -17,6 +17,12 @@ npm run check
 
 This runs ESLint, verifies formatting with Prettier, and executes the test suite. Use `npm run format` to apply formatting before committing.
 
+Maintained JS, MJS, TypeScript, C#, CSS, HTML, JSON, and YAML files may not exceed 200 physical lines or contain a
+line longer than 200 Unicode characters. JavaScript functions are limited to 60 physical lines, cyclomatic complexity
+12, nesting depth 3, and 5 parameters. Generated lockfiles and generated viewer CSS are excluded. Do not satisfy these
+limits with empty facades, generic `utils` modules, or by moving unrelated behavior together; split by reason to change
+and update component ownership.
+
 Measure the production modules and enforce the repository coverage baseline:
 
 ```bash
@@ -54,6 +60,7 @@ npm run release:check
 - Keep changes focused and explain the user-facing impact.
 - Add or update tests for scanner, CLI, config, or viewer behavior changes.
 - Assign every new production module to a component and satisfy the Definition of Done in [COMPONENTS.md](COMPONENTS.md).
+- Keep new and changed source free of maintainability-debt suppressions; existing ratchet entries may only be removed.
 - Do not include repository-specific rules in generic templates.
 - Keep code-map local-first; do not add telemetry or network calls.
 

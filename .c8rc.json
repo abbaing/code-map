@@ -1,0 +1,15 @@
+{
+  "all": true,
+  "include": [
+    "*.mjs",
+    "architecture/**/*.mjs",
+    "platform/**/*.mjs",
+    "rules/**/*.mjs",
+    "src/**/*.mjs",
+    "submap/**/*.mjs",
+    "templates/**/*.mjs",
+    "viewer/**/*.js",
+    "viewer/**/*.mjs"
+  ],
+  "reporter": ["text", "json-summary"]
+}

@@ -19,6 +19,10 @@ export default [
     rules: {
       curly: 'error',
       eqeqeq: ['error', 'always', { null: 'ignore' }],
+      complexity: ['error', 12],
+      'max-depth': ['error', 3],
+      'max-lines-per-function': ['error', { max: 60, skipBlankLines: false, skipComments: false, IIFEs: true }],
+      'max-params': ['error', 5],
       'no-console': 'off',
       'no-restricted-imports': [
         'error',

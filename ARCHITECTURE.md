@@ -37,12 +37,18 @@ graph.json → viewer
 
 ## Component design policy
 
-- **Cohesion:** split a file only when it owns different reasons to change, not because of line count.
+- **Cohesion:** every module owns one reason to change and stays within the enforced size and function-complexity limits.
+  Meeting a metric by introducing empty facades, generic utility dumping grounds, or relocated mixed responsibilities is
+  prohibited.
 - **Extensibility:** add scanners and enrichers through templates, rules through rule metadata, and submap behavior through its public functions.
 - **Behavioral contracts:** capability implementations must honor their registry contracts and return the documented graph data.
 - **Minimal capabilities:** public entry points export focused functions; adapters consume only the methods they need.
 - **Dependency direction:** delivery adapters depend inward on application/core modules. Core modules never import CLI, HTTP, viewer, or tests.
 
 `tests/architecture.test.mjs` enforces dependency direction, an independent `Graph`, the HTTP/application boundary, browser isolation, and an acyclic production graph. The role matrix and the exact ratcheted set of inherited dependency edges live in `architecture/dependency-policy.mjs`; adding an unapproved edge or retaining a stale exception fails the suite.
+
+`tests/code-standards.test.mjs` enforces source size and line length for all maintained machine-readable files. ESLint
+enforces bounded function size, complexity, nesting, and parameters. The temporary debt inventories are ratchets only:
+they must shrink with every structural batch and are removed when the cleanup is complete.
 
 The complete component inventory, structural contracts, composition roots, current gaps, and Definition of Done are maintained in [COMPONENTS.md](COMPONENTS.md). `tests/component-contracts.test.mjs` ensures every executable production module has exactly one declared component owner.

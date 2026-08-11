@@ -1,0 +1,66 @@
+{
+  "rules/csharp-architecture-guardrails.mjs": { "max-params": { "count": 1 } },
+  "rules/frontend-guardrails.mjs": { "max-params": { "count": 1 } },
+  "rules/rule-runner.mjs": { "max-params": { "count": 1 } },
+  "rules/typescript-architecture-guardrails.mjs": { "max-params": { "count": 2 } },
+  "server.mjs": { "complexity": { "count": 2 } },
+  "src/adapters/parsers/csharp-backend.mjs": { "complexity": { "count": 1 } },
+  "src/adapters/parsers/typescript-frontend.mjs": { "complexity": { "count": 1 } },
+  "src/adapters/parsers/typescript-resolver.mjs": { "max-params": { "count": 1 } },
+  "src/application/cli-commands.mjs": {
+    "complexity": { "count": 1 },
+    "max-lines-per-function": { "count": 1 }
+  },
+  "src/application/scan.mjs": { "complexity": { "count": 2 }, "max-lines-per-function": { "count": 1 } },
+  "src/application/server-app.mjs": {
+    "complexity": { "count": 2 },
+    "max-lines-per-function": { "count": 1 }
+  },
+  "src/core/backend-analysis-session.mjs": { "complexity": { "count": 1 } },
+  "src/core/classify.mjs": { "complexity": { "count": 1 } },
+  "src/core/config.mjs": { "complexity": { "count": 3 }, "max-lines-per-function": { "count": 2 } },
+  "src/core/detect.mjs": { "max-depth": { "count": 3 }, "max-lines-per-function": { "count": 1 } },
+  "src/core/graph.mjs": { "complexity": { "count": 2 }, "max-lines-per-function": { "count": 1 } },
+  "src/core/quality.mjs": { "max-lines-per-function": { "count": 1 }, "max-params": { "count": 1 } },
+  "src/core/scan-utils.mjs": { "complexity": { "count": 1 }, "max-depth": { "count": 1 } },
+  "src/scanners/scan-back-dependencies.mjs": { "complexity": { "count": 1 } },
+  "src/scanners/scan-back-persistence.mjs": {
+    "max-depth": { "count": 1 },
+    "max-lines-per-function": { "count": 1 },
+    "max-params": { "count": 1 }
+  },
+  "src/scanners/scan-back-requests.mjs": {
+    "max-lines-per-function": { "count": 1 },
+    "max-params": { "count": 1 }
+  },
+  "src/scanners/scan-front.mjs": { "max-lines-per-function": { "count": 1 } },
+  "submap/cli.mjs": { "max-lines-per-function": { "count": 1 } },
+  "submap/create.mjs": { "complexity": { "count": 1 }, "max-lines-per-function": { "count": 1 } },
+  "submap/digest.mjs": { "complexity": { "count": 1 } },
+  "submap/selectors.mjs": { "complexity": { "count": 1 } },
+  "submap/validate.mjs": { "complexity": { "count": 2 }, "max-lines-per-function": { "count": 2 } },
+  "templates/contracts.mjs": { "complexity": { "count": 1 } },
+  "templates/registry.mjs": { "complexity": { "count": 1 } },
+  "tests/cli-smoke.test.mjs": { "max-depth": { "count": 1 }, "max-lines-per-function": { "count": 1 } },
+  "tests/component-contracts.test.mjs": { "complexity": { "count": 1 } },
+  "tests/generic-templates.test.mjs": { "max-lines-per-function": { "count": 1 } },
+  "tests/submap.test.mjs": { "max-params": { "count": 1 } },
+  "viewer/viewer-actions.js": { "max-lines-per-function": { "count": 1 } },
+  "viewer/viewer-data.js": { "complexity": { "count": 1 }, "max-lines-per-function": { "count": 1 } },
+  "viewer/viewer-graph.js": { "complexity": { "count": 1 } },
+  "viewer/viewer-init.js": { "max-lines-per-function": { "count": 1 } },
+  "viewer/viewer-interactions.mjs": {
+    "complexity": { "count": 1 },
+    "max-lines-per-function": { "count": 2 }
+  },
+  "viewer/viewer-layouts.js": {
+    "complexity": { "count": 4 },
+    "max-depth": { "count": 5 },
+    "max-lines-per-function": { "count": 5 }
+  },
+  "viewer/viewer-overview.js": { "complexity": { "count": 1 } },
+  "viewer/viewer-selection.js": { "complexity": { "count": 3 } },
+  "viewer/viewer-state.js": { "max-lines-per-function": { "count": 1 } },
+  "viewer/viewer-svg.js": { "complexity": { "count": 1 }, "max-params": { "count": 1 } },
+  "viewer/viewer-trace.js": { "complexity": { "count": 6 }, "max-lines-per-function": { "count": 3 } }
+}

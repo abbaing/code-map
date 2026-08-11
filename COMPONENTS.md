@@ -109,5 +109,7 @@ A new or materially changed component is complete only when:
 6. extension points reject malformed implementations before execution;
 7. architecture, contract, behavior, and coverage tests pass;
 8. documentation names any public contract or compatibility impact.
+9. authored files and functions pass the repository size, line-length, complexity, nesting, and parameter fitness checks;
+10. a split follows distinct reasons to change and does not introduce empty facades or generic utility dumping grounds.
 
 The architecture and component contract suites enforce the dependency fitness functions, complete ownership inventory, and required `pass` status for every applicable design quality.

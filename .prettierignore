@@ -2,3 +2,4 @@ node_modules/
 coverage/
 *.tgz
 viewer/tailwind.css
+eslint-suppressions.json
