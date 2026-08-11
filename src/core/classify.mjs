@@ -1,37 +1,6 @@
 import { kebab, findComponentDirIndex } from '#core/source-analysis.mjs'
-
-export function createSourceClassifier(strategies) {
-  if (!Array.isArray(strategies) || strategies.length === 0) {
-    throw new TypeError('SourceClassifier strategies must be a non-empty array.')
-  }
-  const ids = new Set()
-  const ordered = strategies.map((strategy) => {
-    if (!strategy || typeof strategy.id !== 'string' || typeof strategy.classify !== 'function') {
-      throw new TypeError('SourceClassifier strategies must declare id and classify(path, context).')
-    }
-    if (ids.has(strategy.id)) {
-      throw new TypeError(`Duplicate SourceClassifier strategy id: ${strategy.id}.`)
-    }
-    ids.add(strategy.id)
-    return Object.freeze({ id: strategy.id, classify: strategy.classify.bind(strategy) })
-  })
-
-  return Object.freeze({
-    classify(repoPath, projectContext) {
-      for (const strategy of ordered) {
-        const result = strategy.classify(repoPath, projectContext)
-        if (result === null || result === undefined) {
-          continue
-        }
-        if (!Array.isArray(result) || result.length !== 2 || result.some((value) => typeof value !== 'string')) {
-          throw new TypeError(`SourceClassifier strategy ${strategy.id} returned an invalid classification.`)
-        }
-        return result
-      }
-      throw new Error(`SourceClassifier did not classify ${repoPath}.`)
-    }
-  })
-}
+import { createSourceClassifier } from '#core/classifier-registry.mjs'
+export { createSourceClassifier } from '#core/classifier-registry.mjs'
 
 export function featureFromRepoPath(repoPath, projectContext) {
   const projectMap = projectContext.projectMap
@@ -113,32 +82,33 @@ function classifyFrontendComponentTree(repoPath, projectContext) {
     ((isInComponents || isInPages) && relativeSegments.length > 2)
 
   if (isInPages) {
-    if (isSubComponent) {
-      return ['subcomponent', 'ui-component-logic']
-    }
-    const isPageFile = relativeSegments.length === 1 && basename !== 'index'
-    const isPageDirectoryIndex = relativeSegments.length === 2 && basename === 'index'
-    if (isPageFile || isPageDirectoryIndex) {
-      return ['page', classifier?.layer ?? 'ui-page']
-    }
-    return ['auxiliary', 'auxiliary']
+    return classifyPage(relativeSegments, basename, isSubComponent, classifier)
   }
-
-  if (isInComponents) {
-    const componentName = relativeSegments[0] ?? fileStem(repoPath)
-    const mainPattern = new RegExp(projectMap.frontend.componentMainNamePattern, 'u')
-    const isMainComponent =
-      isTopLevelComponentIndex(relativeSegments, repoPath) &&
-      (mainPattern.test(componentName) || componentName.endsWith('Main'))
-    if (isMainComponent) {
-      return ['main-component', 'ui-main-component']
-    }
+  if (isInComponents && isMainComponent(relativeSegments, repoPath, projectMap)) {
+    return ['main-component', 'ui-main-component']
   }
-
   if (isSubComponent) {
     return ['subcomponent', 'ui-component-logic']
   }
   return isInComponents ? ['component', 'ui-component-logic'] : null
+}
+
+function classifyPage(relativeSegments, basename, isSubComponent, classifier) {
+  if (isSubComponent) {
+    return ['subcomponent', 'ui-component-logic']
+  }
+  const isPageFile = relativeSegments.length === 1 && basename !== 'index'
+  const isDirectoryIndex = relativeSegments.length === 2 && basename === 'index'
+  return isPageFile || isDirectoryIndex ? ['page', classifier?.layer ?? 'ui-page'] : ['auxiliary', 'auxiliary']
+}
+
+function isMainComponent(relativeSegments, repoPath, projectMap) {
+  const componentName = relativeSegments[0] ?? fileStem(repoPath)
+  const pattern = new RegExp(projectMap.frontend.componentMainNamePattern, 'u')
+  return (
+    isTopLevelComponentIndex(relativeSegments, repoPath) &&
+    (pattern.test(componentName) || componentName.endsWith('Main'))
+  )
 }
 
 function classifyConfiguredFrontend(repoPath, projectContext) {

@@ -1,0 +1,63 @@
+import { designStatus } from '#architecture/component-model.mjs'
+
+export const viewerComponents = [
+  {
+    id: 'viewer-state-data',
+    responsibility: 'Own browser state, graph loading, filtering, labels, and shared UI utilities.',
+    role: 'adapter',
+    files: [
+      'viewer/graph-gateway.mjs',
+      'viewer/viewer-state.js',
+      'viewer/viewer-store.mjs',
+      'viewer/viewer-data.js',
+      'viewer/viewer-utils.js'
+    ],
+    contracts: ['ViewerStore', 'GraphGateway'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep state store-owned and route browser effects through explicitly configured module boundaries.'
+  },
+  {
+    id: 'viewer-trace',
+    responsibility: 'Calculate execution traces and trace-focused layouts.',
+    role: 'core',
+    files: ['viewer/trace-strategy.mjs', 'viewer/viewer-trace.js'],
+    contracts: ['TraceStrategy'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep trace calculation pure by passing graph data, visible nodes, labels, and view mode explicitly.'
+  },
+  {
+    id: 'viewer-rendering',
+    responsibility: 'Lay out graph views and render graph primitives as SVG.',
+    role: 'adapter',
+    files: [
+      'viewer/rendering-contracts.mjs',
+      'viewer/viewer-graph.js',
+      'viewer/viewer-layouts.js',
+      'viewer/viewer-svg.js'
+    ],
+    contracts: ['LayoutStrategy', 'NodeRenderer', 'EdgeRenderer'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep view coordination, layout algorithms, and SVG primitives in focused registered modules.'
+  },
+  {
+    id: 'viewer-ui',
+    responsibility: 'Coordinate browser interactions and render overview, selection, findings, and management views.',
+    role: 'composition-root',
+    files: [
+      'viewer/view-controller.mjs',
+      'viewer/viewer-actions.js',
+      'viewer/viewer-findings.js',
+      'viewer/viewer-init.js',
+      'viewer/viewer-interactions.mjs',
+      'viewer/viewer-overview.js',
+      'viewer/viewer-selection.js'
+    ],
+    contracts: ['ViewerStore', 'ViewController', 'ViewerUiController', 'GraphGateway'],
+    compositionRoot: true,
+    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
+    decision: 'Keep viewer-init as the composition root and inject browser capabilities into the UI controller.'
+  }
+]

@@ -111,7 +111,7 @@ for (const scannerFile of scannerFiles) {
   assert.doesNotMatch(source, /\.syntax\b/u, `${scannerFile} must treat parsed syntax as opaque`)
 }
 
-const graphSource = fs.readFileSync(path.join(root, 'src/core/graph.mjs'), 'utf8')
+const graphSource = fs.readFileSync(path.join(root, 'src/core/graph-model.mjs'), 'utf8')
 assert.deepEqual(
   importSpecifiers(graphSource),
   [],

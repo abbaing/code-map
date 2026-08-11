@@ -16,13 +16,7 @@
     "complexity": { "count": 2 },
     "max-lines-per-function": { "count": 1 }
   },
-  "src/core/backend-analysis-session.mjs": { "complexity": { "count": 1 } },
-  "src/core/classify.mjs": { "complexity": { "count": 1 } },
-  "src/core/config.mjs": { "complexity": { "count": 3 }, "max-lines-per-function": { "count": 2 } },
-  "src/core/detect.mjs": { "max-depth": { "count": 3 }, "max-lines-per-function": { "count": 1 } },
-  "src/core/graph.mjs": { "complexity": { "count": 2 }, "max-lines-per-function": { "count": 1 } },
   "src/core/quality.mjs": { "max-lines-per-function": { "count": 1 }, "max-params": { "count": 1 } },
-  "src/core/scan-utils.mjs": { "complexity": { "count": 1 }, "max-depth": { "count": 1 } },
   "src/scanners/scan-back-dependencies.mjs": { "complexity": { "count": 1 } },
   "src/scanners/scan-back-persistence.mjs": {
     "max-depth": { "count": 1 },

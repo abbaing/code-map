@@ -1,6 +1,5 @@
 {
   "files": {
-    "architecture/components.mjs": 583,
     "rules/frontend-guardrails.mjs": 211,
     "rules/typescript-architecture-guardrails.mjs": 361,
     "server.mjs": 442,
@@ -9,8 +8,6 @@
     "src/application/cli-commands.mjs": 212,
     "src/application/scan.mjs": 649,
     "src/application/server-app.mjs": 255,
-    "src/core/config.mjs": 454,
-    "src/core/detect.mjs": 664,
     "src/core/quality.mjs": 273,
     "src/scanners/scan-back-persistence.mjs": 225,
     "submap/cli.mjs": 449,
