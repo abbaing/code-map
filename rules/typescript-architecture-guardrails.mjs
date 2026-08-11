@@ -1,6 +1,12 @@
-import { parseTypeScript, typeScriptCallName, typescript as ts, walkTypeScript } from '#parsers/typescript.mjs'
 import { escapeRegExp } from '#core/source-analysis.mjs'
-import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from '#rules/rule-runner.mjs'
+import {
+  importsOf,
+  parseTypeScript,
+  typeScriptCallName,
+  typescript as ts,
+  walkTypeScript
+} from '#parsers/typescript.mjs'
+import { findingBase, getRuleMetadata, lineOfIndex, ruleOption, runFileRules } from '#rules/rule-runner.mjs'
 
 const stateHooks = new Set(['useState', 'useEffect', 'useMemo', 'useCallback', 'useReducer', 'useRef'])
 const routingHooks = new Set(['useNavigate', 'useParams', 'useSearchParams', 'useLocation'])

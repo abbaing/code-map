@@ -1,5 +1,11 @@
-import { findingBase, getRuleMetadata, importsOf, lineOfIndex, ruleOption, runFileRules } from '#rules/rule-runner.mjs'
-import { parseTypeScript, typeScriptCallName, typescript as ts, walkTypeScript } from '#parsers/typescript.mjs'
+import {
+  importsOf,
+  parseTypeScript,
+  typeScriptCallName,
+  typescript as ts,
+  walkTypeScript
+} from '#parsers/typescript.mjs'
+import { findingBase, getRuleMetadata, lineOfIndex, ruleOption, runFileRules } from '#rules/rule-runner.mjs'
 
 // Rule interface: { id, defaultEnabled, meta, check(nodeId, repoPath, content, type, projectMap) }
 

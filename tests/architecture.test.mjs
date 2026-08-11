@@ -156,6 +156,7 @@ function resolveLocalSpecifier(specifier) {
     ['#core/', 'src/core/'],
     ['#entry/', ''],
     ['#node/', 'src/adapters/node/'],
+    ['#parsers/', 'src/adapters/parsers/'],
     ['#platform/', 'platform/'],
     ['#rules/', 'rules/'],
     ['#scanners/', 'src/scanners/'],

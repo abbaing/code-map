@@ -1,4 +1,4 @@
-import { tsExtensions } from '#parsers/typescript.mjs'
+import { tsExtensions } from '#parsers/typescript-files.mjs'
 
 export function aliases(projectContext) {
   return projectContext.projectMap.imports.aliases.map((alias) => [

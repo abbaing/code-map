@@ -1,4 +1,3 @@
-import { importsOf } from '#parsers/typescript.mjs'
 import { classifyFront } from '#core/classify.mjs'
 
 export function runFileRules(
@@ -76,8 +75,6 @@ export function findingBase(rule) {
 export function lineOfIndex(content, index = 0) {
   return content.slice(0, index).split(/\r?\n/).length
 }
-
-export { importsOf }
 
 function classifySource(repoPath, projectContext) {
   const [type, layer] = classifyFront(repoPath, projectContext)

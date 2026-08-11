@@ -1,12 +1,9 @@
 import ts from 'typescript'
+import { isTestFile, tsExtensions } from '#parsers/typescript-files.mjs'
 import { resolveTsImport } from '#parsers/typescript-resolver.mjs'
 
 export { ts as typescript }
-
-export const tsExtensions = Object.freeze(['.ts', '.tsx', '.js', '.jsx'])
-export function isTestFile(filePath) {
-  return /\.(spec|test)\.[cm]?[jt]sx?$/u.test(filePath)
-}
+export { isTestFile, tsExtensions } from '#parsers/typescript-files.mjs'
 
 export function stripTsComments(content) {
   return content.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
