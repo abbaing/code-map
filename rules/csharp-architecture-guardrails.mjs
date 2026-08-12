@@ -89,14 +89,8 @@ export const CSHARP_ARCHITECTURE_RULES = Object.freeze([
   }
 ])
 
-export function runCSharpArchitectureGuardrails(
-  files,
-  defaultRules,
-  projectContext,
-  findingSink,
-  sourceReader,
-  sourceDocuments
-) {
+export function runCSharpArchitectureGuardrails(...args) {
+  const [files, defaultRules, projectContext, findingSink, sourceReader, sourceDocuments] = args
   runFileRules(
     files,
     CSHARP_ARCHITECTURE_RULES,

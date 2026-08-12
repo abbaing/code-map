@@ -4,78 +4,83 @@ import { addEndpoint, normalizeEndpoint } from '#core/endpoints.mjs'
 import { displayLabel } from '#core/source-analysis.mjs'
 import { findBackFileByName } from '#scanners/scan-back-session.mjs'
 
-export function scanControllers(graph, files, projectContext, session, sourceDocuments) {
-  const { toRepoPath } = projectContext
+export function scanControllers(...args) {
+  const [graph, files, projectContext, session, sourceDocuments] = args
   const endpoints = []
 
   for (const file of files) {
-    const repoPath = toRepoPath(file)
-    const controller = sourceDocuments.factsOf(file, 'controller')
-    const module = featureFromRepoPath(repoPath, projectContext)
-    const id = `file:${repoPath}`
-    const controllerName = controller.name ?? path.basename(file, '.cs')
-
-    graph.addNode(id, {
-      label: displayLabel(repoPath),
-      type: 'controller',
-      layer: 'api-controller',
-      module,
-      path: repoPath
-    })
-
-    const baseRoute = normalizeEndpoint(`/${controller.route ?? ''}`)
-    if (!baseRoute) {
-      continue
-    }
-
-    for (const action of controller.actions) {
-      const fullUrl = normalizeEndpoint(`${baseRoute}/${action.route}`)
-      if (!fullUrl) {
-        continue
-      }
-      const endpoint = addEndpoint(graph, fullUrl, action.method, module)
-      graph.addNode(endpoint, {
-        meta: {
-          url: fullUrl,
-          method: action.method,
-          backend: { action: action.name, controller: controllerName, path: repoPath }
-        }
-      })
-      endpoints.push({
-        id: endpoint,
-        url: fullUrl,
-        method: action.method,
-        controllerId: id,
-        action: action.name
-      })
-      graph.addEdge(endpoint, id, 'handled-by', {
-        confidence: 'high',
-        source: 'dotnet-controller-route',
-        evidence: `${action.method} ${fullUrl}`
-      })
-      for (const requestName of action.dispatchedRequests) {
-        linkRequest(
-          graph,
-          endpoint,
-          requestName,
-          module,
-          'high',
-          `${controllerName}.${action.name}`,
-          projectContext,
-          session
-        )
-      }
-    }
+    scanControllerFile(file, { graph, projectContext, session, sourceDocuments, endpoints })
   }
 
   return endpoints
+}
+
+function scanControllerFile(file, { graph, projectContext, session, sourceDocuments, endpoints }) {
+  const { toRepoPath } = projectContext
+  const repoPath = toRepoPath(file)
+  const controller = sourceDocuments.factsOf(file, 'controller')
+  const module = featureFromRepoPath(repoPath, projectContext)
+  const id = `file:${repoPath}`
+  const controllerName = controller.name ?? path.basename(file, '.cs')
+
+  graph.addNode(id, {
+    label: displayLabel(repoPath),
+    type: 'controller',
+    layer: 'api-controller',
+    module,
+    path: repoPath
+  })
+
+  const baseRoute = normalizeEndpoint(`/${controller.route ?? ''}`)
+  if (!baseRoute) {
+    return
+  }
+
+  for (const action of controller.actions) {
+    const fullUrl = normalizeEndpoint(`${baseRoute}/${action.route}`)
+    if (!fullUrl) {
+      continue
+    }
+    const endpoint = addEndpoint(graph, fullUrl, action.method, module)
+    graph.addNode(endpoint, {
+      meta: {
+        url: fullUrl,
+        method: action.method,
+        backend: { action: action.name, controller: controllerName, path: repoPath }
+      }
+    })
+    endpoints.push({
+      id: endpoint,
+      url: fullUrl,
+      method: action.method,
+      controllerId: id,
+      action: action.name
+    })
+    graph.addEdge(endpoint, id, 'handled-by', {
+      confidence: 'high',
+      source: 'dotnet-controller-route',
+      evidence: `${action.method} ${fullUrl}`
+    })
+    for (const requestName of action.dispatchedRequests) {
+      linkRequest({
+        graph,
+        sourceId: endpoint,
+        requestName,
+        module,
+        confidence: 'high',
+        source: `${controllerName}.${action.name}`,
+        projectContext,
+        session
+      })
+    }
+  }
 }
 
 function isRequestName(name) {
   return typeof name === 'string' && (name.endsWith('Query') || name.endsWith('Command'))
 }
 
-function linkRequest(graph, sourceId, requestName, module, confidence, source, projectContext, session) {
+function linkRequest({ graph, sourceId, requestName, module, confidence, source, projectContext, session }) {
   const requestPath = findBackFileByName(session, `${requestName}.cs`, module, projectContext)
   const target = requestPath ? `file:${projectContext.toRepoPath(requestPath)}` : `request:${requestName}`
   graph.addNode(target, {
@@ -93,7 +98,8 @@ function linkRequest(graph, sourceId, requestName, module, confidence, source, p
   })
 }
 
-export function scanRequestDispatches(graph, files, projectContext, session, sourceDocuments) {
+export function scanRequestDispatches(...args) {
+  const [graph, files, projectContext, session, sourceDocuments] = args
   const { toRepoPath } = projectContext
   const controllerFragment = projectContext.projectMap.backend?.controllerPathFragment ?? '/Controllers/'
   for (const file of files) {
@@ -111,7 +117,7 @@ export function scanRequestDispatches(graph, files, projectContext, session, sou
       if (!isRequestName(requestName) || requestName === ownRequest) {
         continue
       }
-      linkRequest(graph, id, requestName, module, 'medium', undefined, projectContext, session)
+      linkRequest({ graph, sourceId: id, requestName, module, confidence: 'medium', projectContext, session })
     }
   }
 }

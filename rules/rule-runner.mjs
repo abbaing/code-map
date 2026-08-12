@@ -1,16 +1,19 @@
 import { classifyFront } from '#core/classify.mjs'
 
-export function runFileRules(
-  files,
-  rules,
-  defaultRules,
-  repoRules,
-  projectContext,
-  findingSink,
-  classify = classifySource,
-  sourceReader = projectContext.sourceReader,
-  sourceDocuments
-) {
+export function runFileRules(...args) {
+  const [
+    files,
+    rules,
+    defaultRules,
+    repoRules,
+    projectContext,
+    findingSink,
+    suppliedClassifier,
+    suppliedReader,
+    sourceDocuments
+  ] = args
+  const classify = suppliedClassifier ?? classifySource
+  const sourceReader = suppliedReader ?? projectContext.sourceReader
   if (!findingSink || typeof findingSink.add !== 'function') {
     throw new TypeError('Rule execution requires a finding sink.')
   }

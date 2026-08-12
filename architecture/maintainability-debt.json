@@ -1,16 +1,10 @@
 {
   "files": {
-    "rules/frontend-guardrails.mjs": 211,
-    "rules/typescript-architecture-guardrails.mjs": 361,
-    "src/adapters/parsers/csharp-backend.mjs": 266,
-    "src/adapters/parsers/typescript-endpoints.mjs": 235,
-    "src/scanners/scan-back-persistence.mjs": 225,
     "submap/cli.mjs": 449,
     "submap/create.mjs": 243,
     "submap/index.d.ts": 226,
     "submap/selectors.mjs": 224,
     "submap/validate.mjs": 327,
-    "templates/registry.mjs": 226,
     "tests/architecture.test.mjs": 220,
     "tests/cli-smoke.test.mjs": 680,
     "tests/core-critical.test.mjs": 311,

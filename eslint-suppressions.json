@@ -1,29 +1,9 @@
 {
-  "rules/csharp-architecture-guardrails.mjs": { "max-params": { "count": 1 } },
-  "rules/frontend-guardrails.mjs": { "max-params": { "count": 1 } },
-  "rules/rule-runner.mjs": { "max-params": { "count": 1 } },
-  "rules/typescript-architecture-guardrails.mjs": { "max-params": { "count": 2 } },
-  "src/adapters/parsers/csharp-backend.mjs": { "complexity": { "count": 1 } },
-  "src/adapters/parsers/typescript-frontend.mjs": { "complexity": { "count": 1 } },
-  "src/adapters/parsers/typescript-resolver.mjs": { "max-params": { "count": 1 } },
-  "src/scanners/scan-back-dependencies.mjs": { "complexity": { "count": 1 } },
-  "src/scanners/scan-back-persistence.mjs": {
-    "max-depth": { "count": 1 },
-    "max-lines-per-function": { "count": 1 },
-    "max-params": { "count": 1 }
-  },
-  "src/scanners/scan-back-requests.mjs": {
-    "max-lines-per-function": { "count": 1 },
-    "max-params": { "count": 1 }
-  },
-  "src/scanners/scan-front.mjs": { "max-lines-per-function": { "count": 1 } },
   "submap/cli.mjs": { "max-lines-per-function": { "count": 1 } },
   "submap/create.mjs": { "complexity": { "count": 1 }, "max-lines-per-function": { "count": 1 } },
   "submap/digest.mjs": { "complexity": { "count": 1 } },
   "submap/selectors.mjs": { "complexity": { "count": 1 } },
   "submap/validate.mjs": { "complexity": { "count": 2 }, "max-lines-per-function": { "count": 2 } },
-  "templates/contracts.mjs": { "complexity": { "count": 1 } },
-  "templates/registry.mjs": { "complexity": { "count": 1 } },
   "tests/cli-smoke.test.mjs": { "max-depth": { "count": 1 }, "max-lines-per-function": { "count": 1 } },
   "tests/component-contracts.test.mjs": { "complexity": { "count": 1 } },
   "tests/generic-templates.test.mjs": { "max-lines-per-function": { "count": 1 } },

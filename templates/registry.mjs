@@ -1,7 +1,15 @@
-import path from 'node:path'
-import { pathToFileURL } from 'node:url'
 import { templateCatalog } from '#templates/catalog.mjs'
-import { assertCapabilityRegistry, assertTemplate, deepFreeze } from '#templates/contracts.mjs'
+import { assertCapabilityRegistry, deepFreeze } from '#templates/contracts.mjs'
+import {
+  getTemplate,
+  listTemplates,
+  normalizeTemplate,
+  registerTemplate,
+  templateEntries
+} from '#templates/template-store.mjs'
+import { expandTemplateDependencies, resolveTemplateIds } from '#templates/template-resolution.mjs'
+import { mergeRegistry } from '#templates/template-merge.mjs'
+import { loadTemplatePlugins as loadPlugins } from '#templates/template-plugins.mjs'
 
 const baseTemplate = {
   id: 'base',
@@ -10,214 +18,28 @@ const baseTemplate = {
   layers: [],
   types: { labels: {}, colors: {} },
   rules: { enabled: [], options: {} },
-  capabilities: {
-    fileKinds: [],
-    parsers: [],
-    scanners: [],
-    enrichers: []
-  },
+  capabilities: { fileKinds: [], parsers: [], scanners: [], enrichers: [] },
   architecture: []
 }
 
-const templates = new Map()
+export { registerTemplate, getTemplate, listTemplates, resolveTemplateIds }
 
-export function registerTemplate(template) {
-  const normalized = normalizeTemplate(template)
-  assertTemplate(normalized)
-  if (templates.has(normalized.id)) {
-    throw new TypeError(`Duplicate template id: ${normalized.id}.`)
-  }
-  templates.set(normalized.id, deepFreeze(normalized))
-}
-
-export function getTemplate(id) {
-  return templates.get(id)
-}
-
-export function listTemplates() {
-  return [...templates.values()].map((template) => ({
-    id: template.id,
-    description: template.description,
-    stage: template.stage ?? 'custom'
-  }))
-}
-
-export function resolveTemplateIds(projectMap) {
-  const configured = projectMap.templates?.enabled
-  if (Array.isArray(configured) && configured.length > 0) {
-    return ['base', ...configured.filter((id) => id !== 'base')]
-  }
-  return [
-    'base',
-    'filesystem',
-    'typescript',
-    'react',
-    'architecture.feature-sliced',
-    'architecture.mvvm',
-    'http-endpoints',
-    'csharp',
-    'dotnet-api',
-    'architecture.mvc',
-    'architecture.clean-architecture',
-    'architecture.cqrs',
-    'entity-framework',
-    'coverage',
-    'quality'
-  ]
-}
-
-export async function loadTemplatePlugins(projectMap, configPath, { allow = false } = {}) {
-  const plugins = projectMap.templates?.plugins
-  if (!Array.isArray(plugins) || plugins.length === 0) {
-    return
-  }
-  if (!allow) {
-    throw new Error(
-      'Custom template plugins are disabled by default. Review the configured modules and re-run with --allow-plugins to trust them.'
-    )
-  }
-  const configDir = path.dirname(path.resolve(configPath))
-  for (const pluginPath of plugins) {
-    const resolved = path.isAbsolute(pluginPath) ? pluginPath : path.resolve(configDir, pluginPath)
-    const mod = await import(pathToFileURL(resolved).href)
-    for (const exported of Object.values(mod)) {
-      if (exported?.id) {
-        registerTemplate(exported)
-      }
-    }
-  }
+export function loadTemplatePlugins(projectMap, configPath, options) {
+  return loadPlugins(projectMap, configPath, registerTemplate, options)
 }
 
 export function buildTemplateRegistry(projectMap) {
-  const templateIds = expandTemplateDependencies(resolveTemplateIds(projectMap))
-  const selected = templateIds.map((id) => {
+  const templates = templateEntries()
+  const ids = expandTemplateDependencies(resolveTemplateIds(projectMap), templates)
+  const selected = ids.map((id) => {
     const template = templates.get(id)
     if (!template) {
       throw new Error(`Unknown code map template: ${id}`)
     }
     return template
   })
-
-  const registry = selected.reduce(
-    (current, template) => mergeRegistry(current, template),
-    normalizeTemplate(baseTemplate)
-  )
+  const registry = selected.reduce(mergeRegistry, normalizeTemplate(baseTemplate))
   return deepFreeze(assertCapabilityRegistry(registry))
-}
-
-function normalizeTemplate(template) {
-  return {
-    ...template,
-    requiresTemplates: template.requiresTemplates ?? [],
-    layers: template.layers ?? [],
-    types: {
-      labels: template.types?.labels ?? {},
-      colors: template.types?.colors ?? {}
-    },
-    rules: {
-      enabled: template.rules?.enabled ?? [],
-      options: template.rules?.options ?? {}
-    },
-    capabilities: {
-      fileKinds: template.capabilities?.fileKinds ?? [],
-      parsers: template.capabilities?.parsers ?? [],
-      scanners: template.capabilities?.scanners ?? [],
-      enrichers: template.capabilities?.enrichers ?? []
-    },
-    ruleMetadata: template.ruleMetadata ?? {},
-    architecture: template.architecture ?? []
-  }
-}
-
-function expandTemplateDependencies(templateIds) {
-  const ordered = []
-  const resolved = new Set()
-  const resolving = []
-
-  function visit(id) {
-    if (resolved.has(id)) {
-      return
-    }
-    const cycleIndex = resolving.indexOf(id)
-    if (cycleIndex >= 0) {
-      throw new Error(`Template dependency cycle: ${[...resolving.slice(cycleIndex), id].join(' -> ')}`)
-    }
-    const template = templates.get(id)
-    if (!template) {
-      const owner = resolving.at(-1)
-      const context = owner ? ` required by ${owner}` : ''
-      throw new Error(`Unknown code map template: ${id}${context}`)
-    }
-    resolving.push(id)
-    for (const dependency of template.requiresTemplates) {
-      visit(dependency)
-    }
-    resolving.pop()
-    resolved.add(id)
-    ordered.push(id)
-  }
-
-  for (const id of templateIds) {
-    visit(id)
-  }
-  return ordered
-}
-
-function mergeRegistry(registry, template) {
-  return {
-    id: 'effective',
-    description: 'Effective registry composed from ordered templates.',
-    templates: [...(registry.templates ?? []), template.id],
-    layers: mergeById(registry.layers, template.layers),
-    types: {
-      labels: { ...registry.types.labels, ...template.types.labels },
-      colors: { ...registry.types.colors, ...template.types.colors }
-    },
-    rules: {
-      enabled: unique([...registry.rules.enabled, ...template.rules.enabled]),
-      options: deepMerge(registry.rules.options, template.rules.options)
-    },
-    capabilities: {
-      fileKinds: mergeFileKinds(registry.capabilities.fileKinds, template.capabilities.fileKinds),
-      parsers: [...registry.capabilities.parsers, ...template.capabilities.parsers],
-      scanners: [...registry.capabilities.scanners, ...template.capabilities.scanners],
-      enrichers: [...registry.capabilities.enrichers, ...template.capabilities.enrichers]
-    },
-    ruleMetadata: { ...registry.ruleMetadata, ...template.ruleMetadata },
-    architecture: mergeById(registry.architecture, template.architecture)
-  }
-}
-
-function mergeById(left = [], right = []) {
-  const byId = new Map(left.map((item) => [item.id, item]))
-  for (const item of right) {
-    byId.set(item.id, { ...(byId.get(item.id) ?? {}), ...item })
-  }
-  return [...byId.values()]
-}
-
-function mergeFileKinds(left = [], right = []) {
-  return mergeById(left, right)
-}
-
-function unique(values) {
-  return [...new Set(values.filter(Boolean))]
-}
-
-function deepMerge(left = {}, right = {}) {
-  const result = { ...left }
-  for (const [key, value] of Object.entries(right)) {
-    if (isPlainObject(value) && isPlainObject(result[key])) {
-      result[key] = deepMerge(result[key], value)
-    } else {
-      result[key] = value
-    }
-  }
-  return result
-}
-
-function isPlainObject(value) {
-  return value && typeof value === 'object' && !Array.isArray(value)
 }
 
 registerTemplate(baseTemplate)

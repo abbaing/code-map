@@ -9,8 +9,7 @@ export const foundationComponents = [
     contracts: ['PackageExports'],
     compositionRoot: true,
     design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'pass'),
-    decision:
-      'Keep supported entry points explicit and extend behavior behind their validated registries and contracts.'
+    decision: 'Keep entry points explicit and extend behavior behind validated registries and contracts.'
   },
   {
     id: 'graph',
@@ -105,7 +104,9 @@ export const foundationComponents = [
       'src/adapters/parsers/typescript-files.mjs',
       'src/adapters/parsers/typescript-frontend.mjs',
       'src/adapters/parsers/typescript-resolver.mjs',
-      'src/adapters/parsers/typescript-endpoints.mjs'
+      'src/adapters/parsers/typescript-endpoints.mjs',
+      'src/adapters/parsers/typescript-endpoint-strategies.mjs',
+      'src/adapters/parsers/typescript-endpoint-urls.mjs'
     ],
     contracts: ['Parser', 'ImportResolver', 'EndpointExtractor'],
     compositionRoot: false,
@@ -148,7 +149,14 @@ export const foundationComponents = [
     responsibility:
       'Adapt Tree-sitter C# syntax, declarations, and backend facts to the language-neutral parser contract.',
     role: 'adapter',
-    files: ['src/adapters/parsers/csharp.mjs', 'src/adapters/parsers/csharp-backend.mjs'],
+    files: [
+      'src/adapters/parsers/csharp.mjs',
+      'src/adapters/parsers/csharp-backend.mjs',
+      'src/adapters/parsers/csharp-backend-dependencies.mjs',
+      'src/adapters/parsers/csharp-backend-persistence.mjs',
+      'src/adapters/parsers/csharp-backend-requests.mjs',
+      'src/adapters/parsers/csharp-backend-semantics.mjs'
+    ],
     contracts: ['Parser'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),

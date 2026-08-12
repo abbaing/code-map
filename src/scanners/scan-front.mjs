@@ -9,65 +9,78 @@ export function scanFront(graph, files, projectContext, sourceDocuments) {
   const exportedEndpointBindings = collectExportedEndpointBindings(files, toRepoPath, sourceDocuments)
 
   for (const file of files) {
-    const repoPath = toRepoPath(file)
-    const [type, layer] = classifyFront(repoPath, projectContext)
-    const module = featureFromRepoPath(repoPath, projectContext)
-    const id = `file:${repoPath}`
-    const behavior = sourceDocuments.factsOf(file, 'frontendBehavior')
-    const review = ['route', 'page', 'main-component'].includes(type) && behavior.reasons.length > 0
-
-    graph.addNode(id, {
-      label: displayLabel(repoPath),
-      type,
-      layer,
-      module,
-      path: repoPath,
-      meta: review
-        ? {
-            review: {
-              kind: 'logic-in-composition-layer',
-              reason: `${type} contains logic or behavior: ${behavior.reasons.join(', ')}`,
-              signals: behavior.reasons
-            }
-          }
-        : {}
-    })
-
-    for (const { specifier, kind } of sourceDocuments.factsOf(file, 'moduleReferences')) {
-      const resolved = sourceDocuments.resolveReference(file, specifier, projectContext)
-      if (resolved) {
-        const target = `file:${toRepoPath(resolved)}`
-        graph.addEdge(id, target, kind === 'dynamic' ? 'lazy-imports' : 'imports', {
-          confidence: 'high',
-          source: kind === 'dynamic' ? 'typescript-dynamic-import' : 'typescript-import',
-          evidence: specifier
-        })
-      }
-    }
-
-    const importedEndpointBindings = resolveImportedEndpointBindings(
-      file,
-      exportedEndpointBindings,
+    scanFrontFile(file, {
+      graph,
       projectContext,
-      sourceDocuments
-    )
-    for (const { url, method } of sourceDocuments.factsOf(file, 'frontendEndpoints', {
-      bindings: importedEndpointBindings
-    })) {
-      const runtimeUrl = applyApiVersionPrefix(url, apiVersionPrefix)
-      const endpoint = addEndpoint(graph, runtimeUrl, method, module)
-      if (endpoint) {
-        frontEndpointNodes.push(endpoint)
-        graph.addEdge(id, endpoint, 'calls-api', {
-          confidence: 'medium',
-          source: 'frontend-http',
-          evidence: `${method} ${runtimeUrl}`
-        })
-      }
-    }
+      sourceDocuments,
+      apiVersionPrefix,
+      exportedEndpointBindings,
+      frontEndpointNodes
+    })
   }
 
   return frontEndpointNodes
+}
+
+function scanFrontFile(file, context) {
+  const { graph, projectContext, sourceDocuments, apiVersionPrefix, exportedEndpointBindings, frontEndpointNodes } =
+    context
+  const repoPath = projectContext.toRepoPath(file)
+  const [type, layer] = classifyFront(repoPath, projectContext)
+  const module = featureFromRepoPath(repoPath, projectContext)
+  const id = `file:${repoPath}`
+  const behavior = sourceDocuments.factsOf(file, 'frontendBehavior')
+  const review = ['route', 'page', 'main-component'].includes(type) && behavior.reasons.length > 0
+
+  graph.addNode(id, {
+    label: displayLabel(repoPath),
+    type,
+    layer,
+    module,
+    path: repoPath,
+    meta: review
+      ? {
+          review: {
+            kind: 'logic-in-composition-layer',
+            reason: `${type} contains logic or behavior: ${behavior.reasons.join(', ')}`,
+            signals: behavior.reasons
+          }
+        }
+      : {}
+  })
+
+  for (const { specifier, kind } of sourceDocuments.factsOf(file, 'moduleReferences')) {
+    const resolved = sourceDocuments.resolveReference(file, specifier, projectContext)
+    if (resolved) {
+      const target = `file:${projectContext.toRepoPath(resolved)}`
+      graph.addEdge(id, target, kind === 'dynamic' ? 'lazy-imports' : 'imports', {
+        confidence: 'high',
+        source: kind === 'dynamic' ? 'typescript-dynamic-import' : 'typescript-import',
+        evidence: specifier
+      })
+    }
+  }
+
+  const importedEndpointBindings = resolveImportedEndpointBindings(
+    file,
+    exportedEndpointBindings,
+    projectContext,
+    sourceDocuments
+  )
+  for (const { url, method } of sourceDocuments.factsOf(file, 'frontendEndpoints', {
+    bindings: importedEndpointBindings
+  })) {
+    const runtimeUrl = applyApiVersionPrefix(url, apiVersionPrefix)
+    const endpoint = addEndpoint(graph, runtimeUrl, method, module)
+    if (endpoint) {
+      frontEndpointNodes.push(endpoint)
+      graph.addEdge(id, endpoint, 'calls-api', {
+        confidence: 'medium',
+        source: 'frontend-http',
+        evidence: `${method} ${runtimeUrl}`
+      })
+    }
+  }
 }
 
 function collectExportedEndpointBindings(files, toRepoPath, sourceDocuments) {

@@ -80,7 +80,7 @@ export const analysisComponents = [
     language: 'csharp',
     responsibility: 'Extract backend contexts, entities, tables, domain relationships, and ORM usage.',
     role: 'adapter',
-    files: ['src/scanners/scan-back-persistence.mjs'],
+    files: ['src/scanners/scan-back-persistence.mjs', 'src/scanners/scan-back-persistence-usage.mjs'],
     contracts: ['Scanner', 'BackendAnalysisSession'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
@@ -119,80 +119,5 @@ export const analysisComponents = [
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision:
       'Extend dependency recognition through focused parsing and resolution helpers without changing orchestration.'
-  },
-  {
-    id: 'rules',
-    responsibility: 'Run language-neutral file rules against source evidence.',
-    role: 'extension',
-    files: ['rules/rule-runner.mjs'],
-    contracts: ['Rule'],
-    compositionRoot: false,
-    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Rules receive isolated finding and source capabilities through registered enrichers.'
-  },
-  {
-    id: 'typescript-language-rules',
-    language: 'typescript',
-    responsibility: 'Adapt TypeScript syntax into technology, React, and frontend architecture findings.',
-    role: 'adapter',
-    files: ['rules/frontend-guardrails.mjs', 'rules/typescript-architecture-guardrails.mjs'],
-    contracts: ['Rule'],
-    compositionRoot: false,
-    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Keep TypeScript AST APIs in an optional language adapter outside the core rule runner.'
-  },
-  {
-    id: 'csharp-language-rules',
-    language: 'csharp',
-    responsibility: 'Adapt C# syntax into backend architecture findings.',
-    role: 'adapter',
-    files: ['rules/csharp-architecture-guardrails.mjs'],
-    contracts: ['Rule'],
-    compositionRoot: false,
-    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Keep C# AST APIs in an optional language adapter outside the core rule runner.'
-  },
-  {
-    id: 'findings',
-    responsibility: 'Collect, suppress, sort, and attach rule findings.',
-    role: 'core',
-    files: ['rules/findings.mjs'],
-    contracts: ['FindingSink', 'FindingSource'],
-    compositionRoot: false,
-    design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'pass'),
-    decision: 'Keep collection execution-scoped and expose separate immutable write and read capabilities.'
-  },
-  {
-    id: 'templates',
-    responsibility: 'Register, normalize, and compose architectural capabilities.',
-    role: 'composition-root',
-    files: [
-      'templates/architectures.mjs',
-      'templates/catalog.mjs',
-      'templates/csharp.mjs',
-      'templates/core.mjs',
-      'templates/dotnet-api.mjs',
-      'templates/entity-framework.mjs',
-      'templates/http-endpoints.mjs',
-      'templates/quality.mjs',
-      'templates/react.mjs',
-      'templates/registry.mjs',
-      'templates/rule-metadata.mjs',
-      'templates/typescript.mjs'
-    ],
-    contracts: ['Template', 'TemplateDependency', 'TemplateRegistry', 'Parser', 'Scanner', 'GraphEnricher', 'FileKind'],
-    compositionRoot: true,
-    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Validate capabilities at registration and project only their declared required and optional inputs.'
-  },
-  {
-    id: 'template-contracts',
-    responsibility: 'Validate templates, capability registries, and focused capability inputs.',
-    role: 'core',
-    files: ['templates/contracts.mjs'],
-    contracts: ['Template', 'TemplateDependency', 'TemplateRegistry', 'Parser', 'Scanner', 'GraphEnricher', 'FileKind'],
-    compositionRoot: false,
-    design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Keep capability validation and input projection independent from template composition.'
   }
 ]

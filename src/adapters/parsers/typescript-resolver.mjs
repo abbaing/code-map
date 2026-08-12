@@ -59,7 +59,8 @@ const defaultImportStrategies = [
   }
 ]
 
-function resolveImport(fromFile, specifier, projectContext, strategies, extensions, exists) {
+function resolveImport(...args) {
+  const [fromFile, specifier, projectContext, strategies, extensions, exists] = args
   if (!specifier || (!specifier.startsWith('.') && !specifier.startsWith('@'))) {
     return null
   }

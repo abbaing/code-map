@@ -88,11 +88,22 @@ export function assertTemplate(template) {
   }
   assertNonEmptyString(template.id, 'Template id')
   assertNonEmptyString(template.description, `Template ${template.id} description`)
+  assertOptionalStage(template)
+  assertTemplateDependencies(template)
+  assertTemplateSections(template)
+  assertTemplateCapabilities(template)
+  return template
+}
+
+function assertOptionalStage(template) {
   if (template.stage !== undefined) {
     assertNonEmptyString(template.stage, `Template ${template.id} stage`)
   }
-  assertArray(template.requiresTemplates ?? [], `Template ${template.id} dependencies`)
+}
+
+function assertTemplateDependencies(template) {
   const dependencies = template.requiresTemplates ?? []
+  assertArray(dependencies, `Template ${template.id} dependencies`)
   if (
     dependencies.some((dependency) => typeof dependency !== 'string' || dependency.length === 0) ||
     new Set(dependencies).size !== dependencies.length
@@ -102,12 +113,18 @@ export function assertTemplate(template) {
   if (dependencies.includes(template.id)) {
     throw new TypeError(`Template ${template.id} cannot depend on itself.`)
   }
+}
+
+function assertTemplateSections(template) {
   assertArray(template.layers ?? [], `Template ${template.id} layers`)
   assertArray(template.architecture ?? [], `Template ${template.id} architecture`)
   assertRecord(template.types ?? {}, `Template ${template.id} types`)
   assertRecord(template.rules ?? {}, `Template ${template.id} rules`)
   assertRecord(template.ruleMetadata ?? {}, `Template ${template.id} rule metadata`)
   assertRecord(template.capabilities ?? {}, `Template ${template.id} capabilities`)
+}
+
+function assertTemplateCapabilities(template) {
   const capabilities = template.capabilities ?? {}
   const fileKinds = capabilities.fileKinds ?? []
   const parsers = capabilities.parsers ?? []
@@ -125,7 +142,6 @@ export function assertTemplate(template) {
   assertUniqueIds(parsers, 'parser', template.id)
   assertUniqueIds(scanners, 'scanner', template.id)
   assertUniqueIds(enrichers, 'enricher', template.id)
-  return template
 }
 
 export function assertCapabilityRegistry(registry) {

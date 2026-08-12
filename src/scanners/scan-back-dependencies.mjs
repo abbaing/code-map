@@ -1,6 +1,7 @@
 import { featureFromRepoPath } from '#core/classify.mjs'
 
-export function scanBackDependencies(graph, files, projectContext, session, sourceDocuments) {
+export function scanBackDependencies(...args) {
+  const [graph, files, projectContext, session, sourceDocuments] = args
   const { toRepoPath } = projectContext
   for (const file of files) {
     const repoPath = toRepoPath(file)
@@ -9,48 +10,70 @@ export function scanBackDependencies(graph, files, projectContext, session, sour
       continue
     }
     for (const dependency of sourceDocuments.factsOf(file, 'constructorDependencies')) {
-      const target = resolveDependencyTarget(dependency.name, repoPath, projectContext, session)
-      if (!target || target.file === file) {
-        continue
-      }
-      const genericEntity = dependency.typeArguments[0]
-      const isRepositoryAbstraction =
-        genericEntity &&
-        /(?:Repository|Searchable|Pageable|Includable|Aggregatable|BulkOperations|Stateful)/u.test(dependency.name)
-      const useLogicalDependency = isRepositoryAbstraction || target.ambiguous
-      const logicalType = dependencyRole(dependency.name)
-      const compactDisplay = dependency.display.replace(/\s+/gu, '')
-      const targetId = isRepositoryAbstraction
-        ? `backend-repository:${featureFromRepoPath(repoPath, projectContext)}:${compactDisplay}`
-        : target.ambiguous
-          ? `backend-${logicalType}:${featureFromRepoPath(repoPath, projectContext)}:${compactDisplay}`
-          : `file:${toRepoPath(target.file)}`
-      if (useLogicalDependency) {
-        graph.addNode(targetId, {
-          label: dependency.display,
-          type: logicalType,
-          layer: logicalType === 'repository' ? 'backend-repository' : 'backend-service',
-          module: featureFromRepoPath(repoPath, projectContext),
-          meta: {
-            backendDependency: {
-              abstraction: dependency.display,
-              implementation: toRepoPath(target.file),
-              ...(genericEntity ? { entity: genericEntity } : {}),
-              ...(target.ambiguous ? { implementationCandidates: target.alternatives } : {})
-            }
-          }
-        })
-      } else if (!graph.hasNode(targetId)) {
-        continue
-      }
-      graph.addEdge(sourceId, targetId, 'depends-on', {
-        confidence: target.implementation && !target.ambiguous ? 'high' : 'medium',
-        label: dependency.display,
-        source: 'dotnet-constructor-dependency',
-        evidence: dependency.display
-      })
+      addDependency({ graph, file, repoPath, projectContext, session, dependency })
     }
   }
+}
+
+function addDependency({ graph, file, repoPath, projectContext, session, dependency }) {
+  const { toRepoPath } = projectContext
+  const sourceId = `file:${repoPath}`
+  const target = resolveDependencyTarget(dependency.name, repoPath, projectContext, session)
+  if (!target || target.file === file) {
+    return
+  }
+  const genericEntity = dependency.typeArguments[0]
+  const isRepositoryAbstraction = isRepositoryDependency(dependency.name, genericEntity)
+  const useLogicalDependency = isRepositoryAbstraction || target.ambiguous
+  const logicalType = dependencyRole(dependency.name)
+  const compactDisplay = dependency.display.replace(/\s+/gu, '')
+  const targetId = dependencyTargetId({
+    isRepositoryAbstraction,
+    target,
+    logicalType,
+    repoPath,
+    projectContext,
+    compactDisplay
+  })
+  if (useLogicalDependency) {
+    graph.addNode(targetId, {
+      label: dependency.display,
+      type: logicalType,
+      layer: logicalType === 'repository' ? 'backend-repository' : 'backend-service',
+      module: featureFromRepoPath(repoPath, projectContext),
+      meta: {
+        backendDependency: {
+          abstraction: dependency.display,
+          implementation: toRepoPath(target.file),
+          ...(genericEntity ? { entity: genericEntity } : {}),
+          ...(target.ambiguous ? { implementationCandidates: target.alternatives } : {})
+        }
+      }
+    })
+  } else if (!graph.hasNode(targetId)) {
+    return
+  }
+  graph.addEdge(sourceId, targetId, 'depends-on', {
+    confidence: target.implementation && !target.ambiguous ? 'high' : 'medium',
+    label: dependency.display,
+    source: 'dotnet-constructor-dependency',
+    evidence: dependency.display
+  })
+}
+
+function dependencyTargetId(context) {
+  const { isRepositoryAbstraction, target, logicalType, repoPath, projectContext, compactDisplay } = context
+  if (!isRepositoryAbstraction && !target.ambiguous) {
+    return `file:${projectContext.toRepoPath(target.file)}`
+  }
+  const role = isRepositoryAbstraction ? 'repository' : logicalType
+  return `backend-${role}:${featureFromRepoPath(repoPath, projectContext)}:${compactDisplay}`
+}
+
+function isRepositoryDependency(name, genericEntity) {
+  return Boolean(
+    genericEntity && /(?:Repository|Searchable|Pageable|Includable|Aggregatable|BulkOperations|Stateful)/u.test(name)
+  )
 }
 
 function dependencyRole(typeName) {
