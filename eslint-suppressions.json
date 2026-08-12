@@ -5,20 +5,12 @@
   "tests/submap.test.mjs": { "max-params": { "count": 1 } },
   "viewer/viewer-actions.js": { "max-lines-per-function": { "count": 1 } },
   "viewer/viewer-data.js": { "complexity": { "count": 1 }, "max-lines-per-function": { "count": 1 } },
-  "viewer/viewer-graph.js": { "complexity": { "count": 1 } },
   "viewer/viewer-init.js": { "max-lines-per-function": { "count": 1 } },
   "viewer/viewer-interactions.mjs": {
     "complexity": { "count": 1 },
     "max-lines-per-function": { "count": 2 }
   },
-  "viewer/viewer-layouts.js": {
-    "complexity": { "count": 4 },
-    "max-depth": { "count": 5 },
-    "max-lines-per-function": { "count": 5 }
-  },
   "viewer/viewer-overview.js": { "complexity": { "count": 1 } },
   "viewer/viewer-selection.js": { "complexity": { "count": 3 } },
-  "viewer/viewer-state.js": { "max-lines-per-function": { "count": 1 } },
-  "viewer/viewer-svg.js": { "complexity": { "count": 1 }, "max-params": { "count": 1 } },
-  "viewer/viewer-trace.js": { "complexity": { "count": 6 }, "max-lines-per-function": { "count": 3 } }
+  "viewer/viewer-state.js": { "max-lines-per-function": { "count": 1 } }
 }

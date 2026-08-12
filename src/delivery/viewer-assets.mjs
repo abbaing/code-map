@@ -2,26 +2,7 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
-const publicAssets = new Set([
-  'tailwind.css',
-  'viewer.css',
-  'graph-gateway.mjs',
-  'rendering-contracts.mjs',
-  'viewer-actions.js',
-  'viewer-data.js',
-  'viewer-findings.js',
-  'viewer-graph.js',
-  'viewer-init.js',
-  'viewer-interactions.mjs',
-  'viewer-layouts.js',
-  'viewer-overview.js',
-  'viewer-selection.js',
-  'viewer-state.js',
-  'viewer-store.mjs',
-  'viewer-svg.js',
-  'viewer-trace.js',
-  'viewer-utils.js'
-])
+const browserModuleName = /^(?:viewer-[a-z0-9-]+|graph-gateway|rendering-contracts)\.(?:js|mjs)$/u
 
 export function createViewerAssets(viewerRoot) {
   const indexPath = path.join(viewerRoot, 'viewer.html')
@@ -33,10 +14,14 @@ export function createViewerAssets(viewerRoot) {
   const assets = new Map(
     fs
       .readdirSync(viewerRoot, { withFileTypes: true })
-      .filter((entry) => entry.isFile() && publicAssets.has(entry.name))
+      .filter((entry) => entry.isFile() && isPublicAsset(entry.name))
       .map((entry) => [`/${entry.name}`, path.join(viewerRoot, entry.name)])
   )
   return Object.freeze({ indexPath, assets, securityHeaders: securityHeaders(importMapHash) })
+}
+
+function isPublicAsset(name) {
+  return name === 'tailwind.css' || name === 'viewer.css' || browserModuleName.test(name)
 }
 
 function securityHeaders(importMapHash) {

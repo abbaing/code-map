@@ -13,13 +13,9 @@
     "tests/viewer-trace.test.mjs": 212,
     "viewer/viewer-actions.js": 393,
     "viewer/viewer-data.js": 300,
-    "viewer/viewer-graph.js": 363,
     "viewer/viewer-interactions.mjs": 436,
-    "viewer/viewer-layouts.js": 831,
     "viewer/viewer-overview.js": 211,
     "viewer/viewer-selection.js": 370,
-    "viewer/viewer-svg.js": 228,
-    "viewer/viewer-trace.js": 641,
     "viewer/viewer-utils.js": 213,
     "viewer/viewer.css": 1374,
     "viewer/viewer.html": 350
@@ -38,11 +34,6 @@
     "viewer/viewer-selection.js:307": 231,
     "viewer/viewer-selection.js:308": 218,
     "viewer/viewer-selection.js:346": 405,
-    "viewer/viewer-svg.js:13": 298,
-    "viewer/viewer-svg.js:84": 294,
-    "viewer/viewer-svg.js:101": 247,
-    "viewer/viewer-svg.js:164": 290,
-    "viewer/viewer-svg.js:204": 218,
     "viewer/viewer.html:81": 253
   }
 }
