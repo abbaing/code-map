@@ -10,29 +10,7 @@ export function sha256(value, hash) {
 }
 
 export function calculateGraphDigest(graph, hash) {
-  return sha256(
-    {
-      version: graph.version,
-      nodes: sortedById(graph.nodes),
-      edges: sortedById(graph.edges),
-      findings: sortedById(graph.findings),
-      suppressedFindings: sortedById(graph.suppressedFindings),
-      orphanNodeIds: (graph.orphans ?? [])
-        .map((item) => (typeof item === 'string' ? item : item.id))
-        .filter(Boolean)
-        .sort(),
-      templates: [...(graph.templates ?? [])].sort(),
-      architecture: sortedById(graph.architecture),
-      ruleMetadata: graph.ruleMetadata ?? {},
-      catalog: {
-        projectName: graph.projectMap?.project?.name,
-        moduleLabels: graph.projectMap?.modules?.labels ?? {},
-        layers: graph.projectMap?.layers ?? [],
-        types: graph.projectMap?.types ?? {}
-      }
-    },
-    hash
-  )
+  return sha256(graphDigestInput(graph), hash)
 }
 
 export function calculateSubmapUid(submap, hash) {
@@ -75,6 +53,37 @@ function canonicalize(value) {
       .sort()
       .map((key) => [key, canonicalize(value[key])])
   )
+}
+
+function graphDigestInput(graph) {
+  return {
+    version: graph.version,
+    nodes: sortedById(graph.nodes),
+    edges: sortedById(graph.edges),
+    findings: sortedById(graph.findings),
+    suppressedFindings: sortedById(graph.suppressedFindings),
+    orphanNodeIds: orphanIds(graph.orphans),
+    templates: [...(graph.templates ?? [])].sort(),
+    architecture: sortedById(graph.architecture),
+    ruleMetadata: graph.ruleMetadata ?? {},
+    catalog: graphCatalog(graph.projectMap)
+  }
+}
+
+function orphanIds(orphans = []) {
+  return orphans
+    .map((item) => (typeof item === 'string' ? item : item.id))
+    .filter(Boolean)
+    .sort()
+}
+
+function graphCatalog(projectMap) {
+  return {
+    projectName: projectMap?.project?.name,
+    moduleLabels: projectMap?.modules?.labels ?? {},
+    layers: projectMap?.layers ?? [],
+    types: projectMap?.types ?? {}
+  }
 }
 
 function sortedById(items = []) {

@@ -1,9 +1,4 @@
 {
-  "submap/cli.mjs": { "max-lines-per-function": { "count": 1 } },
-  "submap/create.mjs": { "complexity": { "count": 1 }, "max-lines-per-function": { "count": 1 } },
-  "submap/digest.mjs": { "complexity": { "count": 1 } },
-  "submap/selectors.mjs": { "complexity": { "count": 1 } },
-  "submap/validate.mjs": { "complexity": { "count": 2 }, "max-lines-per-function": { "count": 2 } },
   "tests/cli-smoke.test.mjs": { "max-depth": { "count": 1 }, "max-lines-per-function": { "count": 1 } },
   "tests/component-contracts.test.mjs": { "complexity": { "count": 1 } },
   "tests/generic-templates.test.mjs": { "max-lines-per-function": { "count": 1 } },

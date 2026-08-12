@@ -1,10 +1,5 @@
 {
   "files": {
-    "submap/cli.mjs": 449,
-    "submap/create.mjs": 243,
-    "submap/index.d.ts": 226,
-    "submap/selectors.mjs": 224,
-    "submap/validate.mjs": 327,
     "tests/architecture.test.mjs": 220,
     "tests/cli-smoke.test.mjs": 680,
     "tests/core-critical.test.mjs": 311,
