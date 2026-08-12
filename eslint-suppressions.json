@@ -3,20 +3,9 @@
   "rules/frontend-guardrails.mjs": { "max-params": { "count": 1 } },
   "rules/rule-runner.mjs": { "max-params": { "count": 1 } },
   "rules/typescript-architecture-guardrails.mjs": { "max-params": { "count": 2 } },
-  "server.mjs": { "complexity": { "count": 2 } },
   "src/adapters/parsers/csharp-backend.mjs": { "complexity": { "count": 1 } },
   "src/adapters/parsers/typescript-frontend.mjs": { "complexity": { "count": 1 } },
   "src/adapters/parsers/typescript-resolver.mjs": { "max-params": { "count": 1 } },
-  "src/application/cli-commands.mjs": {
-    "complexity": { "count": 1 },
-    "max-lines-per-function": { "count": 1 }
-  },
-  "src/application/scan.mjs": { "complexity": { "count": 2 }, "max-lines-per-function": { "count": 1 } },
-  "src/application/server-app.mjs": {
-    "complexity": { "count": 2 },
-    "max-lines-per-function": { "count": 1 }
-  },
-  "src/core/quality.mjs": { "max-lines-per-function": { "count": 1 }, "max-params": { "count": 1 } },
   "src/scanners/scan-back-dependencies.mjs": { "complexity": { "count": 1 } },
   "src/scanners/scan-back-persistence.mjs": {
     "max-depth": { "count": 1 },

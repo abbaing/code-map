@@ -2,13 +2,8 @@
   "files": {
     "rules/frontend-guardrails.mjs": 211,
     "rules/typescript-architecture-guardrails.mjs": 361,
-    "server.mjs": 442,
     "src/adapters/parsers/csharp-backend.mjs": 266,
     "src/adapters/parsers/typescript-endpoints.mjs": 235,
-    "src/application/cli-commands.mjs": 212,
-    "src/application/scan.mjs": 649,
-    "src/application/server-app.mjs": 255,
-    "src/core/quality.mjs": 273,
     "src/scanners/scan-back-persistence.mjs": 225,
     "submap/cli.mjs": 449,
     "submap/create.mjs": 243,

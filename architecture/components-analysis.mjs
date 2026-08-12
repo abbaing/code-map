@@ -5,7 +5,17 @@ export const analysisComponents = [
     id: 'scan-orchestrator',
     responsibility: 'Compose source discovery, scanners, enrichers, and graph serialization.',
     role: 'application',
-    files: ['src/application/scan.mjs'],
+    files: [
+      'src/application/scan.mjs',
+      'src/application/scan-capabilities.mjs',
+      'src/application/scan-coverage.mjs',
+      'src/application/scan-files.mjs',
+      'src/application/scan-finalization.mjs',
+      'src/application/scan-internal-resolution.mjs',
+      'src/application/scan-internals.mjs',
+      'src/application/scan-pipeline.mjs',
+      'src/application/scan-runtime-links.mjs'
+    ],
     contracts: ['ScanPhase', 'SourceFileSets', 'Scanner', 'GraphEnricher', 'TemplateRegistry', 'TextWriter'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),

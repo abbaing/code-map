@@ -11,7 +11,7 @@ const groups = [
   },
   {
     id: 'server',
-    includes: (file) => file === 'server.mjs',
+    includes: (file) => file === 'server.mjs' || file.startsWith('src/delivery/'),
     thresholds: { lines: 86, statements: 86, branches: 83, functions: 100 }
   },
   {

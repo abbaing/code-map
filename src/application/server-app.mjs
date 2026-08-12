@@ -1,35 +1,37 @@
 import path from 'node:path'
+import { ApplicationInputError, assertServerApplicationServices } from '#app/server-contracts.mjs'
+import { assertPluginConfigurationUnchanged, createProjectPathPolicy, validateTraceInput } from '#app/server-input.mjs'
 
-export class ApplicationInputError extends Error {}
-
-const applicationOperations = ['graphPath', 'projectMap', 'scan', 'saveProjectMap', 'createTraceSubmap']
-const serviceOperations = Object.freeze({
-  scanner: Object.freeze(['scan']),
-  projectMaps: Object.freeze(['validate', 'load', 'write', 'restore']),
-  submaps: Object.freeze(['create', 'filename', 'write'])
-})
+export {
+  ApplicationInputError,
+  assertServerApplication,
+  assertServerApplicationServices,
+  serverApplicationContract,
+  serverApplicationServicesContract
+} from '#app/server-contracts.mjs'
 
 export function createServerApplication({ projectContext, repoRoot, services: providedServices } = {}) {
   if (!projectContext) {
     throw new TypeError('createServerApplication requires a ProjectContext.')
   }
   const services = assertServerApplicationServices(providedServices)
-  repoRoot ??= projectContext.repoRoot
-  const { fileSystem } = projectContext.platform
-  const projectRoot = canonicalPath(repoRoot, fileSystem)
+  const root = repoRoot ?? projectContext.repoRoot
+  const fileSystem = projectContext.platform.fileSystem
+  const paths = createProjectPathPolicy(root, fileSystem)
   let context = projectContext
-
-  return Object.freeze({
-    graphPath: () => projectPath(context.resolveGraphOutputPath(), 'project.graphOutput'),
-    projectMap: () => context.projectMap,
-    scan,
-    saveProjectMap,
-    createTraceSubmap
-  })
+  const state = {
+    get context() {
+      return context
+    },
+    set context(value) {
+      context = value
+    }
+  }
 
   function scan() {
-    assertProjectMapPaths(context.projectMap, context.configPath)
-    return services.scanner.scan(projectPath(context.resolveGraphOutputPath(), 'project.graphOutput'), context)
+    paths.assertProjectMapPaths(context.projectMap, context.configPath)
+    const output = paths.projectPath(context.resolveGraphOutputPath(), 'project.graphOutput')
+    return services.scanner.scan(output, context)
   }
 
   function saveProjectMap(input) {
@@ -39,217 +41,76 @@ export function createServerApplication({ projectContext, repoRoot, services: pr
         'Cannot save an auto-detected project map. Export the config or restart code-map with --config <path>.'
       )
     }
-    projectPath(projectMapPath, 'Project map')
-
-    let document
-    try {
-      services.projectMaps.validate(input, projectMapPath, { repoRoot })
-      document = structuredClone(input)
-      delete document.configPath
-    } catch (error) {
-      throw new ApplicationInputError(error.message, { cause: error })
-    }
-    assertProjectMapPaths(document, projectMapPath)
+    paths.projectPath(projectMapPath, 'Project map')
+    const document = validateProjectMapUpdate(input, projectMapPath, context, services, root)
+    paths.assertProjectMapPaths(document, projectMapPath)
     assertPluginConfigurationUnchanged(document, context.projectMap)
-
     const previousDocument = fileSystem.readText(projectMapPath)
     services.projectMaps.write(projectMapPath, document)
     try {
-      context = services.projectMaps.load(projectMapPath, { repoRoot, platform: projectContext.platform })
-      const graph = scan()
-      return { projectMap: context.projectMap, stats: graph.stats }
+      context = services.projectMaps.load(projectMapPath, { repoRoot: root, platform: projectContext.platform })
+      return { projectMap: context.projectMap, stats: scan().stats }
     } catch (error) {
-      try {
-        services.projectMaps.restore(projectMapPath, previousDocument)
-        context = services.projectMaps.load(projectMapPath, { repoRoot, platform: projectContext.platform })
-      } catch (rollbackError) {
-        throw new AggregateError([error, rollbackError], 'Project map update and rollback both failed.')
-      }
+      context = rollbackProjectMap({ error, projectMapPath, previousDocument, context, services, repoRoot: root })
       throw error
     }
   }
 
-  function createTraceSubmap(input) {
-    validateTraceInput(input)
-    assertProjectMapPaths(context.projectMap, context.configPath)
-    const graph = JSON.parse(fileSystem.readText(projectPath(context.resolveGraphOutputPath(), 'project.graphOutput')))
-    const request = {
-      id: input.id,
-      selectors: { nodeIds: [...new Set(input.nodeIds)] },
-      traversal: { direction: 'both', maxDepth: 0 },
-      metadata: {
-        kind: 'execution-trace',
-        selectedNodeId: input.selectedNodeId,
-        complete: Boolean(input.complete),
-        traceEdgeIds: Array.isArray(input.edgeIds) ? [...new Set(input.edgeIds)] : []
-      }
-    }
-    const submap = services.submaps.create(graph, request)
-    const directory = projectPath(
-      path.resolve(repoRoot, context.projectMap.project.submapsDirectory ?? '.code-map/submaps'),
-      'project.submapsDirectory'
-    )
-    const output = path.join(directory, services.submaps.filename(submap))
-    services.submaps.write(output, submap)
-    return {
-      file: path.relative(repoRoot, output),
-      uid: submap.uid,
-      statistics: submap.statistics
-    }
-  }
+  return Object.freeze({
+    graphPath: () => paths.projectPath(context.resolveGraphOutputPath(), 'project.graphOutput'),
+    projectMap: () => context.projectMap,
+    scan,
+    saveProjectMap,
+    createTraceSubmap: (input) => createTraceSubmap(input, { state, paths, services, fileSystem, root })
+  })
+}
 
-  function assertProjectMapPaths(projectMap, configPath) {
-    const assertRepoRelative = (value, label) => {
-      if (value === undefined) {
-        return
-      }
-      assertPathValue(value, label)
-      projectPath(path.resolve(repoRoot, value), label)
-    }
-
-    assertRepoRelative(projectMap.sourceRoots?.frontend, 'sourceRoots.frontend')
-    assertRepoRelative(projectMap.sourceRoots?.backend, 'sourceRoots.backend')
-    assertRepoRelative(projectMap.project?.runtimeLinks, 'project.runtimeLinks')
-    assertRepoRelative(projectMap.project?.submapsDirectory ?? '.code-map/submaps', 'project.submapsDirectory')
-
-    const graphOutput = projectMap.project?.graphOutput ?? '.code-map/graph.json'
-    assertPathValue(graphOutput, 'project.graphOutput')
-    const graphPath =
-      !path.isAbsolute(graphOutput) && path.dirname(graphOutput) === '.' && configPath
-        ? path.resolve(path.dirname(configPath), graphOutput)
-        : path.resolve(repoRoot, graphOutput)
-    projectPath(graphPath, 'project.graphOutput')
-
-    for (const [index, alias] of (projectMap.imports?.aliases ?? []).entries()) {
-      assertRepoRelative(alias?.path, `imports.aliases[${index}].path`)
-    }
-
-    const plugins = projectMap.templates?.plugins ?? []
-    if (!Array.isArray(plugins)) {
-      throw new ApplicationInputError('templates.plugins must be an array of path strings.')
-    }
-    const configDirectory = path.dirname(configPath ?? path.join(repoRoot, 'project-map.json'))
-    for (const [index, plugin] of plugins.entries()) {
-      assertPathValue(plugin, `templates.plugins[${index}]`)
-      projectPath(
-        path.isAbsolute(plugin) ? plugin : path.resolve(configDirectory, plugin),
-        `templates.plugins[${index}]`
-      )
-    }
-  }
-
-  function projectPath(candidate, label) {
-    const resolved = canonicalPath(candidate, fileSystem)
-    const relative = path.relative(projectRoot, resolved)
-    const escapesRoot = relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)
-    if (escapesRoot) {
-      throw new ApplicationInputError(`${label} must resolve within the project root.`)
-    }
-    return path.resolve(candidate)
+function validateProjectMapUpdate(input, projectMapPath, context, services, repoRoot) {
+  try {
+    services.projectMaps.validate(input, projectMapPath, { repoRoot })
+    const document = structuredClone(input)
+    delete document.configPath
+    return document
+  } catch (error) {
+    throw new ApplicationInputError(error.message, { cause: error })
   }
 }
 
-export function assertServerApplication(application) {
-  return assertOperations(application, applicationOperations, 'Server application')
+function rollbackProjectMap({ error, projectMapPath, previousDocument, context, services, repoRoot }) {
+  try {
+    services.projectMaps.restore(projectMapPath, previousDocument)
+    return services.projectMaps.load(projectMapPath, { repoRoot, platform: context.platform })
+  } catch (rollbackError) {
+    throw new AggregateError([error, rollbackError], 'Project map update and rollback both failed.')
+  }
 }
 
-export function assertServerApplicationServices(services) {
-  if (!services || typeof services !== 'object') {
-    throw new TypeError('Server application services are required.')
-  }
-  for (const [capability, operations] of Object.entries(serviceOperations)) {
-    assertOperations(services[capability], operations, `Server application capability ${capability}`)
-  }
-  return services
-}
-
-export const serverApplicationContract = Object.freeze([...applicationOperations])
-export const serverApplicationServicesContract = serviceOperations
-
-function assertPluginConfigurationUnchanged(candidate, current) {
-  const candidatePlugins = candidate.templates?.plugins ?? []
-  const currentPlugins = current.templates?.plugins ?? []
-  if (
-    candidatePlugins.length === currentPlugins.length &&
-    candidatePlugins.every((plugin, index) => plugin === currentPlugins[index])
-  ) {
-    return
-  }
-  throw new ApplicationInputError(
-    'Template plugins cannot be changed from the viewer. Edit the project-map file and restart with --allow-plugins after reviewing the modules.'
+function createTraceSubmap(input, { state, paths, services, fileSystem, root }) {
+  validateTraceInput(input)
+  const context = state.context
+  paths.assertProjectMapPaths(context.projectMap, context.configPath)
+  const graphPath = paths.projectPath(context.resolveGraphOutputPath(), 'project.graphOutput')
+  const graph = JSON.parse(fileSystem.readText(graphPath))
+  const submap = services.submaps.create(graph, traceRequest(input))
+  const directory = paths.projectPath(
+    path.resolve(root, context.projectMap.project.submapsDirectory ?? '.code-map/submaps'),
+    'project.submapsDirectory'
   )
+  const output = path.join(directory, services.submaps.filename(submap))
+  services.submaps.write(output, submap)
+  return { file: path.relative(root, output), uid: submap.uid, statistics: submap.statistics }
 }
 
-function validateTraceInput(input) {
-  if (!isRecord(input)) {
-    throw new ApplicationInputError('Trace request must be a JSON object.')
-  }
-  const unknown = Object.keys(input).filter(
-    (key) => !['id', 'nodeIds', 'edgeIds', 'selectedNodeId', 'complete'].includes(key)
-  )
-  if (unknown.length > 0) {
-    throw new ApplicationInputError(`Unknown trace request properties: ${unknown.sort().join(', ')}.`)
-  }
-  if (!Array.isArray(input.nodeIds) || input.nodeIds.length === 0) {
-    throw new ApplicationInputError('A non-empty trace selection is required.')
-  }
-  assertNonEmptyStringArray(input.nodeIds, 'nodeIds')
-  if (input.edgeIds !== undefined) {
-    assertNonEmptyStringArray(input.edgeIds, 'edgeIds')
-  }
-  if (typeof input.id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(input.id)) {
-    throw new ApplicationInputError('Trace id must use letters, numbers, dots, underscores, or hyphens.')
-  }
-  if (
-    input.selectedNodeId !== undefined &&
-    (typeof input.selectedNodeId !== 'string' || !input.selectedNodeId.trim())
-  ) {
-    throw new ApplicationInputError('selectedNodeId must be a non-empty string.')
-  }
-  if (input.complete !== undefined && typeof input.complete !== 'boolean') {
-    throw new ApplicationInputError('complete must be a boolean.')
-  }
-}
-
-function assertNonEmptyStringArray(value, location) {
-  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string' || !item.trim())) {
-    throw new ApplicationInputError(`${location} must be an array of non-empty strings.`)
-  }
-}
-
-function isRecord(value) {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-}
-
-function assertPathValue(value, label) {
-  if (typeof value !== 'string' || value.trim() === '') {
-    throw new ApplicationInputError(`${label} must be a non-empty path string.`)
-  }
-}
-
-function canonicalPath(candidate, fileSystem) {
-  let existing = path.resolve(candidate)
-  const missing = []
-  while (!fileSystem.exists(existing)) {
-    const parent = path.dirname(existing)
-    if (parent === existing) {
-      break
-    }
-    missing.unshift(path.basename(existing))
-    existing = parent
-  }
-  const real = fileSystem.realPath(existing)
-  return path.resolve(real, ...missing)
-}
-
-function assertOperations(implementation, operations, label) {
-  if (!implementation || typeof implementation !== 'object') {
-    throw new TypeError(`${label} implementation is required.`)
-  }
-  for (const operation of operations) {
-    if (typeof implementation[operation] !== 'function') {
-      throw new TypeError(`${label} must implement ${operation}().`)
+function traceRequest(input) {
+  return {
+    id: input.id,
+    selectors: { nodeIds: [...new Set(input.nodeIds)] },
+    traversal: { direction: 'both', maxDepth: 0 },
+    metadata: {
+      kind: 'execution-trace',
+      selectedNodeId: input.selectedNodeId,
+      complete: Boolean(input.complete),
+      traceEdgeIds: Array.isArray(input.edgeIds) ? [...new Set(input.edgeIds)] : []
     }
   }
-  return implementation
 }

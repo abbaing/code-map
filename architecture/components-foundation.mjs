@@ -168,7 +168,12 @@ export const foundationComponents = [
     id: 'quality',
     responsibility: 'Calculate maintainability signals from an architectural graph.',
     role: 'core',
-    files: ['src/core/quality.mjs'],
+    files: [
+      'src/core/quality.mjs',
+      'src/core/quality-application.mjs',
+      'src/core/quality-evidence.mjs',
+      'src/core/quality-policy.mjs'
+    ],
     contracts: ['GraphEnricher', 'QualityScoringPolicy'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),

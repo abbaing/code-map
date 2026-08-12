@@ -25,7 +25,11 @@ export const deliveryComponents = [
     id: 'application',
     responsibility: 'Coordinate scan, configuration update, rollback, and trace-submap use cases.',
     role: 'application',
-    files: ['src/application/server-app.mjs'],
+    files: [
+      'src/application/server-app.mjs',
+      'src/application/server-contracts.mjs',
+      'src/application/server-input.mjs'
+    ],
     contracts: ['ServerApplication'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
@@ -46,7 +50,15 @@ export const deliveryComponents = [
     id: 'http',
     responsibility: 'Adapt local HTTP requests and static assets to application use cases.',
     role: 'composition-root',
-    files: ['server.mjs'],
+    files: [
+      'server.mjs',
+      'src/delivery/http-body.mjs',
+      'src/delivery/http-response.mjs',
+      'src/delivery/http-routes.mjs',
+      'src/delivery/http-security.mjs',
+      'src/delivery/http-server.mjs',
+      'src/delivery/viewer-assets.mjs'
+    ],
     contracts: ['ServerApplication', 'Route'],
     compositionRoot: true,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
@@ -76,7 +88,12 @@ export const deliveryComponents = [
     id: 'cli-commands',
     responsibility: 'Implement root command-line use cases through injected runtime capabilities.',
     role: 'adapter',
-    files: ['src/application/cli-commands.mjs'],
+    files: [
+      'src/application/cli-commands.mjs',
+      'src/application/cli-contracts.mjs',
+      'src/application/cli-handlers.mjs',
+      'src/application/cli-project.mjs'
+    ],
     contracts: ['Command', 'ProjectDetector', 'ScanExecution', 'TemplateCatalog', 'ServerLauncher'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
