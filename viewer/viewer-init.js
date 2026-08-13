@@ -24,16 +24,10 @@ import { configureViewerElements, els, state } from '#viewer/viewer-state.js'
 import { debounce } from '#viewer/viewer-utils.js'
 
 export function startViewer(options = {}) {
-  const documentRef = options.document ?? globalThis.document
-  const browser = options.browser ?? globalThis.window
-  const navigatorRef = options.navigator ?? globalThis.navigator
-  const elements = options.elements ?? els
-  const gateway = options.gateway ?? createGraphGateway()
-  const controllerFactory = options.controllerFactory ?? createViewerUiController
-
-  configureViewerElements(elements)
+  const context = resolveViewerContext(options)
+  configureViewerElements(context.elements)
   configureViewerData({
-    gateway,
+    gateway: context.gateway,
     operations: {
       hidePopover,
       initializeFindingsFilters,
@@ -45,48 +39,68 @@ export function startViewer(options = {}) {
   })
   configureViewerSelection({ renderModuleDetail })
 
-  return controllerFactory({
-    state,
-    elements,
-    document: documentRef,
-    browser,
-    clipboard: {
-      writeText(value) {
-        if (!navigatorRef?.clipboard?.writeText) {
-          return Promise.reject(new Error('Clipboard access is unavailable'))
-        }
-        return navigatorRef.clipboard.writeText(value)
-      }
-    },
-    operations: {
-      applyFilters,
-      applyPan,
-      clearSelectedNode,
-      createTraceSubmap,
-      debounce,
-      drillIntoModule,
-      exportGraph,
-      exportProjectMap,
-      importGraph,
-      importProjectMap,
-      loadGraph,
-      populateSettingsTab,
-      refreshGraph,
-      render,
-      renderModuleDetail,
-      resetZoom,
-      saveConfig,
-      selectNode,
-      setZoom,
-      showToast,
-      updateViewUI,
-      zoomAt
-    }
-  })
+  return context
+    .controllerFactory({
+      state,
+      elements: context.elements,
+      document: context.document,
+      browser: context.browser,
+      clipboard: createClipboard(context.navigator),
+      operations: viewerOperations()
+    })
     .start()
     .catch((error) => {
-      elements.status.textContent = `Error: ${error.message}`
+      context.elements.status.textContent = `Error: ${error.message}`
     })
+}
+
+function resolveViewerContext(options) {
+  return {
+    browser: options.browser ?? globalThis.window,
+    controllerFactory: options.controllerFactory ?? createViewerUiController,
+    document: options.document ?? globalThis.document,
+    elements: options.elements ?? els,
+    gateway: options.gateway ?? createGraphGateway(),
+    navigator: options.navigator ?? globalThis.navigator
+  }
+}
+
+function createClipboard(navigatorRef) {
+  return {
+    writeText(value) {
+      if (!navigatorRef?.clipboard?.writeText) {
+        return Promise.reject(new Error('Clipboard access is unavailable'))
+      }
+      return navigatorRef.clipboard.writeText(value)
+    }
+  }
+}
+
+function viewerOperations() {
+  return {
+    applyFilters,
+    applyPan,
+    clearSelectedNode,
+    createTraceSubmap,
+    debounce,
+    drillIntoModule,
+    exportGraph,
+    exportProjectMap,
+    importGraph,
+    importProjectMap,
+    loadGraph,
+    populateSettingsTab,
+    refreshGraph,
+    render,
+    renderModuleDetail,
+    resetZoom,
+    saveConfig,
+    selectNode,
+    setZoom,
+    showToast,
+    updateViewUI,
+    zoomAt
+  }
 }
 
 if (typeof document !== 'undefined' && typeof window !== 'undefined') {

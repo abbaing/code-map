@@ -9,7 +9,7 @@ export function systemModuleEdgeSvg(edge, nodeById) {
   const y2 = to.y + to.height / 2
   const curve = Math.max(28, Math.abs(x2 - x1) * 0.28)
   const thickness = Math.min(2.5, 0.7 + Math.log2(edge.count + 1) * 0.35)
-  const title = escapeHtml(`${edge.count} relations Â· ${edge.relationTypes.join(', ')}`)
+  const title = escapeHtml(`${edge.count} relations · ${edge.relationTypes.join(', ')}`)
   return (
     `<path d="M ${x1} ${y1} C ${x1 + curve} ${y1}, ${x2 - curve} ${y2}, ${x2} ${y2}"` +
     ` fill="none" stroke="#94a3b8" stroke-width="${thickness}" stroke-opacity="0.2"` +
@@ -26,8 +26,8 @@ export function systemModuleNodeSvg(node) {
       <rect width="${node.width}" height="${node.height}" rx="6"></rect>
       <rect width="5" height="${node.height}" fill="${accent}" rx="5"></rect>
       <text x="14" y="22">${escapeHtml(truncate(node.label, 27))}</text>
-      <text class="type" x="14" y="42">${escapeHtml(`${meta.nodeCount} components Â· ${meta.externalRelations} connections`)}</text>
-      <text class="type" x="14" y="60">${escapeHtml(scope)}${meta.findingCount ? ` Â· ${meta.findingCount} findings` : ''}</text>
+      <text class="type" x="14" y="42">${escapeHtml(`${meta.nodeCount} components · ${meta.externalRelations} connections`)}</text>
+      <text class="type" x="14" y="60">${escapeHtml(scope)}${meta.findingCount ? ` · ${meta.findingCount} findings` : ''}</text>
     </g>
   `
 }

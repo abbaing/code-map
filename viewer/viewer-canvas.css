@@ -1,0 +1,130 @@
+.canvas-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.canvas-wrap.dragging {
+  cursor: grabbing;
+}
+.canvas-wrap.dragging .node {
+  cursor: grabbing;
+}
+
+#graph {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #16323c;
+}
+
+.graph-toolbar {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 4px 12px rgba(31, 35, 40, 0.12);
+  transform: translateX(-50%);
+}
+
+.graph-tool {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+}
+.graph-tool:hover,
+.graph-tool.active {
+  background: var(--surface-subtle);
+  color: var(--text);
+}
+.graph-tool.active {
+  color: var(--accent);
+}
+.toolbar-separator {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: var(--border-muted);
+}
+.zoom-value {
+  min-width: 42px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.graph-filter {
+  top: 12px;
+  left: 12px;
+  width: 260px;
+  max-height: calc(100% - 72px);
+}
+.panel-header {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-muted);
+}
+.panel-header strong {
+  display: block;
+  font-size: 13px;
+}
+.panel-header span {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.inspector {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  width: 300px;
+  max-height: calc(100% - 72px);
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 4px 12px rgba(31, 35, 40, 0.12);
+  cursor: default;
+  user-select: text;
+}
+
+.canvas-status,
+.node-limit {
+  position: absolute;
+  z-index: 8;
+  padding: 4px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: rgba(15, 35, 42, 0.88);
+  color: #cbd5db;
+  font-size: 11px;
+}
+.canvas-status {
+  bottom: 14px;
+  left: 14px;
+}
+.node-limit {
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+}

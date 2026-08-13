@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { createViewerAssets } from '#delivery/viewer-assets.mjs'
 import { populateSettingsTab } from '#viewer/viewer-actions.js'
 import { renderFindingsTable } from '#viewer/viewer-findings.js'
 import {
@@ -23,11 +25,14 @@ import {
   typeLabels
 } from '#viewer/viewer-state.js'
 
-const viewerHtml = fs.readFileSync(new URL(import.meta.resolve('#viewer/viewer.html')), 'utf8')
+const viewerHtml = createViewerAssets(fileURLToPath(new URL('../viewer', import.meta.url))).indexHtml
 const tailwindCss = fs.readFileSync(new URL(import.meta.resolve('#viewer/tailwind.css')), 'utf8')
 const findingsSource = fs.readFileSync(new URL(import.meta.resolve('#viewer/viewer-findings.js')), 'utf8')
 const actionsSource = fs.readFileSync(new URL(import.meta.resolve('#viewer/viewer-actions.js')), 'utf8')
-const interactionsSource = fs.readFileSync(new URL(import.meta.resolve('#viewer/viewer-interactions.mjs')), 'utf8')
+const interactionsSource = fs.readFileSync(
+  new URL(import.meta.resolve('#viewer/viewer-interaction-filters.mjs')),
+  'utf8'
+)
 assert.match(
   viewerHtml,
   /<link rel="stylesheet" href="\/tailwind\.css" \/>/u,
@@ -128,7 +133,6 @@ assert.match(
   /\.text-\\\[11px\\\]/u,
   'the compiled stylesheet must include utilities used by dynamic viewer markup'
 )
-
 const findingsTable = { innerHTML: '' }
 state.graph = { nodes: [] }
 configureViewerElements({ findingsTable })
@@ -147,7 +151,6 @@ assert.match(
   findingsTable.innerHTML,
   /data-copy-path="src\/&#39;\);globalThis\.injected=true;\/\/&quot; onmouseover=&quot;alert\(1\)\.js"/u
 )
-
 const settingsBody = () => ({
   innerHTML: '',
   querySelectorAll() {
@@ -184,7 +187,6 @@ assert.doesNotMatch(
   /querySelector\(`input\[data-type-hex=/u,
   'configured type ids must not be interpolated into CSS selectors'
 )
-
 const classNames = new Set(['hidden'])
 const attributes = new Map()
 const svg = {
@@ -270,7 +272,6 @@ Object.assign(layerLabels, {})
 Object.assign(typeLabels, {})
 Object.assign(colors, {})
 layerOrder.splice(0)
-
 state.selectedId = 'front'
 const provenanceMarkup = edgeLine({
   from: 'front',
@@ -282,7 +283,6 @@ const provenanceMarkup = edgeLine({
 })
 assert.match(provenanceMarkup, /medium confidence · endpoint-matcher · GET \/api\/users/u)
 state.selectedId = null
-
 render()
 assert.match(svg.innerHTML, /class="node system-module-node"/u, 'graph overview must render module cards')
 assert.match(svg.innerHTML, /module-overview-edges/u, 'graph overview must render aggregated module flows')

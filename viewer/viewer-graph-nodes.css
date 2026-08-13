@@ -1,0 +1,121 @@
+.node rect {
+  fill: #fff;
+  stroke: #aab3bd;
+  stroke-width: 1;
+}
+.node text {
+  fill: #1f2328;
+  font-size: 11px;
+  pointer-events: none;
+}
+.node .type {
+  fill: #636c76;
+  font-size: 10px;
+}
+.node .metric-label {
+  fill: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+.node .metric-box,
+.node.selected .metric-box,
+.node.orphan .metric-box {
+  stroke: none;
+}
+.uml-entity rect {
+  fill: #fff;
+}
+.uml-entity .uml-header {
+  fill: #ddf4ff;
+  stroke: none;
+}
+.uml-entity .uml-title {
+  fill: #1f2328;
+  font-size: 12px;
+  font-weight: 700;
+}
+.uml-entity .uml-property {
+  fill: #424a53;
+  font-size: 10px;
+}
+.uml-entity .uml-property.muted {
+  fill: #636c76;
+}
+.uml-entity .uml-divider {
+  stroke: #80ccff;
+  stroke-width: 1;
+}
+.node .test-indicator rect {
+  fill: #eef2f6;
+  stroke: #aab3bd;
+  stroke-width: 1;
+}
+.node .test-indicator text {
+  fill: #57606a;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.node.focused .test-indicator rect,
+.node.selected .test-indicator rect {
+  stroke: #aab3bd;
+  stroke-width: 1;
+}
+.node .review-badge {
+  fill: var(--danger);
+  stroke: none;
+}
+.node .review-label {
+  fill: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.node.orphan rect {
+  stroke: #ff7b72;
+  stroke-dasharray: 4 3;
+}
+.node.auxiliary {
+  opacity: 0.72;
+}
+.node.auxiliary rect {
+  fill: #f6f8fa;
+  stroke: #afb8c1;
+}
+.lane-label {
+  fill: #a9b9c0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-anchor: middle;
+  text-transform: uppercase;
+}
+.module-band {
+  fill: rgba(0, 0, 0, 0.12);
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-width: 1;
+}
+.module-header-band,
+.module-header-band-fill {
+  fill: rgba(0, 0, 0, 0.2);
+}
+.module-pill {
+  fill: rgba(88, 166, 255, 0.16);
+  stroke: rgba(88, 166, 255, 0.45);
+  stroke-width: 1;
+}
+.module-label {
+  fill: #dce5e9;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.domain-cluster-band {
+  fill: rgba(0, 0, 0, 0.13);
+  stroke: rgba(219, 234, 254, 0.28);
+  stroke-width: 1;
+}
+.domain-cluster-label {
+  fill: #dbeafe;
+  font-size: 12px;
+  font-weight: 700;
+}

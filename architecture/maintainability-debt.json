@@ -10,30 +10,7 @@
     "tests/submap.test.mjs": 236,
     "tests/viewer-interactions.test.mjs": 221,
     "tests/viewer-render.test.mjs": 362,
-    "tests/viewer-trace.test.mjs": 212,
-    "viewer/viewer-actions.js": 393,
-    "viewer/viewer-data.js": 300,
-    "viewer/viewer-interactions.mjs": 436,
-    "viewer/viewer-overview.js": 211,
-    "viewer/viewer-selection.js": 370,
-    "viewer/viewer-utils.js": 213,
-    "viewer/viewer.css": 1374,
-    "viewer/viewer.html": 350
+    "tests/viewer-trace.test.mjs": 212
   },
-  "lines": {
-    "viewer/viewer-actions.js:5": 227,
-    "viewer/viewer-data.js:148": 271,
-    "viewer/viewer-data.js:152": 201,
-    "viewer/viewer-data.js:153": 211,
-    "viewer/viewer-data.js:155": 204,
-    "viewer/viewer-data.js:156": 227,
-    "viewer/viewer-selection.js:87": 252,
-    "viewer/viewer-selection.js:245": 381,
-    "viewer/viewer-selection.js:256": 219,
-    "viewer/viewer-selection.js:298": 270,
-    "viewer/viewer-selection.js:307": 231,
-    "viewer/viewer-selection.js:308": 218,
-    "viewer/viewer-selection.js:346": 405,
-    "viewer/viewer.html:81": 253
-  }
+  "lines": {}
 }

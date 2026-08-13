@@ -1,0 +1,37 @@
+
+      <section class="workspace">
+        <header class="workspace-header">
+          <div class="view-context">
+            <div class="view-eyebrow">Architecture</div>
+            <div class="view-heading-row">
+              <h1 id="viewTitle">Overview</h1>
+              <span id="viewSubtitle">Repository health and module inventory</span>
+            </div>
+          </div>
+          <div class="header-actions">
+            <button id="refreshBtn" class="btn btn-primary">
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M16 6V2.5M16 2.5h-3.5M16 2.5l-2.2 2.2a6 6 0 1 0 1.4 6.3" />
+              </svg>
+              <span>Rescan</span>
+            </button>
+            <div class="menu-wrap">
+              <button id="actionsBtn" class="btn btn-icon" aria-label="More actions" aria-haspopup="menu">
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <circle cx="4" cy="10" r="1" />
+                  <circle cx="10" cy="10" r="1" />
+                  <circle cx="16" cy="10" r="1" />
+                </svg>
+              </button>
+              <div id="actionsMenu" class="action-menu hidden" role="menu">
+                <div class="action-menu-label">Management</div>
+                <button id="createTraceSubmapBtn" role="menuitem">Create submap from trace</button>
+                <div class="action-menu-separator"></div>
+                <label id="importLabel" for="importFile" role="menuitem">Import graph</label>
+                <button id="exportBtn" role="menuitem">Export graph</button>
+                <input id="importFile" class="hidden" type="file" accept="application/json,.json" />
+              </div>
+            </div>
+          </div>
+          <div id="statsPopover" class="stats-popover hidden"></div>
+        </header>

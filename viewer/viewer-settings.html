@@ -1,0 +1,65 @@
+          <section id="settingsPane" class="view-pane settings-pane hidden">
+            <div class="settings-content">
+              <section class="settings-section">
+                <div class="settings-heading">
+                  <h2>Module labels</h2>
+                  <p>Human-readable names used throughout the viewer.</p>
+                </div>
+                <div class="settings-surface">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Label</th>
+                      </tr>
+                    </thead>
+                    <tbody id="settingsModulesBody"></tbody>
+                  </table>
+                </div>
+              </section>
+              <section class="settings-section">
+                <div class="settings-heading">
+                  <h2>Type colors</h2>
+                  <p>Semantic colors applied to graph node types.</p>
+                </div>
+                <div class="settings-surface">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Type</th>
+                        <th>Color</th>
+                      </tr>
+                    </thead>
+                    <tbody id="settingsTypesBody"></tbody>
+                  </table>
+                </div>
+              </section>
+              <section class="settings-section">
+                <div class="settings-heading">
+                  <h2>Rules</h2>
+                  <p>Enable or disable architecture guardrails.</p>
+                </div>
+                <div id="settingsRulesBody" class="settings-surface settings-rules"></div>
+              </section>
+              <section class="settings-section settings-config-row">
+                <div class="settings-heading">
+                  <h2>Configuration file</h2>
+                  <p>Import or export the current project map.</p>
+                </div>
+                <div class="settings-actions">
+                  <label id="settingsImportBtn" class="btn" for="settingsImportFile">Import config</label>
+                  <input id="settingsImportFile" class="hidden" type="file" accept="application/json,.json" />
+                  <button id="settingsExportBtn" class="btn">Export config</button>
+                </div>
+              </section>
+              <div class="settings-savebar">
+                <span>Changes require a new scan.</span
+                ><button id="settingsSaveBtn" class="btn btn-primary">Save and rescan</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </div>

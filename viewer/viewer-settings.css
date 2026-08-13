@@ -1,0 +1,112 @@
+.settings-content {
+  max-width: 920px;
+  padding-bottom: 90px;
+}
+.settings-section {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 28px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+.settings-section:first-child {
+  padding-top: 0;
+}
+.settings-surface {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.settings-surface table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.settings-surface th {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-subtle);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+}
+.settings-surface td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-muted);
+}
+.settings-surface tr:last-child td {
+  border-bottom: 0;
+}
+.settings-rules > * + * {
+  border-top: 1px solid var(--border-muted);
+}
+.settings-config-row {
+  align-items: center;
+}
+.settings-actions {
+  display: flex;
+  gap: 8px;
+}
+.settings-savebar {
+  position: fixed;
+  right: 20px;
+  bottom: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 4px 12px rgba(31, 35, 40, 0.12);
+}
+.settings-savebar span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  vertical-align: -2px;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.btn-spin {
+  animation: spin 0.7s linear infinite;
+}
+
+.toast {
+  display: none;
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 100;
+  padding: 9px 13px;
+  border: 1px solid #30363d;
+  border-radius: var(--radius);
+  background: #24292f;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(31, 35, 40, 0.18);
+  font-size: 12px;
+  pointer-events: none;
+}
+.toast.open {
+  display: block;
+}
+.toast.error {
+  border-color: #a40e26;
+  background: var(--danger);
+}

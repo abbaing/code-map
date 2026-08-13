@@ -1,0 +1,25 @@
+          <section id="findingsPane" class="view-pane findings-pane hidden">
+            <div class="findings-content">
+              <div class="collection-panel">
+                <div class="collection-header findings-header">
+                  <div>
+                    <h2>Architecture findings</h2>
+                    <p>Rule violations and maintainability risks</p>
+                  </div>
+                  <div class="findings-filters">
+                    <label class="search-field findings-search">
+                      <svg viewBox="0 0 20 20" aria-hidden="true">
+                        <circle cx="9" cy="9" r="5.5" />
+                        <path d="m13 13 4 4" />
+                      </svg>
+                      <input id="findingsSearch" type="search" placeholder="Search findings" />
+                    </label>
+                    <select id="findingsSeverity"></select>
+                    <select id="findingsRule"></select>
+                    <select id="findingsModule"></select>
+                  </div>
+                </div>
+                <div id="findingsTable" class="findings-table"></div>
+              </div>
+            </div>
+          </section>

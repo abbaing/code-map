@@ -1,0 +1,78 @@
+          <main id="canvasWrap" class="canvas-wrap hidden">
+            <svg id="graph" role="img" aria-label="Code dependency graph"></svg>
+
+            <div class="graph-toolbar" aria-label="Graph controls">
+              <button id="graphFilterBtn" class="graph-tool" aria-label="Graph filters" title="Filters">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M5.5 10h9M8 15h4" /></svg>
+              </button>
+              <span class="toolbar-separator"></span>
+              <button id="zoomOutBtn" class="graph-tool" aria-label="Zoom out">−</button>
+              <span id="zoomValue" class="zoom-value">100%</span>
+              <button id="zoomInBtn" class="graph-tool" aria-label="Zoom in">+</button>
+              <span class="toolbar-separator"></span>
+              <button id="zoomResetBtn" class="graph-tool" aria-label="Reset zoom" title="Reset zoom">
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M15.5 6.5A7 7 0 1 1 4 5.5" />
+                  <path d="M4 2.5v3h3" />
+                </svg>
+              </button>
+            </div>
+
+            <aside id="graphFilterPanel" class="filter-panel graph-filter hidden">
+              <div class="panel-header"><strong>Graph filters</strong><span>Refine visible nodes</span></div>
+              <div class="filter-section">
+                <label class="search-field">
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <circle cx="9" cy="9" r="5.5" />
+                    <path d="m13 13 4 4" />
+                  </svg>
+                  <input id="graphSearch" type="search" placeholder="Find component or table" />
+                </label>
+              </div>
+              <div class="filter-section filter-options">
+                <label
+                  ><input id="orphansOnly" type="checkbox" /><span>Orphans only</span
+                  ><small id="orphanCount">0</small></label
+                >
+                <label
+                  ><input id="uncoveredOnly" type="checkbox" /><span>No coverage</span
+                  ><small id="uncoveredCount">0</small></label
+                >
+                <label
+                  ><input id="reviewOnly" type="checkbox" /><span>Needs review</span
+                  ><small id="reviewCount">0</small></label
+                >
+                <label
+                  ><input id="findingsOnly" type="checkbox" /><span>Has findings</span
+                  ><small id="findingsCount">0</small></label
+                >
+                <label><input id="hideAuxiliary" type="checkbox" checked /><span>Hide auxiliary</span></label>
+              </div>
+              <div class="filter-section">
+                <p class="filter-title">Component types</p>
+                <div id="typeChecks" class="filter-options"></div>
+              </div>
+            </aside>
+
+            <aside id="moduleDetail" class="inspector hidden"></aside>
+            <div id="status" class="canvas-status">Ready</div>
+            <div id="nodeLimitBanner" class="node-limit hidden"></div>
+            <details class="graph-legend">
+              <summary>How to read this graph</summary>
+              <div>
+                <p>
+                  <strong>Click a component</strong> to trace it from the frontend to persistence. Select a table to
+                  trace back to its screens.
+                </p>
+                <p>
+                  <span class="legend-line solid"></span> Confirmed relation
+                  <span class="legend-line dashed"></span> Inferred relation
+                </p>
+                <p>
+                  <strong>Q 1–10</strong> is an auditable maintainability estimate based on cohesion and coupling.
+                  Higher is healthier; it is not correctness or coverage.
+                </p>
+              </div>
+            </details>
+            <div id="popover" class="popover"></div>
+          </main>

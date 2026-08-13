@@ -12,7 +12,7 @@ export function renderSystemModuleGraph(svg, dimensions) {
   })
   const nodeById = new Map(layout.nodes.map((node) => [node.id, node]))
   const visibleEdges = systemGraph.edges.filter((edge) => nodeById.has(edge.from) && nodeById.has(edge.to))
-  els.nodeLimitBanner.textContent = `System map Â· ${layout.nodes.length} modules Â· ${visibleEdges.length} module flows Â· Select a module for complete paths.`
+  els.nodeLimitBanner.textContent = `System map · ${layout.nodes.length} modules · ${visibleEdges.length} module flows · Select a module for complete paths.`
   els.nodeLimitBanner.classList.remove('hidden')
   svg.style.width = '100%'
   svg.style.height = '100%'

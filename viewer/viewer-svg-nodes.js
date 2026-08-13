@@ -104,7 +104,7 @@ function secondaryLabel(node, managedCount, managedLabel) {
     return node.meta.backend.action
   }
   if (node.type === 'data-context' && managedCount > 0) {
-    return `${formatType(node.type)} Â· ${managedLabel}`
+    return `${formatType(node.type)} · ${managedLabel}`
   }
   return `${formatType(node.type)} - ${formatModule(node.module)}`
 }

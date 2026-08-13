@@ -1,74 +1,8 @@
 import { applyFilters, isCoverable } from '#viewer/viewer-data.js'
+import { buildModuleStats, filterAndSortModuleStats } from '#viewer/viewer-module-stats.js'
 import { selectedNodeDetailHtml } from '#viewer/viewer-selection.js'
 import { els, state } from '#viewer/viewer-state.js'
-import { escapeHtml, formatModule, healthPill, pillHtml, scoreToHealthKey } from '#viewer/viewer-utils.js'
-
-function buildModuleStats() {
-  const modules = new Map()
-  const orphanIds = new Set(state.graph.orphans.map((o) => o.id))
-
-  // Determine which modules are visible after filtering
-  const visibleModules = new Set(state.filteredNodes.map((n) => n.module || 'shared'))
-
-  // Compute stats using all nodes so scores are stable regardless of active filters
-  for (const node of state.graph.nodes) {
-    const m = node.module || 'shared'
-    if (!visibleModules.has(m)) {
-      continue
-    }
-    if (!modules.has(m)) {
-      modules.set(m, {
-        nodes: 0,
-        orphans: 0,
-        uncovered: 0,
-        review: 0,
-        findings: 0,
-        findingRules: new Map(),
-        qualitySum: 0,
-        qualityCount: 0
-      })
-    }
-    const s = modules.get(m)
-    s.nodes++
-    if (orphanIds.has(node.id)) {
-      s.orphans++
-    }
-    if (isCoverable(node) && !node.meta?.coverage?.hasCoverage) {
-      s.uncovered++
-    }
-    if (node.meta?.review) {
-      s.review++
-    }
-    for (const finding of node.meta?.findings ?? []) {
-      s.findings++
-      s.findingRules.set(finding.ruleId, (s.findingRules.get(finding.ruleId) ?? 0) + 1)
-    }
-    if (node.meta?.quality) {
-      s.qualitySum += node.meta.quality.score
-      s.qualityCount++
-    }
-  }
-  return modules
-}
-
-function moduleHealthKey(s) {
-  if (s.qualityCount === 0) {
-    return 'n/a'
-  }
-  return scoreToHealthKey(s.qualitySum / s.qualityCount)
-}
-
-function filterAndSortModuleStats(stats) {
-  const healthFilterActive = state.selectedHealth.size < 6
-  const query = els.search.value.trim().toLowerCase()
-  const matchesQuery = (name) =>
-    !query || name.toLowerCase().includes(query) || formatModule(name).toLowerCase().includes(query)
-  const matchesHealth = (s) => !healthFilterActive || state.selectedHealth.has(moduleHealthKey(s))
-
-  return [...stats.entries()]
-    .filter(([name, s]) => matchesQuery(name) && matchesHealth(s))
-    .sort(([a], [b]) => formatModule(a).localeCompare(formatModule(b), undefined, { sensitivity: 'base' }))
-}
+import { escapeHtml, formatModule, healthPill, pillHtml } from '#viewer/viewer-utils.js'
 
 function moduleCardHtml(name, s) {
   const avgQ = s.qualityCount > 0 ? s.qualitySum / s.qualityCount : null

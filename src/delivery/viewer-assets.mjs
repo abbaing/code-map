@@ -3,10 +3,12 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const browserModuleName = /^(?:viewer-[a-z0-9-]+|graph-gateway|rendering-contracts)\.(?:js|mjs)$/u
+const viewerStyleName = /^viewer(?:-[a-z0-9-]+)?\.css$/u
 
 export function createViewerAssets(viewerRoot) {
   const indexPath = path.join(viewerRoot, 'viewer.html')
-  const source = fs.readFileSync(indexPath, 'utf8').match(/<script type="importmap">([\s\S]*?)<\/script>/u)?.[1]
+  const indexHtml = assembleViewerHtml(indexPath, viewerRoot)
+  const source = indexHtml.match(/<script type="importmap">([\s\S]*?)<\/script>/u)?.[1]
   if (!source) {
     throw new Error('Viewer import map is missing')
   }
@@ -17,11 +19,18 @@ export function createViewerAssets(viewerRoot) {
       .filter((entry) => entry.isFile() && isPublicAsset(entry.name))
       .map((entry) => [`/${entry.name}`, path.join(viewerRoot, entry.name)])
   )
-  return Object.freeze({ indexPath, assets, securityHeaders: securityHeaders(importMapHash) })
+  return Object.freeze({ indexHtml, assets, securityHeaders: securityHeaders(importMapHash) })
+}
+
+function assembleViewerHtml(indexPath, viewerRoot) {
+  const template = fs.readFileSync(indexPath, 'utf8')
+  return template.replace(/<!-- viewer-fragment:([a-z0-9-]+\.html) -->/gu, (_, name) =>
+    fs.readFileSync(path.join(viewerRoot, name), 'utf8').trimEnd()
+  )
 }
 
 function isPublicAsset(name) {
-  return name === 'tailwind.css' || name === 'viewer.css' || browserModuleName.test(name)
+  return name === 'tailwind.css' || viewerStyleName.test(name) || browserModuleName.test(name)
 }
 
 function securityHeaders(importMapHash) {

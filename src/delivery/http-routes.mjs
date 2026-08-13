@@ -11,7 +11,7 @@ export function createViewerRoutes({ sessionToken, application, viewer, responde
       method: 'GET',
       matches: (pathname) => pathname === '/',
       handle: ({ response }) =>
-        responder.sendFile(response, viewer.indexPath, {
+        responder.send(response, 200, viewer.indexHtml, 'text/html; charset=utf-8', {
           'Set-Cookie': sessionCookie(sessionToken)
         })
     }),

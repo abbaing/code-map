@@ -1,0 +1,44 @@
+
+        <div class="workspace-body">
+          <section id="overviewPane" class="view-pane overview-pane">
+            <div class="overview-content">
+              <div class="metric-strip" aria-label="Repository summary">
+                <div class="metric-item"><span>Modules</span><strong id="metricModules">—</strong></div>
+                <div class="metric-item"><span>Components</span><strong id="metricNodes">—</strong></div>
+                <div class="metric-item"><span>Relations</span><strong id="metricEdges">—</strong></div>
+                <div class="metric-item"><span>Findings</span><strong id="metricFindings">—</strong></div>
+                <div class="metric-item"><span>Coverage</span><strong id="metricCoverage">—</strong></div>
+              </div>
+
+              <section class="collection-panel">
+                <div class="collection-header">
+                  <div>
+                    <h2>Modules</h2>
+                    <p>Architecture areas detected in the repository</p>
+                  </div>
+                  <div class="collection-actions">
+                    <label class="search-field">
+                      <svg viewBox="0 0 20 20" aria-hidden="true">
+                        <circle cx="9" cy="9" r="5.5" />
+                        <path d="m13 13 4 4" />
+                      </svg>
+                      <input id="search" type="search" placeholder="Search modules" />
+                    </label>
+                    <button id="filterBtn" class="btn btn-icon" aria-label="Filter modules">
+                      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M5.5 10h9M8 15h4" /></svg>
+                    </button>
+                  </div>
+                </div>
+                <div id="filterPanel" class="filter-panel overview-filter hidden">
+                  <div class="filter-section">
+                    <p class="filter-title">Health score</p>
+                    <div id="healthChecks" class="filter-options"></div>
+                  </div>
+                </div>
+                <div class="module-table-head" aria-hidden="true">
+                  <span>Module</span><span>Health</span><span>Components</span><span>Findings</span><span></span>
+                </div>
+                <div id="overviewScroll" class="module-list"></div>
+              </section>
+            </div>
+          </section>
