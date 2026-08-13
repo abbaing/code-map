@@ -1,3 +1,4 @@
+import { mergeCatalogEntriesById } from '#core/catalog-entries.mjs'
 import { maxSourceFileBytes } from '#core/scan-utils.mjs'
 import { isEntryPoint } from '#core/quality.mjs'
 
@@ -78,20 +79,12 @@ function skippedFilesWarning(skippedFiles, projectContext) {
 export function buildEffectiveProjectMap(projectMap, registry) {
   return {
     ...projectMap,
-    layers: mergeById(registry.layers ?? [], projectMap.layers ?? []),
+    layers: mergeCatalogEntriesById(registry.layers ?? [], projectMap.layers ?? []),
     types: {
       labels: { ...(registry.types?.labels ?? {}), ...(projectMap.types?.labels ?? {}) },
       colors: { ...(registry.types?.colors ?? {}), ...(projectMap.types?.colors ?? {}) }
     }
   }
-}
-
-function mergeById(left = [], right = []) {
-  const byId = new Map(left.map((item) => [item.id, item]))
-  for (const item of right) {
-    byId.set(item.id, { ...(byId.get(item.id) ?? {}), ...item })
-  }
-  return [...byId.values()]
 }
 
 function countMappedFiles(graph, files, projectContext) {

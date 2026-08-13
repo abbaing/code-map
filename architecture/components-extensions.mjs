@@ -50,6 +50,16 @@ export const extensionComponents = [
     decision: 'Keep collection execution-scoped and expose separate immutable write and read capabilities.'
   },
   {
+    id: 'catalog-entry-merge',
+    responsibility: 'Merge ordered catalog entries by stable identity and explicit field precedence.',
+    role: 'core',
+    files: ['src/core/catalog-entries.mjs'],
+    contracts: ['CatalogEntryMerge'],
+    compositionRoot: false,
+    design: designStatus('pass', 'pass', 'not-applicable', 'pass', 'pass'),
+    decision: 'Keep shared catalog composition deterministic without introducing a generic utility module.'
+  },
+  {
     id: 'templates',
     responsibility: 'Register, normalize, and compose architectural capabilities.',
     role: 'composition-root',
