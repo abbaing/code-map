@@ -16,8 +16,8 @@ export function applyFilters() {
   operations.renderModuleDetail()
 }
 
-export function isCoverable(node) {
-  const configuredTypes = state.graph.projectMap?.frontend?.coverableTypes
+export function isCoverable(node, projectMap = state.graph.projectMap) {
+  const configuredTypes = projectMap?.frontend?.coverableTypes
   if (configuredTypes?.length) {
     return Boolean(node.path) && configuredTypes.includes(node.type)
   }
