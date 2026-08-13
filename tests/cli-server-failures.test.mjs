@@ -7,7 +7,7 @@ import {
   arbitraryGraphPath,
   arbitraryRoot,
   cliPath
-} from '#tests/cli-smoke.test.mjs'
+} from '#tests/cli-test-workspace.mjs'
 import { request, withServer } from '#tests/cli-server-harness.mjs'
 
 await withServer(

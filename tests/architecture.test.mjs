@@ -19,6 +19,19 @@ const dependencies = new Map(productionFiles.map((file) => [file, localDependenc
 const componentByFile = new Map(
   components.flatMap((component) => component.files.map((file) => [path.join(root, file), component]))
 )
+const testFiles = fs
+  .readdirSync(path.join(root, 'tests'), { withFileTypes: true })
+  .filter((entry) => entry.isFile() && entry.name.endsWith('.mjs'))
+  .map((entry) => path.join(root, 'tests', entry.name))
+
+for (const file of testFiles) {
+  const specifiers = importSpecifiers(fs.readFileSync(file, 'utf8'))
+  assert.equal(
+    specifiers.some((specifier) => specifier.endsWith('.test.mjs')),
+    false,
+    `${relative(file)} must not import an executable test suite`
+  )
+}
 
 for (const file of productionFiles) {
   const specifiers = importSpecifiers(fs.readFileSync(file, 'utf8'))

@@ -1,15 +1,17 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { startServer } from '#entry/server.mjs'
-
-const testDir = path.dirname(fileURLToPath(import.meta.url))
-export const packageRoot = path.resolve(testDir, '..')
-export const cliPath = path.join(packageRoot, 'cli.mjs')
-export const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-map-cli-'))
+import {
+  appRoot,
+  arbitraryConfigPath,
+  arbitraryGraphPath,
+  arbitraryRoot,
+  cliPath,
+  tempRoot
+} from '#tests/cli-test-workspace.mjs'
 
 function run(args, cwd = tempRoot) {
   return execFileSync(process.execPath, [cliPath, ...args], {
@@ -37,15 +39,6 @@ assert.match(help, /--allow-plugins\s+Trust and execute configured plugin module
 const templates = run(['--templates'])
 assert.match(templates, /^base\s+core/mu)
 assert.match(templates, /^typescript\s+technology/mu)
-
-export const appRoot = path.join(tempRoot, 'app')
-fs.mkdirSync(path.join(appRoot, 'src'), { recursive: true })
-fs.writeFileSync(
-  path.join(appRoot, 'package.json'),
-  JSON.stringify({ name: 'cli-smoke-app', dependencies: { react: '18.0.0', 'react-dom': '18.0.0' } }),
-  'utf8'
-)
-fs.writeFileSync(path.join(appRoot, 'src/index.tsx'), 'export function App() { return null }\n', 'utf8')
 
 const initOutput = run(['--init', '--out', tempRoot], appRoot)
 assert.match(initOutput, /Detected: react frontend, none backend/u)
@@ -98,44 +91,6 @@ assert.equal(
   true,
   'unrecognized root graph files must never be removed'
 )
-
-export const arbitraryRoot = path.join(tempRoot, 'arbitrary')
-export const arbitraryConfigDir = path.join(arbitraryRoot, 'code-map')
-const arbitraryTemplatesDir = path.join(arbitraryConfigDir, 'templates')
-const outsideSourceRoot = path.join(tempRoot, 'outside-source')
-const linkedOutsideRoot = path.join(arbitraryRoot, 'linked-outside')
-fs.mkdirSync(path.join(arbitraryRoot, 'src'), { recursive: true })
-fs.mkdirSync(arbitraryTemplatesDir, { recursive: true })
-fs.mkdirSync(outsideSourceRoot)
-fs.symlinkSync(outsideSourceRoot, linkedOutsideRoot, process.platform === 'win32' ? 'junction' : 'dir')
-fs.writeFileSync(path.join(arbitraryRoot, 'src/index.ts'), 'export const arbitraryValue = 1\n', 'utf8')
-fs.writeFileSync(
-  path.join(arbitraryTemplatesDir, 'custom-plugin.mjs'),
-  "export const customPluginTemplate = { id: 'custom-plugin', stage: 'custom', description: 'Test plugin loaded relative to config.' }\n",
-  'utf8'
-)
-
-export const arbitraryConfigPath = path.join(arbitraryConfigDir, 'project-map.json')
-export const arbitraryGraphPath = path.join(arbitraryConfigDir, 'graph.json')
-const arbitraryConfig = {
-  schemaVersion: 1,
-  project: {
-    name: 'Arbitrary Config App',
-    graphOutput: 'graph.json',
-    runtimeLinks: 'code-map/runtime-links.json'
-  },
-  sourceRoots: { frontend: 'src' },
-  templates: {
-    enabled: ['filesystem', 'typescript', 'react', 'custom-plugin', 'quality'],
-    plugins: ['./templates/custom-plugin.mjs']
-  },
-  imports: { aliases: [] },
-  modules: { shared: 'shared', frontendFeaturePattern: '^$', labels: {} },
-  layers: [{ id: 'auxiliary', label: 'Auxiliary' }],
-  frontend: { entryPoints: [], classifiers: [], coverableTypes: [] },
-  rules: { enabled: [], options: {}, suppressions: [] }
-}
-fs.writeFileSync(arbitraryConfigPath, `${JSON.stringify(arbitraryConfig, null, 2)}\n`, 'utf8')
 
 const refusedPluginScan = runResult(['--scan', '--config', arbitraryConfigPath], arbitraryRoot)
 assert.notEqual(refusedPluginScan.status, 0, 'configured plugins must not execute without explicit trust')

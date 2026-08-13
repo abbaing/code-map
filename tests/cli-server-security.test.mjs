@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
-import { arbitraryConfigPath, arbitraryRoot, cliPath, packageRoot } from '#tests/cli-smoke.test.mjs'
+import { arbitraryConfigPath, arbitraryRoot, cliPath, packageRoot } from '#tests/cli-test-workspace.mjs'
 import { request, requestRaw, viewerRuntimeModuleNames, withServer } from '#tests/cli-server-harness.mjs'
 
 await withServer(
