@@ -1,3 +1,5 @@
+import { assertViewerOperations } from '#viewer/viewer-operation-contract.mjs'
+
 export function createViewerStore(initialState = {}) {
   assertState(initialState)
   const currentState = clone(initialState)
@@ -29,7 +31,7 @@ export function createViewerStore(initialState = {}) {
 }
 
 export function assertViewerStore(store) {
-  assertOperations(store, 'ViewerStore', ['getState', 'update', 'subscribe'])
+  assertViewerOperations(store, 'ViewerStore', ['getState', 'update', 'subscribe'])
   assertState(store.state)
   return store
 }
@@ -37,17 +39,6 @@ export function assertViewerStore(store) {
 function assertState(state) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) {
     throw new TypeError('ViewerStore state must be an object')
-  }
-}
-
-function assertOperations(candidate, name, operations) {
-  if (!candidate || typeof candidate !== 'object') {
-    throw new TypeError(`${name} must be an object`)
-  }
-  for (const operation of operations) {
-    if (typeof candidate[operation] !== 'function') {
-      throw new TypeError(`${name} must implement ${operation}()`)
-    }
   }
 }
 

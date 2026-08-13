@@ -1,5 +1,6 @@
 import { edgeRendererRegistry, nodeRendererRegistry } from '#viewer/viewer-rendering-strategies.js'
 import { state } from '#viewer/viewer-state.js'
+import { arrowDefinition } from '#viewer/viewer-svg-edges.js'
 import { escapeHtml, formatModule } from '#viewer/viewer-utils.js'
 import {
   connectedEdgeIds,
@@ -64,8 +65,4 @@ function renderNodes(nodes, orphanIds, focusedIds) {
       })
     )
     .join('')
-}
-
-function arrowDefinition() {
-  return `<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9aa4b2"></path></marker></defs>`
 }

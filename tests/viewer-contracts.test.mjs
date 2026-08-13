@@ -23,6 +23,7 @@ assert.deepEqual(
   'subscribers must receive updates until they unsubscribe'
 )
 assert.throws(() => store.subscribe(null), /listener must be a function/u)
+assert.throws(() => assertViewerStore(null), { message: 'ViewerStore must be an object' })
 assert.throws(() => assertViewerStore({ getState() {} }), /update/u)
 
 const requests = []
@@ -38,6 +39,7 @@ const gateway = createGraphGateway({
   }
 })
 assertGraphGateway(gateway)
+assert.throws(() => assertGraphGateway(null), { message: 'GraphGateway must be an object' })
 await gateway.loadGraph()
 await gateway.scan()
 await gateway.updateProjectMap({ modules: {} })

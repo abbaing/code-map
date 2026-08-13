@@ -15,10 +15,11 @@ export const viewerComponents = [
       'viewer/viewer-filter-initialization.js',
       'viewer/viewer-filters.js',
       'viewer/viewer-health.js',
+      'viewer/viewer-operation-contract.mjs',
       'viewer/viewer-project-map-presentation.js',
       'viewer/viewer-utils.js'
     ],
-    contracts: ['ViewerStore', 'GraphGateway'],
+    contracts: ['ViewerStore', 'GraphGateway', 'ViewerOperationContract'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision: 'Keep state store-owned and route browser effects through explicitly configured module boundaries.'

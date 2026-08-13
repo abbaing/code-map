@@ -1,3 +1,5 @@
+import { assertViewerOperations } from '#viewer/viewer-operation-contract.mjs'
+
 const GRAPH_RESOURCE = '/graph.json'
 const SCAN_RESOURCE = '/api/scan'
 const PROJECT_MAP_RESOURCE = '/api/project-map'
@@ -33,7 +35,7 @@ export function createGraphGateway({ request = globalThis.fetch } = {}) {
 }
 
 export function assertGraphGateway(gateway) {
-  assertOperations(gateway, 'GraphGateway', ['loadGraph', 'scan', 'updateProjectMap', 'createTraceSubmap'])
+  assertViewerOperations(gateway, 'GraphGateway', ['loadGraph', 'scan', 'updateProjectMap', 'createTraceSubmap'])
   return gateway
 }
 
@@ -62,16 +64,5 @@ async function readError(response) {
     return body?.error ?? ''
   } catch {
     return ''
-  }
-}
-
-function assertOperations(candidate, name, operations) {
-  if (!candidate || typeof candidate !== 'object') {
-    throw new TypeError(`${name} must be an object`)
-  }
-  for (const operation of operations) {
-    if (typeof candidate[operation] !== 'function') {
-      throw new TypeError(`${name} must implement ${operation}()`)
-    }
   }
 }
