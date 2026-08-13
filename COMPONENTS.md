@@ -112,4 +112,6 @@ A new or materially changed component is complete only when:
 9. authored files and functions pass the repository size, line-length, complexity, nesting, and parameter fitness checks;
 10. a split follows distinct reasons to change and does not introduce empty facades or generic utility dumping grounds.
 
-The architecture and component contract suites enforce the dependency fitness functions, complete ownership inventory, and required `pass` status for every applicable design quality.
+The architecture and component contract suites enforce the dependency fitness functions, complete ownership inventory,
+and required `pass` status for every applicable design quality. The repository has no structural exception list: every
+authored file, function, dependency edge, and component owner must satisfy these policies directly.

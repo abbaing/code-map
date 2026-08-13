@@ -6,8 +6,6 @@ export const allowedDependencyRoles = Object.freeze({
   'composition-root': Object.freeze(['core', 'application', 'extension', 'adapter', 'composition-root'])
 })
 
-export const legacyDependencyEdges = Object.freeze([])
-
 export function dependencyEdge(source, target) {
   return `${source} -> ${target}`
 }

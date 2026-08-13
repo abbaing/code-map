@@ -3,4 +3,3 @@ coverage/
 *.tgz
 viewer/tailwind.css
 viewer/viewer-*.html
-eslint-suppressions.json

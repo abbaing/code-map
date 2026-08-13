@@ -51,7 +51,7 @@
     "check": "npm run lint && npm run format:check && npm test",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "lint": "eslint . --suppressions-location eslint-suppressions.json",
+    "lint": "eslint .",
     "prepublishOnly": "npm run release:check",
     "release:check": "npm run lint && npm run format:check && npm run test:coverage && npm run build:viewer-css && git diff --exit-code -- viewer/tailwind.css && npm run pack:dry",
     "test": "node tests/run-tests.mjs",

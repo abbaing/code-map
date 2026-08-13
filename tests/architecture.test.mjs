@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { allowedDependencyRoles, dependencyEdge, legacyDependencyEdges } from '#architecture/dependency-policy.mjs'
+import { allowedDependencyRoles, dependencyEdge } from '#architecture/dependency-policy.mjs'
 import { components } from '#architecture/components.mjs'
 import {
   findCycles,
@@ -37,9 +37,6 @@ for (const [file, imports] of dependencies) {
   )
 }
 
-const observedLegacyEdges = new Set()
-const approvedLegacyEdges = new Set(legacyDependencyEdges)
-assert.equal(approvedLegacyEdges.size, legacyDependencyEdges.length, 'legacy dependency edges must be unique')
 for (const [source, targets] of dependencies) {
   const sourceComponent = componentByFile.get(source)
   assert.ok(sourceComponent, `${relative(source)} must have a component owner`)
@@ -58,15 +55,9 @@ for (const [source, targets] of dependencies) {
       continue
     }
     const edge = dependencyEdge(relative(source), relative(target))
-    assert.equal(approvedLegacyEdges.has(edge), true, `${edge} violates component dependency direction`)
-    observedLegacyEdges.add(edge)
+    assert.fail(`${edge} violates component dependency direction`)
   }
 }
-assert.deepEqual(
-  [...observedLegacyEdges].sort(),
-  [...approvedLegacyEdges].sort(),
-  'legacy dependency exceptions must describe current production edges exactly'
-)
 
 for (const file of productionFiles.filter((candidate) => relative(candidate).startsWith('viewer/'))) {
   const specifiers = importSpecifiers(fs.readFileSync(file, 'utf8'))
