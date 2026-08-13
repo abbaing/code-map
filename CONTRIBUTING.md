@@ -41,6 +41,17 @@ Commit the generated `viewer/tailwind.css` together with the source change.
 
 Pull requests run static checks and the test suite on Node.js 20, 22, and 24 under Linux, plus Node.js 24 under Windows. CI also rejects stale generated viewer styles.
 
+## Structural boundaries
+
+- Parsers and language adapters publish named facts through `SourceDocumentStore`; scanners must not import parser
+  modules, parser packages, syntax trees, or AST APIs directly.
+- Executable `*.test.mjs` files contain assertions and may not be imported. Reusable setup belongs in a focused fixture
+  or harness module with explicit lifecycle and cleanup.
+- Shared policies, contracts, and rendering primitives need a domain-specific name and exactly one component owner.
+- Before removing duplication, confirm that both callers share behavior, precedence, errors, and change cadence. Add a
+  characterization test, then extract the smallest semantic contract. Do not merge independent adapter glue merely
+  because its implementation is textually similar.
+
 Dependabot checks npm packages and GitHub Actions weekly. Related updates are grouped to keep review noise low. Before merging an automated update, review the upstream release notes and confirm that CI passes. Keep `tailwindcss` and `@tailwindcss/cli` on matching versions.
 
 Validate package contents:
@@ -61,6 +72,8 @@ npm run release:check
 - Add or update tests for scanner, CLI, config, or viewer behavior changes.
 - Assign every new production module to a component and satisfy the Definition of Done in [COMPONENTS.md](COMPONENTS.md).
 - Do not add lint suppressions, size exceptions, or maintainability baselines. Refactor the owning responsibility instead.
+- In the pull request description, identify any duplicated behavior reviewed and state whether it was consolidated or
+  intentionally kept separate because the contracts differ.
 - Do not include repository-specific rules in generic templates.
 - Keep code-map local-first; do not add telemetry or network calls.
 

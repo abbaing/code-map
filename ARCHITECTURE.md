@@ -21,6 +21,8 @@ graph.json -> viewer
 - Backend indexes belong to an immutable analysis session created for each scan execution.
 - Backend classification, constructor dependencies, HTTP requests, persistence facts, and session construction are
   independent scanner families. `src/scanners/scan-back.mjs` is a compatibility-only facade.
+- Language adapters own parsing and publish named facts through `SourceDocumentStore`. Scanners consume those facts and
+  immutable indexes; they never import parser modules, parser packages, syntax trees, or language-specific AST APIs.
 - Deterministic source analysis is isolated from filesystem-backed source acquisition. Discovery and bounded reads use
   project-scoped filesystem and path capabilities without ambient runtime access.
 - Each scan owns a finding collector; rules receive its write capability while finalization receives its read capability.
@@ -45,6 +47,11 @@ graph.json -> viewer
 - **Minimal capabilities:** public entry points export focused functions; adapters consume only the methods they need.
 - **Dependency direction:** delivery adapters depend inward on application/core modules. Core modules never import CLI,
   HTTP, viewer, or tests.
+
+Shared code is extracted only when the callers implement the same semantic contract and must evolve together. The
+extraction receives a domain name, one component owner, and characterization tests for order, precedence, errors, or
+serialized output. Similar-looking adapter glue may remain independent when its contracts or change cadence differ;
+generic helper modules are not an acceptable DRY strategy.
 
 `tests/architecture.test.mjs` enforces dependency direction, an independent `Graph`, the HTTP/application boundary,
 browser isolation, and an acyclic production graph. The role matrix lives in `architecture/dependency-policy.mjs`;

@@ -115,10 +115,16 @@ const scannerFiles = components
   .filter((file) => file.startsWith('src/scanners/'))
 for (const scannerFile of scannerFiles) {
   const source = fs.readFileSync(path.join(root, scannerFile), 'utf8')
+  const specifiers = importSpecifiers(source)
   assert.equal(
-    importSpecifiers(source).some((specifier) => specifier.startsWith('#parsers/')),
+    specifiers.some((specifier) => specifier.startsWith('#parsers/')),
     false,
     `${scannerFile} must consume registered source facts instead of importing a language parser`
+  )
+  assert.equal(
+    specifiers.some((specifier) => !specifier.startsWith('#') && !specifier.startsWith('node:')),
+    false,
+    `${scannerFile} must not bypass registered facts through an external parser dependency`
   )
   assert.doesNotMatch(source, /\.syntax\b/u, `${scannerFile} must treat parsed syntax as opaque`)
 }
