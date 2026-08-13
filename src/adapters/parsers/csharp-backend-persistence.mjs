@@ -33,6 +33,18 @@ export function tableName(tree) {
   return csharpStringValue(csharpArguments(toTable)[0])
 }
 
+export function tableMapping(tree) {
+  const configuration = csharpDescendants(tree.rootNode, 'generic_name').find(
+    (node) => csharpSimpleTypeName(node) === 'IEntityTypeConfiguration'
+  )
+  if (!configuration) {
+    return undefined
+  }
+  const entity = csharpDescendants(configuration, 'type_argument_list').flatMap(csharpTypeIdentifiers)[0]
+  const table = tableName(tree)
+  return entity && table ? { entity, table } : undefined
+}
+
 export function entityProperties(tree) {
   const properties = []
   const seen = new Set()

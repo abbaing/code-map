@@ -9,16 +9,24 @@ const files = {
 public class AppDbContext : DbContext
 {
     public DbSet<Account> Accounts { get; set; }
+    public DbSet<Owner> Owners { get; set; }
 }
 `,
   'back/Domain/Entities/Accounts/Account.cs': `
 public class Account
 {
     public string Name { get; set; }
+    public Owner Owner { get; set; }
 }
 `,
-  'back/Infrastructure/Configurations/Entities/AccountConfiguration.cs': `
-public class AccountConfiguration
+  'back/Domain/Entities/Accounts/Owner.cs': `
+public class Owner
+{
+    public string Name { get; set; }
+}
+`,
+  'back/Infrastructure/Configurations/Entities/AccountPersistenceMap.cs': `
+public class AccountPersistenceMap : IEntityTypeConfiguration<Account>
 {
     public void Configure(EntityTypeBuilder<Account> builder) => builder.ToTable("accounts");
 }
@@ -67,21 +75,32 @@ scanDatabase(graph, Object.keys(files), projectContext, session, sourceDocuments
 assert.equal(sourceReads, Object.keys(files).length, 'backend syntax documents must be parsed once per scan session')
 
 const entityId = 'file:back/Domain/Entities/Accounts/Account.cs'
+const ownerId = 'file:back/Domain/Entities/Accounts/Owner.cs'
 const tableId = 'table:accounts'
 assert.equal(graph.getNode(entityId).type, 'entity')
 assert.equal(graph.getNode(entityId).meta.dbSet, 'Accounts')
-assert.deepEqual(graph.getNode(entityId).meta.domain.properties, [{ name: 'Name', type: 'string' }])
+assert.deepEqual(graph.getNode(entityId).meta.domain.properties, [
+  { name: 'Name', type: 'string' },
+  { name: 'Owner', type: 'Owner' }
+])
 assert.equal(graph.getNode(tableId).meta.entity, 'Account')
 assert.equal(graph.getNode(tableId).module, 'accounts')
+assert.equal(graph.getNode('table:Owners').meta.entity, 'Owner')
 assert.equal(hasEdge('file:back/App/Data/AppDbContext.cs', entityId, 'dbset'), true)
+assert.equal(edge('file:back/App/Data/AppDbContext.cs', entityId, 'dbset').evidence, 'DbSet<Account> Accounts')
 assert.equal(hasEdge('file:back/App/Data/AppDbContext.cs', entityId, 'uses-entity'), false)
 assert.equal(hasEdge('file:back/App/Data/AppDbContext.cs', tableId, 'queries-table'), false)
 assert.equal(hasEdge(entityId, tableId, 'maps-to-table'), true)
+assert.equal(hasEdge(entityId, ownerId, 'domain-relation'), true)
 assert.equal(hasEdge('file:back/Infrastructure/Repositories/AccountRepository.cs', entityId, 'uses-entity'), true)
 assert.equal(hasEdge('file:back/Infrastructure/Repositories/AccountRepository.cs', tableId, 'queries-table'), true)
 
 console.log('backend persistence scanner tests passed')
 
 function hasEdge(from, to, type) {
-  return graph.allEdges().some((edge) => edge.from === from && edge.to === to && edge.type === type)
+  return Boolean(edge(from, to, type))
+}
+
+function edge(from, to, type) {
+  return graph.allEdges().find((candidate) => candidate.from === from && candidate.to === to && candidate.type === type)
 }

@@ -77,14 +77,20 @@ export const analysisComponents = [
   },
   {
     id: 'backend-persistence-scanner',
-    language: 'csharp',
-    responsibility: 'Extract backend contexts, entities, tables, domain relationships, and ORM usage.',
+    responsibility: 'Project registered backend persistence facts into entities, tables, relationships, and usage.',
     role: 'adapter',
-    files: ['src/scanners/scan-back-persistence.mjs', 'src/scanners/scan-back-persistence-usage.mjs'],
+    files: [
+      'src/scanners/scan-back-persistence.mjs',
+      'src/scanners/scan-back-persistence-entities.mjs',
+      'src/scanners/scan-back-persistence-relationships.mjs',
+      'src/scanners/scan-back-persistence-resolution.mjs',
+      'src/scanners/scan-back-persistence-tables.mjs',
+      'src/scanners/scan-back-persistence-usage.mjs'
+    ],
     contracts: ['Scanner', 'BackendAnalysisSession'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
-    decision: 'Extend persistence conventions through focused entity, mapping, relationship, and usage extractors.'
+    decision: 'Consume parser-provided facts without importing language parsers, syntax trees, or file extensions.'
   },
   {
     id: 'backend-session-builder',
