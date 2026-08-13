@@ -1,25 +1,2 @@
 {
-  "tests/cli-smoke.test.mjs": {
-    "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "tests/component-contracts.test.mjs": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "tests/generic-templates.test.mjs": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "tests/submap.test.mjs": {
-    "max-params": {
-      "count": 1
-    }
-  }
 }

@@ -81,35 +81,53 @@ const capabilityIds = {
   scanner: new Set(),
   enricher: new Set()
 }
-assertUniqueContracts(templateCatalog, 'template', (template) => {
+assertUniqueContracts(templateCatalog, 'template', inspectTemplate)
+
+function inspectTemplate(template) {
   assert.equal(typeof template.description, 'string', `template ${template.id} must describe its capability`)
   assert.equal(
     Array.isArray(template.requiresTemplates ?? []),
     true,
     `template ${template.id} dependencies must be an array`
   )
+  inspectFileKinds(template)
+  inspectParsers(template)
+  inspectScanners(template)
+  inspectEnrichers(template)
+}
+
+function inspectFileKinds(template) {
   for (const kind of template.capabilities?.fileKinds ?? []) {
     assert.match(kind.id, /\S/u, `template ${template.id} has a file kind without id`)
     assertUniqueCapability(capabilityIds.fileKind, kind.id, 'file kind')
   }
+}
+
+function inspectParsers(template) {
   for (const parser of template.capabilities?.parsers ?? []) {
     assert.match(parser.id, /\S/u, `template ${template.id} has a parser without id`)
     assertUniqueCapability(capabilityIds.parser, parser.id, 'parser')
     assert.equal(typeof parser.parse, 'function', `parser ${parser.id} must implement parse(content, file)`)
   }
+}
+
+function inspectScanners(template) {
   for (const scanner of template.capabilities?.scanners ?? []) {
     assert.match(scanner.id, /\S/u, `template ${template.id} has a scanner without id`)
     assertUniqueCapability(capabilityIds.scanner, scanner.id, 'scanner')
     assert.equal(typeof scanner.run, 'function', `scanner ${scanner.id} must implement run(context)`)
     assert.equal(Array.isArray(scanner.requires), true, `scanner ${scanner.id} must declare required inputs`)
   }
+}
+
+function inspectEnrichers(template) {
   for (const enricher of template.capabilities?.enrichers ?? []) {
     assert.match(enricher.id, /\S/u, `template ${template.id} has an enricher without id`)
     assertUniqueCapability(capabilityIds.enricher, enricher.id, 'enricher')
     assert.equal(typeof enricher.run, 'function', `enricher ${enricher.id} must implement run(context)`)
     assert.equal(Array.isArray(enricher.requires), true, `enricher ${enricher.id} must declare required inputs`)
   }
-})
+}
 
 console.log('component architecture contracts passed')
 

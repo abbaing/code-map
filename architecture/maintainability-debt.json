@@ -1,16 +1,4 @@
 {
-  "files": {
-    "tests/architecture.test.mjs": 220,
-    "tests/cli-smoke.test.mjs": 680,
-    "tests/core-critical.test.mjs": 311,
-    "tests/fixtures.mjs": 241,
-    "tests/generic-templates.test.mjs": 494,
-    "tests/server-http.test.mjs": 216,
-    "tests/submap-cli-errors.test.mjs": 201,
-    "tests/submap.test.mjs": 236,
-    "tests/viewer-interactions.test.mjs": 221,
-    "tests/viewer-render.test.mjs": 362,
-    "tests/viewer-trace.test.mjs": 212
-  },
+  "files": {},
   "lines": {}
 }

@@ -5,9 +5,10 @@ import path from 'node:path'
 import { nodePlatform } from '#platform/node.mjs'
 import { runSubmapCli } from '#submap/cli.mjs'
 import { SubmapError } from '#submap/errors.mjs'
+import { cliFixtureGraph } from '#tests/submap-cli-fixture.mjs'
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-map-submap-errors-'))
-const graph = fixtureGraph()
+const graph = cliFixtureGraph()
 const graphPath = path.join(tempRoot, 'graph.json')
 
 try {
@@ -185,17 +186,4 @@ function createHarness(overrides = {}) {
     }
   }
   return harness
-}
-
-function fixtureGraph() {
-  return {
-    version: 1,
-    generatedAt: '2030-01-01T00:00:00.000Z',
-    stats: { nodes: 1, edges: 0 },
-    projectMap: { project: { name: 'CLI Error Fixture' } },
-    nodes: [{ id: 'a', label: 'A', type: 'service', layer: 'application', module: 'demo', meta: {} }],
-    edges: [],
-    findings: [],
-    orphans: []
-  }
 }

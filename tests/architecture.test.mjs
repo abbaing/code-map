@@ -4,10 +4,18 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { allowedDependencyRoles, dependencyEdge, legacyDependencyEdges } from '#architecture/dependency-policy.mjs'
 import { components } from '#architecture/components.mjs'
+import {
+  findCycles,
+  importSpecifiers,
+  listSourceFiles,
+  localDependencies,
+  relativePath
+} from '#tests/architecture-support.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const relative = (file) => relativePath(file, root)
 const productionFiles = listSourceFiles(root)
-const dependencies = new Map(productionFiles.map((file) => [file, localDependencies(file)]))
+const dependencies = new Map(productionFiles.map((file) => [file, localDependencies(file, root)]))
 const componentByFile = new Map(
   components.flatMap((component) => component.files.map((file) => [path.join(root, file), component]))
 )
@@ -131,90 +139,6 @@ assert.deepEqual(
   'the CLI parser must depend only on the error contract'
 )
 
-assert.deepEqual(findCycles(dependencies), [], 'production module dependencies must remain acyclic')
+assert.deepEqual(findCycles(dependencies, root), [], 'production module dependencies must remain acyclic')
 
 console.log('architecture guardrails passed')
-
-function listSourceFiles(directory) {
-  const files = []
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    if (['.git', 'architecture', 'node_modules', 'tests'].includes(entry.name)) {
-      continue
-    }
-    const target = path.join(directory, entry.name)
-    if (entry.isDirectory()) {
-      files.push(...listSourceFiles(target))
-    } else if (/\.(?:mjs|js)$/u.test(entry.name) && entry.name !== 'eslint.config.js') {
-      files.push(target)
-    }
-  }
-  return files.sort()
-}
-
-function importSpecifiers(source) {
-  return [...source.matchAll(/(?:from\s+|import\s*\()(['"])([^'"]+)\1/g)].map((match) => match[2])
-}
-
-function localDependencies(file) {
-  return importSpecifiers(fs.readFileSync(file, 'utf8'))
-    .map(resolveLocalSpecifier)
-    .filter(Boolean)
-    .filter((target) => fs.existsSync(target))
-}
-
-function resolveLocalSpecifier(specifier) {
-  const aliases = new Map([
-    ['#app/', 'src/application/'],
-    ['#architecture/', 'architecture/'],
-    ['#core/', 'src/core/'],
-    ['#entry/', ''],
-    ['#node/', 'src/adapters/node/'],
-    ['#parsers/', 'src/adapters/parsers/'],
-    ['#platform/', 'platform/'],
-    ['#rules/', 'rules/'],
-    ['#scanners/', 'src/scanners/'],
-    ['#submap/', 'submap/'],
-    ['#templates/', 'templates/'],
-    ['#viewer/', 'viewer/']
-  ])
-  for (const [prefix, directory] of aliases) {
-    if (specifier.startsWith(prefix)) {
-      return path.join(root, directory, specifier.slice(prefix.length))
-    }
-  }
-  return null
-}
-
-function findCycles(graph) {
-  const cycles = []
-  const visited = new Set()
-  const active = []
-  const activeSet = new Set()
-  for (const node of graph.keys()) {
-    visit(node)
-  }
-  return cycles
-
-  function visit(node) {
-    if (activeSet.has(node)) {
-      const start = active.indexOf(node)
-      cycles.push([...active.slice(start), node].map(relative))
-      return
-    }
-    if (visited.has(node)) {
-      return
-    }
-    visited.add(node)
-    active.push(node)
-    activeSet.add(node)
-    for (const target of graph.get(node) ?? []) {
-      visit(target)
-    }
-    active.pop()
-    activeSet.delete(node)
-  }
-}
-
-function relative(file) {
-  return path.relative(root, file).replaceAll(path.sep, '/')
-}
