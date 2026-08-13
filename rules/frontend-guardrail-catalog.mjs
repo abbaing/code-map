@@ -5,6 +5,7 @@ import {
   typescript as ts,
   walkTypeScript
 } from '#parsers/typescript.mjs'
+import { isPathInRuleScope } from '#rules/typescript-architecture-policy.mjs'
 import { findingBase, lineOfIndex, ruleOption } from '#rules/rule-runner.mjs'
 
 // Rule interface: { id, defaultEnabled, meta, check(nodeId, repoPath, content, type, projectMap) }
@@ -176,17 +177,3 @@ export const RULES = [
     }
   }
 ]
-function isPathInRuleScope(repoPath, rule, projectMapRules) {
-  const includePatterns = ruleOption(projectMapRules, rule, 'includePatterns')
-  const excludePatterns = ruleOption(projectMapRules, rule, 'excludePatterns')
-
-  if (Array.isArray(includePatterns) && includePatterns.length > 0 && !matchesAny(repoPath, includePatterns)) {
-    return false
-  }
-
-  return !(Array.isArray(excludePatterns) && matchesAny(repoPath, excludePatterns))
-}
-
-function matchesAny(value, patterns) {
-  return patterns.some((pattern) => new RegExp(pattern).test(value))
-}
