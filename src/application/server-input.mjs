@@ -78,6 +78,23 @@ export function validateTraceInput(input) {
   }
 }
 
+export function validateSelectionInput(input) {
+  if (!isRecord(input)) {
+    throw new ApplicationInputError('Selection request must be a JSON object.')
+  }
+  const unknown = Object.keys(input).filter((key) => !['name', 'nodeIds'].includes(key))
+  if (unknown.length > 0) {
+    throw new ApplicationInputError(`Unknown selection request properties: ${unknown.sort().join(', ')}.`)
+  }
+  if (typeof input.name !== 'string' || !input.name.trim() || input.name.trim().length > 100) {
+    throw new ApplicationInputError('Selection name must contain between 1 and 100 characters.')
+  }
+  if (!Array.isArray(input.nodeIds) || input.nodeIds.length === 0) {
+    throw new ApplicationInputError('A non-empty node selection is required.')
+  }
+  assertNonEmptyStringArray(input.nodeIds, 'nodeIds')
+}
+
 function assertTraceId(id) {
   if (typeof id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(id)) {
     throw new ApplicationInputError('Trace id must use letters, numbers, dots, underscores, or hyphens.')

@@ -38,6 +38,9 @@ const application = Object.freeze({
     return { projectMap: input, stats: graph.stats }
   },
   listSubmaps: () => [{ name: 'focused', revision: 1 }],
+  createSelectionSubmap(input) {
+    return { file: `${input.name}.submap.json`, uid: 'selection-uid', statistics: { nodes: input.nodeIds.length } }
+  },
   createTraceSubmap(input) {
     if (traceError) {
       throw traceError
@@ -123,6 +126,14 @@ try {
   )
   assert.equal(trace.status, 200)
   assert.equal(JSON.parse(trace.body).file, 'focused.submap.json')
+  const selection = await request(
+    port,
+    'POST',
+    '/api/submaps/from-selection',
+    JSON.stringify({ name: 'checkout', nodeIds: ['node:a'] }),
+    session
+  )
+  assert.equal(JSON.parse(selection.body).file, 'checkout.submap.json')
 
   assert.equal((await request(port, 'POST', '/api/project-map', '', session)).status, 400)
   assert.equal(

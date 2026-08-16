@@ -1,6 +1,14 @@
 export class ApplicationInputError extends Error {}
 
-const applicationOperations = ['graphPath', 'projectMap', 'scan', 'saveProjectMap', 'listSubmaps', 'createTraceSubmap']
+const applicationOperations = [
+  'graphPath',
+  'projectMap',
+  'scan',
+  'saveProjectMap',
+  'listSubmaps',
+  'createSelectionSubmap',
+  'createTraceSubmap'
+]
 const serviceOperations = Object.freeze({
   scanner: Object.freeze(['scan']),
   projectMaps: Object.freeze(['validate', 'load', 'write', 'restore']),

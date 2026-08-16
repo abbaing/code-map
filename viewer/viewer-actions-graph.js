@@ -1,6 +1,7 @@
 import { applyFilters, initializeFilters, loadGraph, requireGraphGateway } from '#viewer/viewer-data.js'
 import { buttonBusy, buttonIdle, showToast } from '#viewer/viewer-feedback.js'
 import { els, state } from '#viewer/viewer-state.js'
+import { clearSubgraphSelection } from '#viewer/viewer-subgraph-selection.js'
 
 export async function refreshGraph() {
   buttonBusy(els.refreshBtn)
@@ -61,6 +62,28 @@ export async function createTraceSubmap() {
     showToast(`Submap failed: ${error.message}`, 'error')
   } finally {
     els.createTraceSubmapBtn.disabled = false
+  }
+}
+
+export async function createSelectionSubmap() {
+  const name = els.selectionNameInput.value.trim()
+  if (!name || !state.subgraphNodeIds.size) {
+    showToast('Enter a name and select at least one node', 'error')
+    return
+  }
+  els.selectionCreateBtn.disabled = true
+  try {
+    const result = await requireGraphGateway().createSelectionSubmap({
+      name,
+      nodeIds: [...state.subgraphNodeIds]
+    })
+    showToast(`Submap created: ${result.file}`)
+    els.selectionNameInput.value = ''
+    clearSubgraphSelection()
+  } catch (error) {
+    showToast(`Submap failed: ${error.message}`, 'error')
+  } finally {
+    els.selectionCreateBtn.disabled = false
   }
 }
 

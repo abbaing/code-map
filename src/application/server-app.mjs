@@ -1,6 +1,11 @@
 import path from 'node:path'
 import { ApplicationInputError, assertServerApplicationServices } from '#app/server-contracts.mjs'
-import { assertPluginConfigurationUnchanged, createProjectPathPolicy, validateTraceInput } from '#app/server-input.mjs'
+import {
+  assertPluginConfigurationUnchanged,
+  createProjectPathPolicy,
+  validateSelectionInput,
+  validateTraceInput
+} from '#app/server-input.mjs'
 
 export {
   ApplicationInputError,
@@ -62,6 +67,7 @@ export function createServerApplication({ projectContext, repoRoot, services: pr
     scan,
     saveProjectMap,
     listSubmaps: () => listSubmaps({ state, paths, services, root }),
+    createSelectionSubmap: (input) => createSelectionSubmap(input, { state, paths, services, fileSystem, root }),
     createTraceSubmap: (input) => createTraceSubmap(input, { state, paths, services, fileSystem, root })
   })
 }
@@ -88,15 +94,45 @@ function rollbackProjectMap({ error, projectMapPath, previousDocument, context, 
 
 function createTraceSubmap(input, { state, paths, services, fileSystem, root }) {
   validateTraceInput(input)
+  return persistSubmap(traceRequest(input), { state, paths, services, fileSystem, root })
+}
+
+function createSelectionSubmap(input, context) {
+  validateSelectionInput(input)
+  const name = input.name.trim()
+  return persistSubmap(
+    {
+      id: selectionId(name),
+      selectors: { nodeIds: [...new Set(input.nodeIds)] },
+      traversal: { direction: 'both', maxDepth: 0 },
+      metadata: { kind: 'selection', name }
+    },
+    context
+  )
+}
+
+function persistSubmap(request, { state, paths, services, fileSystem, root }) {
   const context = state.context
   paths.assertProjectMapPaths(context.projectMap, context.configPath)
   const graphPath = paths.projectPath(context.resolveGraphOutputPath(), 'project.graphOutput')
   const graph = JSON.parse(fileSystem.readText(graphPath))
-  const submap = services.submaps.create(graph, traceRequest(input))
+  const submap = services.submaps.create(graph, request)
   const directory = submapsDirectory(context, paths, root)
   const output = path.join(directory, services.submaps.filename(submap))
   services.submaps.write(output, submap)
   return { file: path.relative(root, output), uid: submap.uid, statistics: submap.statistics }
+}
+
+function selectionId(name) {
+  const id = name
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/gu, '')
+    .replace(/[^a-z0-9._-]+/giu, '-')
+    .replace(/^-+|-+$/gu, '')
+    .toLowerCase()
+  return /^[a-z0-9]/u.test(id)
+    ? id
+    : `selection-${[...name].map((character) => character.codePointAt(0).toString(36)).join('-')}`
 }
 
 function listSubmaps({ state, paths, services, root }) {
@@ -109,7 +145,7 @@ function listSubmaps({ state, paths, services, root }) {
 
 function submapSummary(submap, filePath) {
   return {
-    name: submap.id,
+    name: submap.metadata?.name ?? submap.id,
     uid: submap.uid,
     revision: submap.revision,
     createdAt: submap.createdAt,

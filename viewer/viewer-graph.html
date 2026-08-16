@@ -1,6 +1,12 @@
           <main id="canvasWrap" class="canvas-wrap hidden">
             <svg id="graph" role="img" aria-label="Code dependency graph"></svg>
             <div id="selectionBox" class="selection-box hidden" aria-hidden="true"></div>
+            <div id="selectionBar" class="selection-bar hidden" role="region" aria-label="Submap selection">
+              <strong id="selectionCount">0 nodes selected</strong>
+              <input id="selectionNameInput" type="text" maxlength="100" placeholder="Submap name" />
+              <button id="selectionCreateBtn" class="btn btn-primary">Create submap</button>
+              <button id="selectionClearBtn" class="btn">Clear</button>
+            </div>
 
             <div class="graph-toolbar" aria-label="Graph controls">
               <button id="graphFilterBtn" class="graph-tool" aria-label="Graph filters" title="Filters">

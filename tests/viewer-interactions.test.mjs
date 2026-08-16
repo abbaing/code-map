@@ -10,6 +10,7 @@ const operationNames = [
   'clearSelectedNode',
   'clearSubgraphSelection',
   'createTraceSubmap',
+  'createSelectionSubmap',
   'drillIntoModule',
   'exportGraph',
   'exportProjectMap',

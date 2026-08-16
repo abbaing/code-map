@@ -45,9 +45,17 @@ await gateway.scan()
 await gateway.updateProjectMap({ modules: {} })
 await gateway.createTraceSubmap({ selectedId: 'users' })
 await gateway.listSubmaps()
+await gateway.createSelectionSubmap({ name: 'checkout', nodeIds: ['users'] })
 assert.deepEqual(
   requests.map(({ resource }) => resource),
-  ['/graph.json', '/api/scan', '/api/project-map', '/api/submaps/from-trace', '/api/submaps']
+  [
+    '/graph.json',
+    '/api/scan',
+    '/api/project-map',
+    '/api/submaps/from-trace',
+    '/api/submaps',
+    '/api/submaps/from-selection'
+  ]
 )
 assert.equal(requests[2].options.method, 'POST')
 assert.equal(requests[3].options.method, 'POST')

@@ -1,5 +1,6 @@
 import {
   applyPan,
+  createSelectionSubmap,
   createTraceSubmap,
   exportGraph,
   exportProjectMap,
@@ -88,6 +89,7 @@ function viewerOperations() {
     applyPan,
     clearSelectedNode,
     clearSubgraphSelection,
+    createSelectionSubmap,
     createTraceSubmap,
     debounce,
     drillIntoModule,

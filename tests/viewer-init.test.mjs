@@ -6,6 +6,7 @@ const gateway = Object.freeze({
   scan() {},
   updateProjectMap() {},
   listSubmaps() {},
+  createSelectionSubmap() {},
   createTraceSubmap() {}
 })
 const documentRef = { addEventListener() {} }

@@ -58,6 +58,7 @@ const application = Object.freeze({
   scan: () => ({}),
   saveProjectMap: () => ({}),
   listSubmaps: () => [],
+  createSelectionSubmap: () => ({}),
   createTraceSubmap: () => ({})
 })
 const server = startServer({ port: 0, application, routeRegistry: delegatedRegistry, log: () => {} })

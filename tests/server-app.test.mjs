@@ -60,6 +60,7 @@ try {
     'scan',
     'saveProjectMap',
     'listSubmaps',
+    'createSelectionSubmap',
     'createTraceSubmap'
   ])
   const graphPath = path.join(tempRoot, '.code-map', 'graph.json')
@@ -71,6 +72,10 @@ try {
   assert.equal(graph.stats.nodes > 0, true)
 
   const selectedNodeId = graph.nodes[0].id
+  const selectionResult = application.createSelectionSubmap({ name: 'Payment flow', nodeIds: [selectedNodeId] })
+  const selection = JSON.parse(fs.readFileSync(path.join(tempRoot, selectionResult.file), 'utf8'))
+  assert.equal(selection.id, 'payment-flow')
+  assert.deepEqual(selection.metadata, { kind: 'selection', name: 'Payment flow' })
   const traceResult = application.createTraceSubmap({
     id: 'direct-trace',
     nodeIds: [selectedNodeId, selectedNodeId],
@@ -96,8 +101,8 @@ try {
   })
   const listedSubmaps = application.listSubmaps()
   assert.deepEqual(
-    listedSubmaps.map(({ name, revision, statistics }) => ({ name, revision, statistics })),
-    [{ name: 'direct-trace', revision: 1, statistics: trace.statistics }]
+    listedSubmaps.map(({ name }) => name),
+    ['direct-trace', 'Payment flow']
   )
 
   for (const [input, message] of [

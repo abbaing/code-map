@@ -45,6 +45,12 @@ export function createViewerRoutes({ sessionToken, application, viewer, responde
       matches: (pathname) => pathname === '/api/project-map',
       handle: ({ request, response }) => handleProjectMap(request, response, application, responder)
     }),
+    ...createSubmapRoutes(application, responder)
+  ]
+}
+
+function createSubmapRoutes(application, responder) {
+  return [
     defineRoute({
       id: 'api.submaps',
       method: 'GET',
@@ -56,6 +62,12 @@ export function createViewerRoutes({ sessionToken, application, viewer, responde
       method: 'POST',
       matches: (pathname) => pathname === '/api/submaps/from-trace',
       handle: ({ request, response }) => handleTraceSubmap(request, response, application, responder)
+    }),
+    defineRoute({
+      id: 'api.selection-submap',
+      method: 'POST',
+      matches: (pathname) => pathname === '/api/submaps/from-selection',
+      handle: ({ request, response }) => handleSelectionSubmap(request, response, application, responder)
     })
   ]
 }
@@ -83,6 +95,11 @@ async function handleProjectMap(request, response, application, responder) {
 
 async function handleTraceSubmap(request, response, application, responder) {
   const result = application.createTraceSubmap(await readJsonRequest(request))
+  responder.sendJson(response, 200, { ok: true, ...result })
+}
+
+async function handleSelectionSubmap(request, response, application, responder) {
+  const result = application.createSelectionSubmap(await readJsonRequest(request))
   responder.sendJson(response, 200, { ok: true, ...result })
 }
 
