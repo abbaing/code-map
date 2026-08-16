@@ -81,5 +81,5 @@ function domainModelNodeIds() {
 
 function matchesHealthLevel(node) {
   const score = node.meta?.quality?.score
-  return score == null || state.selectedHealth.has(scoreToHealthKey(score))
+  return score != null && state.selectedHealth.has(scoreToHealthKey(score))
 }
