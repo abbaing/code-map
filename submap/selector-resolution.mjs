@@ -34,13 +34,30 @@ export function resolveSelectorNodeIds(nodes, selector) {
 export function globMatches(pattern, value) {
   const normalizedPattern = String(pattern).replaceAll('\\', '/')
   const normalizedValue = String(value).replaceAll('\\', '/')
-  const escaped = normalizedPattern
-    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*\*/g, '::DOUBLE_STAR::')
-    .replace(/\*/g, '[^/]*')
-    .replace(/\?/g, '[^/]')
-    .replace(/::DOUBLE_STAR::/g, '.*')
-  return new RegExp(`^${escaped}$`).test(normalizedValue)
+  return new RegExp(`^${globSource(normalizedPattern)}$`).test(normalizedValue)
+}
+
+function globSource(pattern) {
+  let source = ''
+  for (let index = 0; index < pattern.length; index += 1) {
+    const character = pattern[index]
+    if (character === '*' && pattern[index + 1] === '*') {
+      const followedBySlash = pattern[index + 2] === '/'
+      source += followedBySlash ? '(?:.*/)?' : '.*'
+      index += followedBySlash ? 2 : 1
+      continue
+    }
+    if (character === '*') {
+      source += '[^/]*'
+      continue
+    }
+    if (character === '?') {
+      source += '[^/]'
+      continue
+    }
+    source += /[\\^$.*+?()[\]{}|]/u.test(character) ? `\\${character}` : character
+  }
+  return source
 }
 
 function matchesAttributeQuery(node, selector) {
