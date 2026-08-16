@@ -33,6 +33,9 @@ export function createGraphGateway({ request = globalThis.fetch } = {}) {
     listSubmaps() {
       return send(SUBMAPS_RESOURCE, { cache: 'no-store' })
     },
+    loadSubmap(uid) {
+      return send(`${SUBMAPS_RESOURCE}/${encodeURIComponent(uid)}`, { cache: 'no-store' })
+    },
     createSelectionSubmap(request) {
       return send(SELECTION_SUBMAP_RESOURCE, jsonRequest('POST', request))
     },
@@ -48,6 +51,7 @@ export function assertGraphGateway(gateway) {
     'scan',
     'updateProjectMap',
     'listSubmaps',
+    'loadSubmap',
     'createSelectionSubmap',
     'createTraceSubmap'
   ])

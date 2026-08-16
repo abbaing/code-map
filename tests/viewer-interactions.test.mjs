@@ -19,6 +19,7 @@ const operationNames = [
   'importProjectMap',
   'loadGraph',
   'loadSubmaps',
+  'openSubmap',
   'populateSettingsTab',
   'refreshGraph',
   'render',

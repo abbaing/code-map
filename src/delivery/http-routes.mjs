@@ -1,5 +1,5 @@
 import { defineRoute } from '#core/http-routes.mjs'
-import { ApplicationInputError } from '#app/server-app.mjs'
+import { ApplicationInputError, ApplicationNotFoundError } from '#app/server-app.mjs'
 import { SubmapError } from '#submap/errors.mjs'
 import { HttpRequestError, readJsonRequest } from '#entry/src/delivery/http-body.mjs'
 import { sessionCookie } from '#entry/src/delivery/http-security.mjs'
@@ -58,6 +58,13 @@ function createSubmapRoutes(application, responder) {
       handle: ({ response }) => responder.sendJson(response, 200, { submaps: application.listSubmaps() })
     }),
     defineRoute({
+      id: 'api.submap',
+      method: 'GET',
+      matches: (pathname) => pathname.startsWith('/api/submaps/'),
+      handle: ({ response, url }) =>
+        responder.sendJson(response, 200, { submap: application.getSubmap(decodeSubmapUid(url.pathname)) })
+    }),
+    defineRoute({
       id: 'api.trace-submap',
       method: 'POST',
       matches: (pathname) => pathname === '/api/submaps/from-trace',
@@ -110,6 +117,9 @@ function publicError(error) {
   if (error instanceof ApplicationInputError) {
     return { status: 400, message: error.message }
   }
+  if (error instanceof ApplicationNotFoundError) {
+    return { status: 404, message: error.message }
+  }
   if (error instanceof SubmapError && error.code === 'SUBMAP_OUTPUT_EXISTS') {
     return { status: 409, message: error.message }
   }
@@ -117,4 +127,12 @@ function publicError(error) {
     return { status: 400, message: error.message }
   }
   return { status: 500, message: 'Internal server error.' }
+}
+
+function decodeSubmapUid(pathname) {
+  try {
+    return decodeURIComponent(pathname.slice('/api/submaps/'.length))
+  } catch {
+    throw new ApplicationInputError('Submap uid must be URL encoded correctly.')
+  }
 }

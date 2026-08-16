@@ -7,6 +7,7 @@ export const DOMAIN_RENDER_LIMIT = 1200
 export const viewerStore = createViewerStore({
   graph: null,
   submaps: [],
+  activeSubmap: null,
   filteredNodes: [],
   selectedId: null,
   subgraphNodeIds: new Set(),

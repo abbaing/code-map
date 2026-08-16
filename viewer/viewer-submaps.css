@@ -22,10 +22,21 @@
 }
 
 .submap-row {
+  width: 100%;
   min-height: 58px;
+  border: 0;
   border-bottom: 1px solid var(--border-muted);
+  background: var(--surface);
   color: #424a53;
+  cursor: pointer;
+  font-family: inherit;
   font-size: 12px;
+  text-align: left;
+}
+
+.submap-row:hover,
+.submap-row:focus-visible {
+  background: var(--surface-subtle);
 }
 
 .submap-name strong,

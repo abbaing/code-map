@@ -6,6 +6,7 @@ const gateway = Object.freeze({
   scan() {},
   updateProjectMap() {},
   listSubmaps() {},
+  loadSubmap() {},
   createSelectionSubmap() {},
   createTraceSubmap() {}
 })

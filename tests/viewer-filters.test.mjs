@@ -64,6 +64,7 @@ configureViewerData({
     scan() {},
     updateProjectMap() {},
     listSubmaps() {},
+    loadSubmap() {},
     createSelectionSubmap() {},
     createTraceSubmap() {}
   },

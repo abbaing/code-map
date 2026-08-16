@@ -1,4 +1,5 @@
 export class ApplicationInputError extends Error {}
+export class ApplicationNotFoundError extends Error {}
 
 const applicationOperations = [
   'graphPath',
@@ -6,6 +7,7 @@ const applicationOperations = [
   'scan',
   'saveProjectMap',
   'listSubmaps',
+  'getSubmap',
   'createSelectionSubmap',
   'createTraceSubmap'
 ]

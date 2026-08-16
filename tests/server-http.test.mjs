@@ -38,6 +38,7 @@ const application = Object.freeze({
     return { projectMap: input, stats: graph.stats }
   },
   listSubmaps: () => [{ name: 'focused', revision: 1 }],
+  getSubmap: (uid) => ({ uid, id: 'focused', nodes: [] }),
   createSelectionSubmap(input) {
     return { file: `${input.name}.submap.json`, uid: 'selection-uid', statistics: { nodes: input.nodeIds.length } }
   },
@@ -134,6 +135,8 @@ try {
     session
   )
   assert.equal(JSON.parse(selection.body).file, 'checkout.submap.json')
+  const uid = `sha256:${'a'.repeat(64)}`
+  assert.equal(JSON.parse((await request(port, 'GET', `/api/submaps/${encodeURIComponent(uid)}`)).body).submap.uid, uid)
 
   assert.equal((await request(port, 'POST', '/api/project-map', '', session)).status, 400)
   assert.equal(

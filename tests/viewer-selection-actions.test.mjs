@@ -11,6 +11,7 @@ const gateway = {
   scan() {},
   updateProjectMap() {},
   listSubmaps() {},
+  loadSubmap() {},
   createTraceSubmap() {},
   async createSelectionSubmap(request) {
     requests.push(request)

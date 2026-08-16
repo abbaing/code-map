@@ -95,6 +95,12 @@ export function validateSelectionInput(input) {
   assertNonEmptyStringArray(input.nodeIds, 'nodeIds')
 }
 
+export function validateSubmapUid(uid) {
+  if (typeof uid !== 'string' || !/^sha256:[a-f0-9]{64}$/u.test(uid)) {
+    throw new ApplicationInputError('Submap uid must be a SHA-256 identifier.')
+  }
+}
+
 function assertTraceId(id) {
   if (typeof id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(id)) {
     throw new ApplicationInputError('Trace id must use letters, numbers, dots, underscores, or hyphens.')

@@ -1,14 +1,20 @@
 import path from 'node:path'
-import { ApplicationInputError, assertServerApplicationServices } from '#app/server-contracts.mjs'
+import {
+  ApplicationInputError,
+  ApplicationNotFoundError,
+  assertServerApplicationServices
+} from '#app/server-contracts.mjs'
 import {
   assertPluginConfigurationUnchanged,
   createProjectPathPolicy,
   validateSelectionInput,
+  validateSubmapUid,
   validateTraceInput
 } from '#app/server-input.mjs'
 
 export {
   ApplicationInputError,
+  ApplicationNotFoundError,
   assertServerApplication,
   assertServerApplicationServices,
   serverApplicationContract,
@@ -67,6 +73,7 @@ export function createServerApplication({ projectContext, repoRoot, services: pr
     scan,
     saveProjectMap,
     listSubmaps: () => listSubmaps({ state, paths, services, root }),
+    getSubmap: (uid) => getSubmap(uid, { state, paths, services, root }),
     createSelectionSubmap: (input) => createSelectionSubmap(input, { state, paths, services, fileSystem, root }),
     createTraceSubmap: (input) => createTraceSubmap(input, { state, paths, services, fileSystem, root })
   })
@@ -141,6 +148,18 @@ function listSubmaps({ state, paths, services, root }) {
     .list(directory)
     .map((filePath) => submapSummary(services.submaps.read(filePath), filePath))
     .sort((left, right) => left.name.localeCompare(right.name) || right.revision - left.revision)
+}
+
+function getSubmap(uid, { state, paths, services, root }) {
+  validateSubmapUid(uid)
+  const directory = submapsDirectory(state.context, paths, root)
+  for (const filePath of services.submaps.list(directory)) {
+    const submap = services.submaps.read(filePath)
+    if (submap.uid === uid) {
+      return submap
+    }
+  }
+  throw new ApplicationNotFoundError('Submap not found.')
 }
 
 function submapSummary(submap, filePath) {

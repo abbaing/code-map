@@ -33,6 +33,7 @@ try {
   const { nodePlatform } = await import('#platform/node.mjs')
   const {
     ApplicationInputError,
+    ApplicationNotFoundError,
     assertServerApplication,
     assertServerApplicationServices,
     createServerApplication,
@@ -60,6 +61,7 @@ try {
     'scan',
     'saveProjectMap',
     'listSubmaps',
+    'getSubmap',
     'createSelectionSubmap',
     'createTraceSubmap'
   ])
@@ -76,6 +78,9 @@ try {
   const selection = JSON.parse(fs.readFileSync(path.join(tempRoot, selectionResult.file), 'utf8'))
   assert.equal(selection.id, 'payment-flow')
   assert.deepEqual(selection.metadata, { kind: 'selection', name: 'Payment flow' })
+  assert.equal(application.getSubmap(selection.uid).uid, selection.uid)
+  assert.throws(() => application.getSubmap('invalid'), ApplicationInputError)
+  assert.throws(() => application.getSubmap(`sha256:${'0'.repeat(64)}`), ApplicationNotFoundError)
   const traceResult = application.createTraceSubmap({
     id: 'direct-trace',
     nodeIds: [selectedNodeId, selectedNodeId],
