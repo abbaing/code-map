@@ -7,27 +7,27 @@ const groups = [
     id: 'application',
     includes: (file) =>
       !file.includes('/') || ['src/', 'rules/', 'submap/', 'templates/'].some((prefix) => file.startsWith(prefix)),
-    thresholds: { lines: 78, statements: 78, branches: 77, functions: 80 }
+    thresholds: { lines: 91, statements: 91, branches: 85, functions: 95 }
   },
   {
     id: 'server',
     includes: (file) => file === 'server.mjs' || file.startsWith('src/delivery/'),
-    thresholds: { lines: 86, statements: 86, branches: 83, functions: 100 }
+    thresholds: { lines: 93, statements: 93, branches: 89, functions: 100 }
   },
   {
     id: 'submap',
     includes: (file) => file.startsWith('submap/'),
-    thresholds: { lines: 83, statements: 83, branches: 83, functions: 91 }
+    thresholds: { lines: 85, statements: 85, branches: 84, functions: 93 }
   },
   {
     id: 'viewer',
     includes: (file) => file.startsWith('viewer/'),
-    thresholds: { lines: 59, statements: 59, branches: 69, functions: 62 }
+    thresholds: { lines: 71, statements: 71, branches: 75, functions: 69 }
   },
   {
     id: 'platform',
     includes: (file) => file.startsWith('platform/'),
-    thresholds: { lines: 90, statements: 90, branches: 90, functions: 85 }
+    thresholds: { lines: 93, statements: 93, branches: 93, functions: 94 }
   },
   {
     id: 'architecture',
