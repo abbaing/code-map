@@ -69,7 +69,7 @@ function formatLayer(layer) {
   )
 }
 
-const ruleLabels = {
+const defaultRuleLabels = Object.freeze({
   'frontend.relative-imports': 'Relative imports',
   'frontend.component-max-lines': 'Component too long',
   'frontend.no-any': 'No any type',
@@ -80,6 +80,14 @@ const ruleLabels = {
   'technology.typescript.no-any': 'No any type',
   'framework.react.component-max-lines': 'Component too long',
   'framework.react.route-file-shape': 'Route file shape'
+})
+const ruleLabels = { ...defaultRuleLabels }
+
+function replaceRuleLabels(labels = {}) {
+  for (const key of Object.keys(ruleLabels)) {
+    delete ruleLabels[key]
+  }
+  Object.assign(ruleLabels, defaultRuleLabels, labels)
 }
 
 function formatRuleId(ruleId) {
@@ -126,6 +134,7 @@ export {
   healthPill,
   pillHtml,
   ruleLabels,
+  replaceRuleLabels,
   scoreToHealthKey,
   truncate,
   unique
