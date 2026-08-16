@@ -1,7 +1,7 @@
 import { findInternalComponentParent, isInternalComponentNode } from '#app/scan-internal-resolution.mjs'
 
 export function trackInternalComponents(graph) {
-  const internalToParent = new Map()
+  const internalsByParent = new Map()
 
   for (const node of graph.allNodes()) {
     if (!isInternalComponentNode(node)) {
@@ -9,54 +9,60 @@ export function trackInternalComponents(graph) {
     }
     const parentId = findInternalComponentParent(graph, node)
     if (parentId) {
-      internalToParent.set(node.id, parentId)
+      const internals = internalsByParent.get(parentId) ?? []
+      internals.push(node.id)
+      internalsByParent.set(parentId, internals)
     }
   }
 
-  for (const [internalId, parentId] of internalToParent) {
-    const internal = graph.getNode(internalId)
+  for (const [parentId, internalIds] of internalsByParent) {
     const parent = graph.getNode(parentId)
-    if (!internal || !parent) {
+    const internals = internalIds.map((id) => graph.getNode(id)).filter(Boolean)
+    if (!parent) {
       continue
     }
-    addInternalComponentQuality(graph, parent, internal)
-    graph.addNode(internalId, {
-      meta: {
-        internalComponent: {
-          parentId,
-          role: 'supporting-component'
+
+    addInternalComponentQuality(graph, parent, internals)
+    for (const internal of internals) {
+      graph.addNode(internal.id, {
+        meta: {
+          internalComponent: {
+            parentId,
+            role: 'supporting-component'
+          }
         }
-      }
-    })
+      })
+    }
   }
 }
 
-function addInternalComponentQuality(graph, parent, internal) {
+function addInternalComponentQuality(graph, parent, internals) {
   const parentQuality = parent.meta?.quality
-  const internalQuality = internal.meta?.quality
-  if (!internalQuality) {
+  const qualityComponents = internals.filter((internal) => internal.meta?.quality)
+  if (qualityComponents.length === 0) {
     return
   }
 
   const currentInternalComponents = parentQuality?.internalComponents ?? []
   const internalComponents = [
     ...currentInternalComponents,
-    {
+    ...qualityComponents.map((internal) => ({
       id: internal.id,
       label: internal.label,
       path: internal.path,
-      score: internalQuality.score,
-      summary: internalQuality.summary,
-      cohesion: internalQuality.cohesion,
-      coupling: internalQuality.coupling
-    }
+      score: internal.meta.quality.score,
+      summary: internal.meta.quality.summary,
+      cohesion: internal.meta.quality.cohesion,
+      coupling: internal.meta.quality.coupling
+    }))
   ].sort((a, b) => a.score - b.score || a.label.localeCompare(b.label))
 
+  const inheritedQuality = qualityComponents[0].meta.quality
   const baseQuality = parentQuality ?? {
-    score: internalQuality.score,
+    score: inheritedQuality.score,
     summary: 'Quality inherited from internal components',
-    cohesion: internalQuality.cohesion,
-    coupling: internalQuality.coupling,
+    cohesion: inheritedQuality.cohesion,
+    coupling: inheritedQuality.coupling,
     related: []
   }
 
