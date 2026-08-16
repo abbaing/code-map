@@ -97,6 +97,10 @@ assert.match(viewerHtml, /<script type="module" src="\/viewer-init\.js"><\/scrip
 assert.match(viewerHtml, /id="tabSubmaps"/u)
 assert.match(viewerHtml, /id="submapsPane"/u)
 assert.match(viewerHtml, /id="selectionContextMenu"/u)
+assert.match(viewerHtml, /<kbd>Drag<\/kbd> select an area/u)
+assert.match(viewerHtml, /<kbd>Ctrl\/Cmd<\/kbd> \+ click to adjust/u)
+assert.match(viewerHtml, /<kbd>Alt<\/kbd> \+ drag or middle-drag to pan/u)
+assert.match(viewerHtml, /<kbd>Right-click<\/kbd> selection actions/u)
 assert.match(viewerHtml, /<script type="importmap">/u)
 assert.match(viewerHtml, /"#viewer\/": "\/"/u)
 assert.equal(
