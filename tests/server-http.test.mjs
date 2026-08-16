@@ -37,6 +37,7 @@ const application = Object.freeze({
     }
     return { projectMap: input, stats: graph.stats }
   },
+  listSubmaps: () => [{ name: 'focused', revision: 1 }],
   createTraceSubmap(input) {
     if (traceError) {
       throw traceError
@@ -85,6 +86,9 @@ try {
   assert.equal(servedGraph.status, 200)
   assert.deepEqual(JSON.parse(servedGraph.body), graph)
   assert.equal((await request(port, 'GET', '/project-map.json')).status, 200)
+  assert.deepEqual(JSON.parse((await request(port, 'GET', '/api/submaps')).body), {
+    submaps: [{ name: 'focused', revision: 1 }]
+  })
   assert.match((await request(port, 'GET', '/viewer-utils.js')).headers['content-type'], /^text\/javascript/u)
 
   activeGraphPath = path.join(tempRoot, 'missing.json')

@@ -4,6 +4,7 @@ const GRAPH_RESOURCE = '/graph.json'
 const SCAN_RESOURCE = '/api/scan'
 const PROJECT_MAP_RESOURCE = '/api/project-map'
 const TRACE_SUBMAP_RESOURCE = '/api/submaps/from-trace'
+const SUBMAPS_RESOURCE = '/api/submaps'
 
 export function createGraphGateway({ request = globalThis.fetch } = {}) {
   if (typeof request !== 'function') {
@@ -28,6 +29,9 @@ export function createGraphGateway({ request = globalThis.fetch } = {}) {
     updateProjectMap(projectMap) {
       return send(PROJECT_MAP_RESOURCE, jsonRequest('POST', projectMap))
     },
+    listSubmaps() {
+      return send(SUBMAPS_RESOURCE, { cache: 'no-store' })
+    },
     createTraceSubmap(request) {
       return send(TRACE_SUBMAP_RESOURCE, jsonRequest('POST', request))
     }
@@ -35,7 +39,13 @@ export function createGraphGateway({ request = globalThis.fetch } = {}) {
 }
 
 export function assertGraphGateway(gateway) {
-  assertViewerOperations(gateway, 'GraphGateway', ['loadGraph', 'scan', 'updateProjectMap', 'createTraceSubmap'])
+  assertViewerOperations(gateway, 'GraphGateway', [
+    'loadGraph',
+    'scan',
+    'updateProjectMap',
+    'listSubmaps',
+    'createTraceSubmap'
+  ])
   return gateway
 }
 

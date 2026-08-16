@@ -57,6 +57,7 @@ const application = Object.freeze({
   projectMap: () => ({ project: { name: 'Injected Routes' } }),
   scan: () => ({}),
   saveProjectMap: () => ({}),
+  listSubmaps: () => [],
   createTraceSubmap: () => ({})
 })
 const server = startServer({ port: 0, application, routeRegistry: delegatedRegistry, log: () => {} })

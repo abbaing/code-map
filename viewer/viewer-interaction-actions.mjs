@@ -20,6 +20,7 @@ function bindGraphActions({ elements, state, operations }) {
   elements.refreshBtn.addEventListener('click', operations.refreshGraph)
   elements.exportBtn.addEventListener('click', operations.exportGraph)
   elements.createTraceSubmapBtn.addEventListener('click', operations.createTraceSubmap)
+  elements.submapSearch.addEventListener('input', operations.renderSubmaps)
   elements.zoomInBtn.addEventListener('click', () => operations.setZoom(state.zoom + 0.15))
   elements.zoomOutBtn.addEventListener('click', () => operations.setZoom(state.zoom - 0.15))
   elements.zoomResetBtn.addEventListener('click', operations.resetZoom)
@@ -36,6 +37,7 @@ function bindTabs(elements, changeView) {
     [elements.tabOverview, 'overview'],
     [elements.tabGraph, 'graph'],
     [elements.tabDomain, 'domain'],
+    [elements.tabSubmaps, 'submaps'],
     [elements.tabFindings, 'findings'],
     [elements.tabSettings, 'settings']
   ]

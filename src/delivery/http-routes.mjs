@@ -46,6 +46,12 @@ export function createViewerRoutes({ sessionToken, application, viewer, responde
       handle: ({ request, response }) => handleProjectMap(request, response, application, responder)
     }),
     defineRoute({
+      id: 'api.submaps',
+      method: 'GET',
+      matches: (pathname) => pathname === '/api/submaps',
+      handle: ({ response }) => responder.sendJson(response, 200, { submaps: application.listSubmaps() })
+    }),
+    defineRoute({
       id: 'api.trace-submap',
       method: 'POST',
       matches: (pathname) => pathname === '/api/submaps/from-trace',

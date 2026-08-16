@@ -1,0 +1,55 @@
+.submaps-content,
+.submaps-content .collection-panel {
+  height: 100%;
+}
+
+.submap-table-head,
+.submap-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 140px 72px 72px 80px 170px;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 16px;
+}
+
+.submap-table-head {
+  min-height: 34px;
+  border-bottom: 1px solid var(--border-muted);
+  background: var(--surface-subtle);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.submap-row {
+  min-height: 58px;
+  border-bottom: 1px solid var(--border-muted);
+  color: #424a53;
+  font-size: 12px;
+}
+
+.submap-name strong,
+.submap-name small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.submap-name strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.submap-name small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.submap-empty {
+  padding: 40px 16px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}

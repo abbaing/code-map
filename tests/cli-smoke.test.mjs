@@ -124,6 +124,7 @@ const localServer = startServer({
     projectMap: () => arbitraryGraph.projectMap,
     scan: () => arbitraryGraph,
     saveProjectMap: () => ({ projectMap: arbitraryGraph.projectMap, stats: arbitraryGraph.stats }),
+    listSubmaps: () => [],
     createTraceSubmap: () => ({ file: '', uid: '', statistics: {} })
   },
   log: (message) => localServerMessages.push(message)

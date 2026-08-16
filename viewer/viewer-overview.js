@@ -115,15 +115,18 @@ function updateViewUI() {
   const isDomain = state.view === 'domain'
   const isFindings = state.view === 'findings'
   const isSettings = state.view === 'settings'
+  const isSubmaps = state.view === 'submaps'
   els.overviewPane.classList.toggle('hidden', !isOverview)
   els.findingsPane.classList.toggle('hidden', !isFindings)
   els.settingsPane.classList.toggle('hidden', !isSettings)
-  els.canvasWrap.classList.toggle('hidden', isOverview || isFindings || isSettings)
+  els.submapsPane.classList.toggle('hidden', !isSubmaps)
+  els.canvasWrap.classList.toggle('hidden', isOverview || isFindings || isSettings || isSubmaps)
   els.tabOverview.classList.toggle('active', isOverview)
   els.tabGraph.classList.toggle('active', state.view === 'graph')
   els.tabDomain.classList.toggle('active', isDomain)
   els.tabFindings.classList.toggle('active', isFindings)
   els.tabSettings.classList.toggle('active', isSettings)
+  els.tabSubmaps.classList.toggle('active', isSubmaps)
 
   const viewCopy = {
     overview: ['Overview', 'Repository health and module inventory'],
@@ -135,6 +138,7 @@ function updateViewUI() {
     ],
     domain: ['Domain model', 'Entities and their structural relationships'],
     findings: ['Findings', 'Architecture violations and maintainability risks'],
+    submaps: ['Submaps', 'Named architectural contexts saved from the graph'],
     settings: ['Settings', 'Project labels, colors and active rules']
   }
   const [title, subtitle] = viewCopy[state.view] ?? viewCopy.overview

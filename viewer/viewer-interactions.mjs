@@ -18,6 +18,8 @@ export function createViewerUiController(dependencies) {
     context.operations.updateViewUI()
     if (view === 'settings') {
       context.operations.populateSettingsTab()
+    } else if (view === 'submaps') {
+      void context.operations.loadSubmaps()
     } else {
       context.operations.applyFilters()
     }

@@ -61,6 +61,7 @@ export function createServerApplication({ projectContext, repoRoot, services: pr
     projectMap: () => context.projectMap,
     scan,
     saveProjectMap,
+    listSubmaps: () => listSubmaps({ state, paths, services, root }),
     createTraceSubmap: (input) => createTraceSubmap(input, { state, paths, services, fileSystem, root })
   })
 }
@@ -92,13 +93,38 @@ function createTraceSubmap(input, { state, paths, services, fileSystem, root }) 
   const graphPath = paths.projectPath(context.resolveGraphOutputPath(), 'project.graphOutput')
   const graph = JSON.parse(fileSystem.readText(graphPath))
   const submap = services.submaps.create(graph, traceRequest(input))
-  const directory = paths.projectPath(
-    path.resolve(root, context.projectMap.project.submapsDirectory ?? '.code-map/submaps'),
-    'project.submapsDirectory'
-  )
+  const directory = submapsDirectory(context, paths, root)
   const output = path.join(directory, services.submaps.filename(submap))
   services.submaps.write(output, submap)
   return { file: path.relative(root, output), uid: submap.uid, statistics: submap.statistics }
+}
+
+function listSubmaps({ state, paths, services, root }) {
+  const directory = submapsDirectory(state.context, paths, root)
+  return services.submaps
+    .list(directory)
+    .map((filePath) => submapSummary(services.submaps.read(filePath), filePath))
+    .sort((left, right) => left.name.localeCompare(right.name) || right.revision - left.revision)
+}
+
+function submapSummary(submap, filePath) {
+  return {
+    name: submap.id,
+    uid: submap.uid,
+    revision: submap.revision,
+    createdAt: submap.createdAt,
+    projectName: submap.source?.projectName,
+    statistics: submap.statistics,
+    kind: submap.metadata?.kind ?? 'selection',
+    file: path.basename(filePath)
+  }
+}
+
+function submapsDirectory(context, paths, root) {
+  return paths.projectPath(
+    path.resolve(root, context.projectMap.project.submapsDirectory ?? '.code-map/submaps'),
+    'project.submapsDirectory'
+  )
 }
 
 function traceRequest(input) {

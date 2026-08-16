@@ -94,6 +94,8 @@ assert.doesNotMatch(
   'the viewer must not load remote scripts or stylesheets'
 )
 assert.match(viewerHtml, /<script type="module" src="\/viewer-init\.js"><\/script>/u)
+assert.match(viewerHtml, /id="tabSubmaps"/u)
+assert.match(viewerHtml, /id="submapsPane"/u)
 assert.match(viewerHtml, /<script type="importmap">/u)
 assert.match(viewerHtml, /"#viewer\/": "\/"/u)
 assert.equal(

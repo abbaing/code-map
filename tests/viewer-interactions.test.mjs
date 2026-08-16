@@ -16,10 +16,12 @@ const operationNames = [
   'importGraph',
   'importProjectMap',
   'loadGraph',
+  'loadSubmaps',
   'populateSettingsTab',
   'refreshGraph',
   'render',
   'renderModuleDetail',
+  'renderSubmaps',
   'replaceSubgraphSelection',
   'resetZoom',
   'saveConfig',
@@ -82,6 +84,11 @@ const controller = createViewerUiController({
 })
 assert.equal(controller.bind(), true)
 assert.equal(controller.bind(), false, 'interaction binding must be idempotent')
+
+await elements.tabSubmaps.dispatch('click', {})
+assert.equal(state.view, 'submaps')
+assert.equal(calls.filter(([name]) => name === 'loadSubmaps').length, 1)
+state.view = 'graph'
 
 let prevented = false
 await elements.canvasWrap.dispatch('wheel', {
@@ -174,7 +181,7 @@ await elements.graph.dispatch('click', { target: eventTarget({ id: 'node:path' }
 await elements.graph.dispatch('click', { target: eventTarget({ id: 'node:path' }) })
 assert.equal(elements.findingsSearch.value, 'src/path.ts')
 assert.equal(state.view, 'findings')
-assert.equal(calls.filter(([name]) => name === 'updateViewUI').length, 1)
+assert.equal(calls.filter(([name]) => name === 'updateViewUI').length, 2)
 assert.equal(calls.filter(([name]) => name === 'applyFilters').length, 1)
 
 console.log('viewer interaction behavior tests passed')

@@ -63,6 +63,7 @@ configureViewerData({
     loadGraph() {},
     scan() {},
     updateProjectMap() {},
+    listSubmaps() {},
     createTraceSubmap() {}
   },
   operations: {

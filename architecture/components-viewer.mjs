@@ -110,6 +110,7 @@ export const viewerComponents = [
       'viewer/viewer-selection.js',
       'viewer/viewer-subgraph-selection.js',
       'viewer/viewer-settings-renderer.js',
+      'viewer/viewer-submaps.js',
       'viewer/viewer-viewport.js'
     ],
     contracts: ['ViewerStore', 'ViewController', 'ViewerUiController', 'GraphGateway'],
