@@ -7,7 +7,7 @@ const groups = [
     id: 'application',
     includes: (file) =>
       !file.includes('/') || ['src/', 'rules/', 'submap/', 'templates/'].some((prefix) => file.startsWith(prefix)),
-    thresholds: { lines: 91, statements: 91, branches: 85, functions: 95 }
+    thresholds: { lines: 92, statements: 92, branches: 85, functions: 95 }
   },
   {
     id: 'server',
