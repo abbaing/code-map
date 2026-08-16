@@ -14,13 +14,12 @@ export function edgeSvg(edge, nodeById, highlighted, dimmed = false, focused = f
   if (state.view === 'domain') {
     return domainEdgeSvg({ from, to, highlighted, dimmed, focused })
   }
-  const source = from.x <= to.x ? from : to
-  const target = source === from ? to : from
-  const x1 = source.x + source.width
-  const y1 = source.y + source.height / 2
-  const x2 = target.x
-  const y2 = target.y + target.height / 2
-  const mid = Math.max(x1 + 24, (x1 + x2) / 2)
+  const forward = from.x <= to.x
+  const x1 = forward ? from.x + from.width : from.x
+  const y1 = from.y + from.height / 2
+  const x2 = forward ? to.x : to.x + to.width
+  const y2 = to.y + to.height / 2
+  const mid = forward ? Math.max(x1 + 24, (x1 + x2) / 2) : Math.min(x1 - 24, (x1 + x2) / 2)
   const classes = edgeClasses(edge, highlighted, focused, dimmed)
   return `<path class="${classes}" d="M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}" marker-end="url(#arrow)" />`
 }

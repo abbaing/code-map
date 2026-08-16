@@ -8,7 +8,7 @@ export function systemModuleEdgeSvg(edge, nodeById) {
   const x2 = to.x + to.width / 2
   const y2 = to.y + to.height / 2
   const curve = Math.max(28, Math.abs(x2 - x1) * 0.28)
-  const thickness = Math.min(2.5, 0.7 + Math.log2(edge.count + 1) * 0.35)
+  const thickness = Math.round(Math.min(2.5, 0.7 + Math.log2(edge.count + 1) * 0.35) * 100) / 100
   const title = escapeHtml(`${edge.count} relations · ${edge.relationTypes.join(', ')}`)
   return (
     `<path d="M ${x1} ${y1} C ${x1 + curve} ${y1}, ${x2 - curve} ${y2}, ${x2} ${y2}"` +
