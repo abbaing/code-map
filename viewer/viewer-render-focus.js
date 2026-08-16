@@ -16,6 +16,10 @@ export function focusedNodeIds(selectedId, edges) {
   return ids
 }
 
+export function subgraphFocusIds(fallback) {
+  return state.subgraphNodeIds.size ? state.subgraphNodeIds : fallback
+}
+
 export function connectedEdgeIds(nodeId) {
   if (!nodeId) {
     return new Set()

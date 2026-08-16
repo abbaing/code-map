@@ -10,7 +10,8 @@ import {
   isDimmedEdge,
   isDimmedNode,
   isFocusedEdge,
-  isFocusedNode
+  isFocusedNode,
+  subgraphFocusIds
 } from '#viewer/viewer-render-focus.js'
 
 export function renderGraphView(svg, layout) {
@@ -52,7 +53,9 @@ function graphRenderContext(nodes) {
     orphanIds: new Set(state.graph.orphans.map((orphan) => orphan.id)),
     selectedEdges: moduleOverview ? new Set() : (state.trace?.edgeIds ?? connectedEdgeIds(state.selectedId)),
     managedEntities: managedEntityCounts(state.graph.edges),
-    focusedIds: moduleOverview ? null : (state.trace?.nodeIds ?? focusedNodeIds(state.selectedId, edges))
+    focusedIds: subgraphFocusIds(
+      moduleOverview ? null : (state.trace?.nodeIds ?? focusedNodeIds(state.selectedId, edges))
+    )
   }
 }
 

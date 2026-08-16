@@ -8,7 +8,8 @@ import {
   isDimmedEdge,
   isDimmedNode,
   isFocusedEdge,
-  isFocusedNode
+  isFocusedNode,
+  subgraphFocusIds
 } from '#viewer/viewer-render-focus.js'
 
 export function renderDomainView(svg, layout) {
@@ -20,7 +21,7 @@ export function renderDomainView(svg, layout) {
   const edges = state.graph.edges.filter(
     (edge) => visibleIds.has(edge.from) && visibleIds.has(edge.to) && edge.type === 'domain-relation'
   )
-  const focusedIds = focusedNodeIds(state.selectedId, edges)
+  const focusedIds = subgraphFocusIds(focusedNodeIds(state.selectedId, edges))
   svg.innerHTML = `
     ${arrowDefinition()}
     ${renderClusterBands(layout)}

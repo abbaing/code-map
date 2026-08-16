@@ -8,6 +8,7 @@ export const viewerStore = createViewerStore({
   graph: null,
   filteredNodes: [],
   selectedId: null,
+  subgraphNodeIds: new Set(),
   showAllTrace: false,
   trace: null,
   selectedTypes: new Set(),

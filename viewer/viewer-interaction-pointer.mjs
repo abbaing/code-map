@@ -1,6 +1,9 @@
+import { bindRectangleSelection } from '#viewer/viewer-interaction-selection.mjs'
+
 export function bindPointerNavigation(context, changeView) {
   bindWheelZoom(context)
   bindPanDrag(context)
+  bindRectangleSelection(context)
   bindNodeClick(context, changeView)
 }
 
@@ -30,7 +33,8 @@ function startDrag(event, canvas, state, drag) {
     event.target.closest('.node') ||
     event.target.closest('#moduleDetail') ||
     event.target.closest('button, label, input')
-  if (event.button !== 0 || interactive) {
+  const panPointer = event.button === 1 || (event.button === 0 && event.altKey)
+  if (!panPointer || interactive) {
     return
   }
   Object.assign(drag, {
@@ -101,6 +105,10 @@ function bindNodeClick(context, changeView) {
       context.browser.clearTimeout(clickTimer)
       lastClickedId = null
       context.operations.clearSelectedNode()
+    } else if ((event.ctrlKey || event.metaKey) && nodeElement.dataset.id) {
+      context.browser.clearTimeout(clickTimer)
+      lastClickedId = null
+      context.operations.toggleSubgraphNode(nodeElement.dataset.id)
     } else if (nodeElement.dataset.module) {
       context.browser.clearTimeout(clickTimer)
       lastClickedId = null

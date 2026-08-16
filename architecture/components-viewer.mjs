@@ -99,6 +99,7 @@ export const viewerComponents = [
       'viewer/viewer-interaction-filters.mjs',
       'viewer/viewer-interaction-navigation.mjs',
       'viewer/viewer-interaction-pointer.mjs',
+      'viewer/viewer-interaction-selection.mjs',
       'viewer/viewer-interactions.mjs',
       'viewer/viewer-module-stats.js',
       'viewer/viewer-overview.js',
@@ -107,6 +108,7 @@ export const viewerComponents = [
       'viewer/viewer-selection-quality.js',
       'viewer/viewer-selection-summary.js',
       'viewer/viewer-selection.js',
+      'viewer/viewer-subgraph-selection.js',
       'viewer/viewer-settings-renderer.js',
       'viewer/viewer-viewport.js'
     ],

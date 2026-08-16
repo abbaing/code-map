@@ -21,6 +21,11 @@ import { createViewerUiController } from '#viewer/viewer-interactions.mjs'
 import { drillIntoModule, renderModuleDetail, renderOverview, updateViewUI } from '#viewer/viewer-overview.js'
 import { clearSelectedNode, configureViewerSelection, hidePopover, selectNode } from '#viewer/viewer-selection.js'
 import { configureViewerElements, els, state } from '#viewer/viewer-state.js'
+import {
+  clearSubgraphSelection,
+  replaceSubgraphSelection,
+  toggleSubgraphNode
+} from '#viewer/viewer-subgraph-selection.js'
 import { debounce } from '#viewer/viewer-utils.js'
 
 export function startViewer(options = {}) {
@@ -81,6 +86,7 @@ function viewerOperations() {
     applyFilters,
     applyPan,
     clearSelectedNode,
+    clearSubgraphSelection,
     createTraceSubmap,
     debounce,
     drillIntoModule,
@@ -93,11 +99,13 @@ function viewerOperations() {
     refreshGraph,
     render,
     renderModuleDetail,
+    replaceSubgraphSelection,
     resetZoom,
     saveConfig,
     selectNode,
     setZoom,
     showToast,
+    toggleSubgraphNode,
     updateViewUI,
     zoomAt
   }

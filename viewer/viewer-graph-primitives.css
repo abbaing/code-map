@@ -142,3 +142,8 @@
   stroke: #2563eb;
   stroke-width: 3;
 }
+.node.subgraph-selected > rect:first-of-type {
+  fill: #dbeafe;
+  stroke: #60a5fa;
+  stroke-width: 2.5;
+}

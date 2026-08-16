@@ -89,6 +89,7 @@ Object.assign(state, {
   graph: graphData,
   filteredNodes: graphData.nodes,
   selectedId: null,
+  subgraphNodeIds: new Set(),
   showAllTrace: false,
   trace: null,
   zoom: 1,
@@ -137,6 +138,12 @@ assert.match(svg.innerHTML, /class="node selected[^"]*" data-id="back"/u, 'selec
 state.selectedId = null
 state.activeModule = null
 
+Object.assign(state, { activeModule: 'users', subgraphNodeIds: new Set(['front']) })
+render()
+assert.match(svg.innerHTML, /class="node\s+subgraph-selected focused[^>]*data-id="front"/u)
+assert.match(svg.innerHTML, /class="node\s+dimmed[^>]*data-id="back"/u)
+Object.assign(state, { activeModule: null, subgraphNodeIds: new Set() })
+
 const layout = layoutSystemModules(
   [
     { id: 'z', label: 'Z', module: 'z', meta: { externalRelations: 1 } },
@@ -183,8 +190,6 @@ assert.equal(
   firstDomainLayout.nodes.every(({ x, y }) => Number.isFinite(x) && Number.isFinite(y)),
   true
 )
-
-console.log('viewer render tests passed')
 
 console.log('viewer graph rendering tests passed')
 

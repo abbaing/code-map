@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { createViewerUiController } from '#viewer/viewer-interactions.mjs'
+import { idsInsideRectangle } from '#viewer/viewer-interaction-selection.mjs'
 import { createElement, eventTarget, pointerEvent } from '#tests/viewer-interaction-fixture.mjs'
 
 const calls = []
@@ -7,6 +8,7 @@ const operationNames = [
   'applyFilters',
   'applyPan',
   'clearSelectedNode',
+  'clearSubgraphSelection',
   'createTraceSubmap',
   'drillIntoModule',
   'exportGraph',
@@ -18,11 +20,13 @@ const operationNames = [
   'refreshGraph',
   'render',
   'renderModuleDetail',
+  'replaceSubgraphSelection',
   'resetZoom',
   'saveConfig',
   'selectNode',
   'setZoom',
   'showToast',
+  'toggleSubgraphNode',
   'updateViewUI',
   'zoomAt'
 ]
@@ -57,6 +61,7 @@ const state = {
   panY: 0,
   dragMoved: false,
   suppressOutsideReset: false,
+  subgraphNodeIds: new Set(),
   showAllTrace: false,
   view: 'graph',
   activeModule: null,
@@ -102,15 +107,21 @@ assert.deepEqual(
 
 const background = eventTarget()
 await elements.canvasWrap.dispatch('pointerdown', pointerEvent(background, { button: 1 }))
-await elements.canvasWrap.dispatch('pointermove', pointerEvent(background, { clientX: 9, clientY: 9 }))
+await elements.canvasWrap.dispatch('pointermove', pointerEvent(background, { button: 1, clientX: 9, clientY: 9 }))
 assert.equal(
   calls.some(([name]) => name === 'applyPan'),
-  false,
-  'non-primary pointers must not start a drag'
+  true,
+  'the middle pointer must preserve canvas panning'
 )
+await elements.canvasWrap.dispatch('pointerup', pointerEvent(background, { button: 1 }))
+runTimers()
+Object.assign(state, { panX: 0, panY: 0 })
 
-await elements.canvasWrap.dispatch('pointerdown', pointerEvent(background, { pointerId: 7, clientX: 10, clientY: 20 }))
-await elements.canvasWrap.dispatch('pointermove', pointerEvent(background, { clientX: 16, clientY: 10 }))
+await elements.canvasWrap.dispatch(
+  'pointerdown',
+  pointerEvent(background, { pointerId: 7, clientX: 10, clientY: 20, altKey: true })
+)
+await elements.canvasWrap.dispatch('pointermove', pointerEvent(background, { clientX: 16, clientY: 10, altKey: true }))
 assert.deepEqual([state.panX, state.panY, state.dragMoved], [-6, 10, true])
 assert.equal(elements.canvasWrap.classList.contains('dragging'), true)
 await elements.canvasWrap.dispatch('pointerup', pointerEvent(background))
@@ -119,9 +130,25 @@ assert.equal(elements.canvasWrap.releasedPointers.has(7), true)
 runTimers()
 assert.deepEqual([state.dragMoved, state.suppressOutsideReset], [false, false])
 
+elements.selectionBox.parentElement = elements.canvasWrap
 await elements.canvasWrap.dispatch('pointerdown', pointerEvent(background, { pointerId: 8, clientX: 20, clientY: 20 }))
 await elements.canvasWrap.dispatch('pointerup', pointerEvent(background))
 assert.equal(calls.filter(([name]) => name === 'clearSelectedNode').length, 1)
+runTimers()
+
+const nodeElements = [
+  { dataset: { id: 'inside' }, getBoundingClientRect: () => ({ left: 20, top: 20, width: 20, height: 20 }) },
+  { dataset: { id: 'outside' }, getBoundingClientRect: () => ({ left: 80, top: 80, width: 20, height: 20 }) }
+]
+elements.graph.querySelectorAll = () => nodeElements
+await elements.canvasWrap.dispatch('pointerdown', pointerEvent(background, { pointerId: 9, clientX: 10, clientY: 10 }))
+await elements.canvasWrap.dispatch('pointermove', pointerEvent(background, { pointerId: 9, clientX: 60, clientY: 60 }))
+await elements.canvasWrap.dispatch('pointerup', pointerEvent(background, { pointerId: 9, clientX: 60, clientY: 60 }))
+assert.deepEqual(
+  calls.find(([name]) => name === 'replaceSubgraphSelection'),
+  ['replaceSubgraphSelection', ['inside']]
+)
+assert.deepEqual(idsInsideRectangle(nodeElements, { left: 0, top: 0, right: 70, bottom: 70 }), ['inside'])
 runTimers()
 
 await elements.graph.dispatch('click', { target: eventTarget({ module: 'billing' }) })
@@ -135,6 +162,12 @@ runTimers()
 assert.deepEqual(
   calls.find(([name]) => name === 'selectNode'),
   ['selectNode', 'node:logical']
+)
+
+await elements.graph.dispatch('click', { target: eventTarget({ id: 'node:logical' }), ctrlKey: true })
+assert.deepEqual(
+  calls.find(([name]) => name === 'toggleSubgraphNode'),
+  ['toggleSubgraphNode', 'node:logical']
 )
 
 await elements.graph.dispatch('click', { target: eventTarget({ id: 'node:path' }) })

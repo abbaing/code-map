@@ -42,6 +42,7 @@ const elementNames = [
   'zoomResetBtn',
   'zoomValue',
   'graph',
+  'selectionBox',
   'popover',
   'status',
   'nodeLimitBanner',

@@ -1,9 +1,10 @@
-export function createElement() {
+export function createElement({ bounds = { left: 0, top: 0, width: 0, height: 0 } } = {}) {
   const listeners = new Map()
   const classes = new Set()
   const capturedPointers = new Set()
   return {
     value: '',
+    style: {},
     listeners,
     releasedPointers: new Set(),
     classList: {
@@ -32,6 +33,12 @@ export function createElement() {
     },
     contains() {
       return false
+    },
+    getBoundingClientRect() {
+      return bounds
+    },
+    querySelectorAll() {
+      return []
     },
     setPointerCapture(id) {
       capturedPointers.add(id)

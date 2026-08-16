@@ -44,7 +44,7 @@ function umlEntitySvg(node, orphan, dimmed, focused) {
   const more = remaining
     ? `<text class="uml-property muted" x="12" y="${58 + visible.length * 16}">+ ${remaining} more</text>`
     : ''
-  const classes = `node uml-entity ${node.id === state.selectedId ? 'selected' : ''} ${focused ? 'focused' : ''} ${orphan ? 'orphan' : ''} ${dimmed ? 'dimmed' : ''}`
+  const classes = `node uml-entity ${selectionClasses(node)} ${focused ? 'focused' : ''} ${orphan ? 'orphan' : ''} ${dimmed ? 'dimmed' : ''}`
   return `
     <g class="${classes}" data-id="${escapeHtml(node.id)}" transform="translate(${node.x}, ${node.y})">
       <rect width="${node.width}" height="${node.height}"></rect>
@@ -59,10 +59,14 @@ function umlEntitySvg(node, orphan, dimmed, focused) {
 
 function nodeClasses(node, orphan, dimmed, focused, support) {
   return (
-    `node ${node.id === state.selectedId ? 'selected' : ''} ${focused ? 'focused' : ''}` +
+    `node ${selectionClasses(node)} ${focused ? 'focused' : ''}` +
     ` ${support ? 'trace-support' : ''} ${orphan ? 'orphan' : ''} ${dimmed ? 'dimmed' : ''}` +
     ` ${node.layer === 'auxiliary' ? 'auxiliary' : ''}`
   )
+}
+
+function selectionClasses(node) {
+  return `${node.id === state.selectedId ? 'selected' : ''} ${state.subgraphNodeIds.has(node.id) ? 'subgraph-selected' : ''}`
 }
 
 function graphNodePresentation(node, orphan, dimmed, focused, managedCount) {
