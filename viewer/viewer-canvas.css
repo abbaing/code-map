@@ -53,6 +53,12 @@
   font-size: 12px;
 }
 
+.selection-context-menu {
+  top: 0;
+  right: auto;
+  width: 200px;
+}
+
 #graph {
   display: block;
   width: 100%;

@@ -14,6 +14,7 @@ const operationNames = [
   'drillIntoModule',
   'exportGraph',
   'exportProjectMap',
+  'exportSubgraphSelection',
   'importGraph',
   'importProjectMap',
   'loadGraph',

@@ -96,6 +96,7 @@ assert.doesNotMatch(
 assert.match(viewerHtml, /<script type="module" src="\/viewer-init\.js"><\/script>/u)
 assert.match(viewerHtml, /id="tabSubmaps"/u)
 assert.match(viewerHtml, /id="submapsPane"/u)
+assert.match(viewerHtml, /id="selectionContextMenu"/u)
 assert.match(viewerHtml, /<script type="importmap">/u)
 assert.match(viewerHtml, /"#viewer\/": "\/"/u)
 assert.equal(

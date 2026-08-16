@@ -7,6 +7,13 @@
               <button id="selectionCreateBtn" class="btn btn-primary">Create submap</button>
               <button id="selectionClearBtn" class="btn">Clear</button>
             </div>
+            <div id="selectionContextMenu" class="action-menu selection-context-menu hidden" role="menu">
+              <button id="selectionContextCreateBtn" role="menuitem">Create named submap</button>
+              <button id="selectionContextExportBtn" role="menuitem">Export selected graph</button>
+              <button id="selectionContextRemoveBtn" role="menuitem">Remove this node</button>
+              <div class="action-menu-separator"></div>
+              <button id="selectionContextClearBtn" role="menuitem">Clear selection</button>
+            </div>
 
             <div class="graph-toolbar" aria-label="Graph controls">
               <button id="graphFilterBtn" class="graph-tool" aria-label="Graph filters" title="Filters">

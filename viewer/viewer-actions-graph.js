@@ -36,6 +36,33 @@ export function exportGraph() {
   }
 }
 
+export function exportSubgraphSelection() {
+  closeSelectionContextMenu()
+  if (!state.subgraphNodeIds.size) {
+    showToast('Select at least one node first', 'error')
+    return
+  }
+  const name = filenamePart(els.selectionNameInput.value) || 'selection'
+  downloadJson(selectedGraph(state.graph, state.subgraphNodeIds), `code-map-${name}.json`)
+  showToast('Selection exported')
+}
+
+export function selectedGraph(graph, selectedNodeIds) {
+  const ids = new Set(selectedNodeIds)
+  const nodes = graph.nodes.filter((node) => ids.has(node.id))
+  const edges = graph.edges.filter((edge) => ids.has(edge.from) && ids.has(edge.to))
+  const findings = (graph.findings ?? []).filter((finding) => ids.has(finding.nodeId))
+  const orphans = (graph.orphans ?? []).filter((orphan) => ids.has(typeof orphan === 'string' ? orphan : orphan.id))
+  return structuredClone({
+    ...graph,
+    nodes,
+    edges,
+    findings,
+    orphans,
+    stats: { ...graph.stats, nodes: nodes.length, edges: edges.length, findings: findings.length }
+  })
+}
+
 export async function createTraceSubmap() {
   els.actionsMenu.classList.add('hidden')
   const trace = state.trace
@@ -66,6 +93,7 @@ export async function createTraceSubmap() {
 }
 
 export async function createSelectionSubmap() {
+  closeSelectionContextMenu()
   const name = els.selectionNameInput.value.trim()
   if (!name || !state.subgraphNodeIds.size) {
     showToast('Enter a name and select at least one node', 'error')
@@ -85,6 +113,18 @@ export async function createSelectionSubmap() {
   } finally {
     els.selectionCreateBtn.disabled = false
   }
+}
+
+function closeSelectionContextMenu() {
+  els.selectionContextMenu?.classList.add('hidden')
+}
+
+function filenamePart(value) {
+  return value
+    .trim()
+    .replace(/[^a-z0-9._-]+/giu, '-')
+    .replace(/^-+|-+$/gu, '')
+    .toLowerCase()
 }
 
 export function importGraph(file) {

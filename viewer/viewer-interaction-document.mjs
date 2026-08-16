@@ -20,6 +20,9 @@ export function bindDocumentNavigation({ elements, state, document, operations }
     if (!elements.actionsMenu.contains(event.target) && event.target !== elements.actionsBtn) {
       elements.actionsMenu.classList.add('hidden')
     }
+    if (!elements.selectionContextMenu.contains(event.target)) {
+      elements.selectionContextMenu.classList.add('hidden')
+    }
   })
 }
 

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { createSelectionSubmap } from '#viewer/viewer-actions.js'
+import { selectedGraph } from '#viewer/viewer-actions-graph.js'
 import { configureViewerData } from '#viewer/viewer-data.js'
 import { configureViewerElements, state } from '#viewer/viewer-state.js'
 import { createElement } from '#tests/viewer-interaction-fixture.mjs'
@@ -50,5 +51,35 @@ assert.equal(state.subgraphNodeIds.size, 0)
 assert.equal(elements.selectionNameInput.value, '')
 assert.equal(elements.selectionCreateBtn.disabled, false)
 assert.match(toast.textContent, /checkout-flow\.submap\.json/u)
+
+const projected = selectedGraph(
+  {
+    nodes: [{ id: 'a' }, { id: 'b' }, { id: 'c' }],
+    edges: [
+      { id: 'a:b', from: 'a', to: 'b' },
+      { id: 'b:c', from: 'b', to: 'c' }
+    ],
+    findings: [
+      { id: 'finding:a', nodeId: 'a' },
+      { id: 'finding:c', nodeId: 'c' }
+    ],
+    orphans: [{ id: 'b' }, { id: 'c' }],
+    stats: { nodes: 3, edges: 2, findings: 2 }
+  },
+  new Set(['a', 'b'])
+)
+assert.deepEqual(projected.stats, { nodes: 2, edges: 1, findings: 1 })
+assert.deepEqual(
+  projected.nodes.map(({ id }) => id),
+  ['a', 'b']
+)
+assert.deepEqual(
+  projected.edges.map(({ id }) => id),
+  ['a:b']
+)
+assert.deepEqual(
+  projected.orphans.map(({ id }) => id),
+  ['b']
+)
 
 console.log('viewer selection action tests passed')

@@ -95,6 +95,7 @@ export const viewerComponents = [
       'viewer/viewer-init.js',
       'viewer/viewer-interaction-actions.mjs',
       'viewer/viewer-interaction-contracts.mjs',
+      'viewer/viewer-interaction-context-menu.mjs',
       'viewer/viewer-interaction-document.mjs',
       'viewer/viewer-interaction-filters.mjs',
       'viewer/viewer-interaction-navigation.mjs',

@@ -1,5 +1,6 @@
 import { assertViewerUiDependencies } from '#viewer/viewer-interaction-contracts.mjs'
 import { bindViewerFilters } from '#viewer/viewer-interaction-filters.mjs'
+import { bindSelectionContextMenu } from '#viewer/viewer-interaction-context-menu.mjs'
 import { bindViewerNavigation } from '#viewer/viewer-interaction-navigation.mjs'
 import { bindPointerNavigation } from '#viewer/viewer-interaction-pointer.mjs'
 
@@ -31,6 +32,7 @@ export function createViewerUiController(dependencies) {
     }
     bound = true
     bindPointerNavigation(context, changeView)
+    bindSelectionContextMenu(context)
     bindViewerFilters(context)
     bindViewerNavigation(context, changeView)
     return true

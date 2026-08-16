@@ -2,6 +2,7 @@ export {
   createSelectionSubmap,
   createTraceSubmap,
   exportGraph,
+  exportSubgraphSelection,
   importGraph,
   refreshGraph
 } from '#viewer/viewer-actions-graph.js'
