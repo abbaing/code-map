@@ -1,20 +1,24 @@
 import { compareSubmapRevisions, revisionsForSubmap } from '#viewer/viewer-submap-revisions.js'
+import { submapAvailability } from '#viewer/viewer-submap-availability.js'
 import { escapeHtml } from '#viewer/viewer-utils.js'
 
-export function renderSubmapPreview(elements, submap, parent, summaries) {
+export function renderSubmapPreview(elements, { submap, parent, parentIssue, summaries, graph }) {
   const name = submap.metadata?.name ?? submap.id
   elements.submapPreviewTitle.textContent = name
   elements.submapPreviewMeta.textContent = `${submap.metadata?.kind ?? 'selection'} · revision ${submap.revision}`
-  elements.submapPreviewBody.innerHTML = submapPreviewHtml(submap, parent, summaries)
+  const availability = submapAvailability(submap, graph)
+  elements.submapPreviewBody.innerHTML = submapPreviewHtml(submap, parent, summaries, availability, parentIssue)
   elements.submapPreviewOpenBtn.dataset.submapUid = submap.uid
+  elements.submapPreviewOpenBtn.disabled = availability.availableNodes.length === 0
 }
 
-export function submapPreviewHtml(submap, parent, summaries) {
+export function submapPreviewHtml(submap, parent, summaries, availability, parentIssue = null) {
   const nodes = submap.nodes.slice(0, 20)
   const remaining = submap.nodes.length - nodes.length
   return `
     ${revisionHistoryHtml(submap, summaries)}
-    ${revisionComparisonHtml(submap, parent)}
+    ${availabilityHtml(availability)}
+    ${revisionComparisonHtml(submap, parent, parentIssue)}
     <div class="submap-preview-stats">
       ${previewStat(submap.nodes.length, 'Nodes')}
       ${previewStat(submap.edges.length, 'Edges')}
@@ -35,7 +39,10 @@ function revisionHistoryHtml(submap, summaries) {
   `
 }
 
-function revisionComparisonHtml(submap, parent) {
+function revisionComparisonHtml(submap, parent, parentIssue) {
+  if (parentIssue) {
+    return `<p class="submap-recovery-warning">${escapeHtml(parentIssue)}</p>`
+  }
   if (!parent) {
     return '<p class="submap-initial-revision">Initial revision</p>'
   }
@@ -52,6 +59,14 @@ function revisionComparisonHtml(submap, parent) {
       ${changedNodesHtml(difference)}
     </section>
   `
+}
+
+function availabilityHtml({ availableNodes, missingNodes }) {
+  if (!missingNodes.length) {
+    return ''
+  }
+  const qualifier = availableNodes.length ? 'will be omitted when opened' : 'leave nothing available to open'
+  return `<p class="submap-recovery-warning"><strong>${missingNodes.length} unavailable nodes</strong> ${qualifier}.</p>`
 }
 
 function revisionButton(revision, activeUid) {

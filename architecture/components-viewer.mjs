@@ -114,6 +114,7 @@ export const viewerComponents = [
       'viewer/viewer-selection.js',
       'viewer/viewer-subgraph-selection.js',
       'viewer/viewer-submap-edit-state.js',
+      'viewer/viewer-submap-availability.js',
       'viewer/viewer-submap-preview.js',
       'viewer/viewer-submap-revisions.js',
       'viewer/viewer-settings-renderer.js',

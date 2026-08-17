@@ -49,6 +49,16 @@
   background: var(--surface-subtle);
 }
 
+.submap-row.invalid {
+  cursor: default;
+  background: #fff8f7;
+  color: var(--danger);
+}
+
+.submap-row-issue {
+  grid-column: 3 / -1;
+}
+
 .submap-name strong,
 .submap-name small {
   display: block;

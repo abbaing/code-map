@@ -50,7 +50,7 @@ try {
   assert.deepEqual(serverApplicationServicesContract, {
     scanner: ['scan'],
     projectMaps: ['validate', 'load', 'write', 'restore'],
-    submaps: ['create', 'filename', 'list', 'read', 'write']
+    submaps: ['create', 'filename', 'list', 'read', 'validate', 'write']
   })
   const application = createServerApplication({ projectContext, services: delegatedServices })
   assert.equal(Object.isFrozen(application), true)
@@ -165,6 +165,7 @@ try {
       'submaps.filename',
       'submaps.list',
       'submaps.read',
+      'submaps.validate',
       'submaps.write'
     ])
   )

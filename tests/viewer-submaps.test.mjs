@@ -26,6 +26,14 @@ assert.match(elements.submapList.innerHTML, />4<\/span>/u)
 assert.match(elements.submapList.innerHTML, /2 revisions/u)
 assert.doesNotMatch(elements.submapList.innerHTML, /payments-r1/u)
 assert.doesNotMatch(submapRowHtml(submap), /<payments>/u)
+const invalidRow = submapRowHtml({
+  status: 'invalid',
+  name: '<broken>',
+  file: 'broken.submap.json',
+  issue: { message: 'Invalid <JSON>' }
+})
+assert.match(invalidRow, /Invalid &lt;JSON&gt;/u)
+assert.doesNotMatch(invalidRow, /data-submap-uid/u)
 
 elements.submapSearch.value = 'orders'
 renderSubmaps()

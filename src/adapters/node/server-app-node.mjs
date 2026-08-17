@@ -1,7 +1,7 @@
 import { loadProjectContext, validateProjectMap } from '#core/config.mjs'
 import { nodeTextWriter, writeFileAtomic, writeJsonFileAtomic } from '#node/json-io.mjs'
 import { writeGraph } from '#app/scan.mjs'
-import { createSubmap, defaultSubmapFilename } from '#submap/index.mjs'
+import { createSubmap, defaultSubmapFilename, validateSubmap } from '#submap/index.mjs'
 import { nodeSubmapRepository } from '#submap/io.mjs'
 import { buildTemplateRegistry } from '#templates/registry.mjs'
 
@@ -26,6 +26,7 @@ export const nodeServerApplicationServices = Object.freeze({
     filename: defaultSubmapFilename,
     list: nodeSubmapRepository.list,
     read: nodeSubmapRepository.read,
+    validate: validateSubmap,
     write: nodeSubmapRepository.write
   })
 })

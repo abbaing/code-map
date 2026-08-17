@@ -83,6 +83,7 @@ const interactiveElementNames = [
   'settingsImportFile',
   'settingsSaveBtn',
   'submapList',
+  'submapReloadBtn',
   'submapPreviewCloseBtn',
   'submapPreviewBody',
   'submapPreviewOpenBtn',

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { submapAvailability } from '#viewer/viewer-submap-availability.js'
 import { compareSubmapRevisions, latestSubmapRevisions, revisionsForSubmap } from '#viewer/viewer-submap-revisions.js'
 import { submapPreviewHtml } from '#viewer/viewer-submap-preview.js'
 
@@ -47,9 +48,8 @@ assert.deepEqual(
   ['removed-edge']
 )
 assert.equal(Object.isFrozen(difference), true)
-assert.match(
-  submapPreviewHtml({ ...parent, id: 'checkout', uid: 'r1', revision: 1 }, null, summaries),
-  /Initial revision/u
-)
+const initial = { ...parent, id: 'checkout', uid: 'r1', revision: 1 }
+const availability = submapAvailability(initial, { nodes: initial.nodes })
+assert.match(submapPreviewHtml(initial, null, summaries, availability), /Initial revision/u)
 
 console.log('viewer submap revision tests passed')

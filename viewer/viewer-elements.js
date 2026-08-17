@@ -14,6 +14,7 @@ const elementNames = [
   'overviewScroll',
   'submapsPane',
   'submapSearch',
+  'submapReloadBtn',
   'submapList',
   'submapPreview',
   'submapPreviewTitle',

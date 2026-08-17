@@ -84,3 +84,13 @@
   color: var(--muted);
   font-size: 11px;
 }
+
+.submap-recovery-warning {
+  margin: 0 0 16px;
+  padding: 9px;
+  border: 1px solid #f2cc60;
+  border-radius: var(--radius);
+  background: #fff8c5;
+  color: #633c01;
+  font-size: 11px;
+}

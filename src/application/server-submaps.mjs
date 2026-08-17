@@ -1,16 +1,11 @@
 import path from 'node:path'
-import { ApplicationNotFoundError } from '#app/server-contracts.mjs'
-import {
-  validateRevisionInput,
-  validateSelectionInput,
-  validateSubmapUid,
-  validateTraceInput
-} from '#app/server-input.mjs'
+import { validateRevisionInput, validateSelectionInput, validateTraceInput } from '#app/server-input.mjs'
+import { getStoredSubmap, listStoredSubmaps, submapsDirectory } from '#app/server-submap-storage.mjs'
 
 export function createServerSubmapOperations(context) {
   return Object.freeze({
-    listSubmaps: () => listSubmaps(context),
-    getSubmap: (uid) => getSubmap(uid, context),
+    listSubmaps: () => listStoredSubmaps(context),
+    getSubmap: (uid) => getStoredSubmap(uid, context),
     createSelectionSubmap: (input) => createSelectionSubmap(input, context),
     createTraceSubmap: (input) => createTraceSubmap(input, context),
     reviseSubmap: (input) => reviseSubmap(input, context)
@@ -38,7 +33,7 @@ function createSelectionSubmap(input, context) {
 
 function reviseSubmap(input, context) {
   validateRevisionInput(input)
-  const parent = getSubmap(input.uid, context)
+  const parent = getStoredSubmap(input.uid, context)
   return persistSubmap(
     {
       id: parent.id,
@@ -88,48 +83,6 @@ function selectionId(name) {
   return /^[a-z0-9]/u.test(id)
     ? id
     : `selection-${[...name].map((character) => character.codePointAt(0).toString(36)).join('-')}`
-}
-
-function listSubmaps({ state, paths, services, root }) {
-  const directory = submapsDirectory(state.context, paths, root)
-  return services.submaps
-    .list(directory)
-    .map((filePath) => submapSummary(services.submaps.read(filePath), filePath))
-    .sort((left, right) => left.name.localeCompare(right.name) || right.revision - left.revision)
-}
-
-function getSubmap(uid, { state, paths, services, root }) {
-  validateSubmapUid(uid)
-  const directory = submapsDirectory(state.context, paths, root)
-  for (const filePath of services.submaps.list(directory)) {
-    const submap = services.submaps.read(filePath)
-    if (submap.uid === uid) {
-      return submap
-    }
-  }
-  throw new ApplicationNotFoundError('Submap not found.')
-}
-
-function submapSummary(submap, filePath) {
-  return {
-    id: submap.id,
-    name: submap.metadata?.name ?? submap.id,
-    uid: submap.uid,
-    revision: submap.revision,
-    parentUid: submap.parentUid,
-    createdAt: submap.createdAt,
-    projectName: submap.source?.projectName,
-    statistics: submap.statistics,
-    kind: submap.metadata?.kind ?? 'selection',
-    file: path.basename(filePath)
-  }
-}
-
-function submapsDirectory(context, paths, root) {
-  return paths.projectPath(
-    path.resolve(root, context.projectMap.project.submapsDirectory ?? '.code-map/submaps'),
-    'project.submapsDirectory'
-  )
 }
 
 function traceRequest(input) {

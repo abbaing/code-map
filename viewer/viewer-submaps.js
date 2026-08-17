@@ -2,6 +2,7 @@ import { requireGraphGateway } from '#viewer/viewer-data.js'
 import { showToast } from '#viewer/viewer-feedback.js'
 import { els, state } from '#viewer/viewer-state.js'
 import { replaceSubgraphSelection } from '#viewer/viewer-subgraph-selection.js'
+import { submapAvailability } from '#viewer/viewer-submap-availability.js'
 import { renderSubmapPreview } from '#viewer/viewer-submap-preview.js'
 import { latestSubmapRevisions } from '#viewer/viewer-submap-revisions.js'
 import { escapeHtml } from '#viewer/viewer-utils.js'
@@ -9,6 +10,9 @@ import { escapeHtml } from '#viewer/viewer-utils.js'
 let previewGeneration = 0
 
 export async function loadSubmaps() {
+  if (els.submapPreview) {
+    closeSubmapPreview()
+  }
   els.submapList.innerHTML = '<div class="submap-empty">Loading submaps...</div>'
   try {
     const result = await requireGraphGateway().listSubmaps()
@@ -31,7 +35,11 @@ export function renderSubmaps() {
 export async function openSubmap(uid) {
   try {
     const submap = await loadSubmapDocument(uid)
-    const nodeIds = currentNodeIds(submap, state.graph)
+    const availability = submapAvailability(submap, state.graph)
+    const nodeIds = availability.availableNodes.map(({ id }) => id)
+    if (!nodeIds.length) {
+      throw new Error('None of this Submap’s nodes exist in the current graph.')
+    }
     state.activeSubmap = {
       uid: submap.uid,
       id: submap.id,
@@ -42,6 +50,9 @@ export async function openSubmap(uid) {
     els.selectionNameInput.value = state.activeSubmap.name
     replaceSubgraphSelection(nodeIds)
     state.fitView = true
+    if (availability.missingNodes.length) {
+      showToast(`${availability.missingNodes.length} unavailable nodes were omitted`, 'error')
+    }
     return true
   } catch (error) {
     showToast(`Submap failed: ${error.message}`, 'error')
@@ -57,12 +68,17 @@ export async function previewSubmap(uid) {
   els.submapPreviewBody.innerHTML = ''
   try {
     const { submap } = await requireGraphGateway().loadSubmap(uid)
-    const parent = await loadParentRevision(submap)
+    const parentState = await loadParentRevision(submap)
     if (generation !== previewGeneration) {
       return false
     }
     state.previewSubmap = submap
-    renderSubmapPreview(els, submap, parent, state.submaps)
+    renderSubmapPreview(els, {
+      submap,
+      ...parentState,
+      summaries: state.submaps,
+      graph: state.graph
+    })
     return true
   } catch (error) {
     if (generation !== previewGeneration) {
@@ -81,6 +97,9 @@ export function closeSubmapPreview() {
 }
 
 export function submapRowHtml(submap) {
+  if (submap.status === 'invalid') {
+    return invalidSubmapRowHtml(submap)
+  }
   const statistics = submap.statistics ?? {}
   return `
     <button class="submap-row" data-submap-uid="${escapeHtml(submap.uid)}" aria-label="Preview ${escapeHtml(submap.name)}">
@@ -95,8 +114,7 @@ export function submapRowHtml(submap) {
 }
 
 export function currentNodeIds(submap, graph) {
-  const available = new Set(graph.nodes.map((node) => node.id))
-  return submap.nodes.map((node) => node.id).filter((id) => available.has(id))
+  return submapAvailability(submap, graph).availableNodes.map(({ id }) => id)
 }
 
 function formatDate(value) {
@@ -118,8 +136,22 @@ async function loadSubmapDocument(uid) {
 
 async function loadParentRevision(submap) {
   if (!submap.parentUid) {
-    return null
+    return { parent: null, parentIssue: null }
   }
-  const { submap: parent } = await requireGraphGateway().loadSubmap(submap.parentUid)
-  return parent
+  try {
+    const { submap: parent } = await requireGraphGateway().loadSubmap(submap.parentUid)
+    return { parent, parentIssue: null }
+  } catch {
+    return { parent: null, parentIssue: 'Parent revision is unavailable, so changes cannot be compared.' }
+  }
+}
+
+function invalidSubmapRowHtml(submap) {
+  return `
+    <div class="submap-row invalid" role="status">
+      <span class="submap-name"><strong>${escapeHtml(submap.name)}</strong><small>${escapeHtml(submap.file)}</small></span>
+      <span>invalid</span>
+      <span class="submap-row-issue">${escapeHtml(submap.issue?.message ?? 'Unable to read Submap')}</span>
+    </div>
+  `
 }

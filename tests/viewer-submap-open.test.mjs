@@ -29,6 +29,7 @@ const parent = {
   nodes: [submap.nodes[0], { id: 'legacy:checkout', label: 'Legacy checkout', type: 'page' }]
 }
 let loads = 0
+let parentAvailable = true
 const gateway = {
   loadGraph() {},
   scan() {},
@@ -40,6 +41,9 @@ const gateway = {
   async loadSubmap(requestedUid) {
     loads += 1
     assert.equal([uid, parentUid].includes(requestedUid), true)
+    if (requestedUid === parentUid && !parentAvailable) {
+      throw new Error('missing parent')
+    }
     return { submap: requestedUid === uid ? submap : parent }
   }
 }
@@ -73,7 +77,9 @@ Object.assign(elements, {
   submapPreviewOpenBtn: createElement(),
   submapPreviewCloseBtn: createElement()
 })
+elements.toast = createElement()
 configureViewerElements(elements)
+globalThis.window = { clearTimeout() {}, setTimeout() {} }
 Object.assign(state, {
   view: 'submaps',
   graph: { nodes: [{ id: 'page:checkout' }, { id: 'api:checkout' }] },
@@ -92,6 +98,7 @@ assert.deepEqual([...state.activeSubmap.nodeIds], ['page:checkout', 'api:checkou
 assert.equal(state.activeSubmap.revision, 2)
 assert.equal(elements.selectionNameInput.value, 'Checkout flow')
 assert.equal(state.fitView, true)
+assert.match(elements.toast.textContent, /1 unavailable nodes were omitted/u)
 assert.deepEqual(currentNodeIds(submap, state.graph), ['page:checkout', 'api:checkout'])
 
 assert.equal(await previewSubmap(uid), true)
@@ -99,12 +106,17 @@ assert.equal(elements.submapPreviewTitle.textContent, 'Checkout flow')
 assert.match(elements.submapPreviewBody.innerHTML, /Checkout &lt;page&gt;/u)
 assert.match(elements.submapPreviewBody.innerHTML, /Changes from r1/u)
 assert.match(elements.submapPreviewBody.innerHTML, /\+2 nodes/u)
+assert.match(elements.submapPreviewBody.innerHTML, /1 unavailable nodes/u)
+assert.equal(elements.submapPreviewOpenBtn.disabled, false)
 assert.match(elements.submapPreviewBody.innerHTML, /−1 nodes/u)
 assert.equal(elements.submapPreviewOpenBtn.dataset.submapUid, uid)
 closeSubmapPreview()
 assert.equal(state.previewSubmap, null)
 assert.equal(elements.submapPreview.classList.contains('hidden'), true)
 await previewSubmap(uid)
+parentAvailable = false
+assert.equal(await previewSubmap(uid), true)
+assert.match(elements.submapPreviewBody.innerHTML, /Parent revision is unavailable/u)
 
 const submapList = createElement()
 const views = []
@@ -136,6 +148,10 @@ await elements.submapPreviewBody.dispatch('click', {
 assert.deepEqual(previewed, [uid, parentUid])
 await elements.submapPreviewOpenBtn.dispatch('click', {})
 assert.deepEqual(views, ['graph'])
-assert.equal(loads, 5, 'opening the previewed revision must reuse the loaded document')
+assert.equal(loads, 7, 'opening the previewed revision must reuse the loaded document')
+
+state.graph = { nodes: [] }
+assert.equal(await openSubmap(uid), false)
+assert.match(elements.toast.textContent, /None of this Submap’s nodes exist/u)
 
 console.log('viewer submap opening tests passed')
