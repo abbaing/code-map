@@ -3,6 +3,7 @@ import { bindViewerFilters } from '#viewer/viewer-interaction-filters.mjs'
 import { bindSelectionContextMenu } from '#viewer/viewer-interaction-context-menu.mjs'
 import { bindViewerNavigation } from '#viewer/viewer-interaction-navigation.mjs'
 import { bindPointerNavigation } from '#viewer/viewer-interaction-pointer.mjs'
+import { bindViewerShortcuts } from '#viewer/viewer-interaction-shortcuts.mjs'
 
 export function createViewerUiController(dependencies) {
   const context = assertViewerUiDependencies(dependencies)
@@ -35,6 +36,7 @@ export function createViewerUiController(dependencies) {
     bindSelectionContextMenu(context)
     bindViewerFilters(context)
     bindViewerNavigation(context, changeView)
+    bindViewerShortcuts(context)
     return true
   }
 

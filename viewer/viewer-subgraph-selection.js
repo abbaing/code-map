@@ -22,6 +22,15 @@ export function toggleSubgraphNode(nodeId) {
   renderSelection()
 }
 
+export function selectVisibleSubgraphNodes() {
+  replaceSubgraphSelection(renderedNodeIds())
+}
+
+export function invertVisibleSubgraphSelection() {
+  const selected = state.subgraphNodeIds
+  replaceSubgraphSelection(renderedNodeIds().filter((nodeId) => !selected.has(nodeId)))
+}
+
 export function clearSubgraphSelection() {
   if (!state.subgraphNodeIds.size) {
     return
@@ -61,4 +70,8 @@ function renderSelection() {
   if (state.view === 'graph' || state.view === 'domain') {
     render()
   }
+}
+
+function renderedNodeIds() {
+  return [...els.graph.querySelectorAll('.node[data-id]')].map(({ dataset }) => dataset.id).filter(Boolean)
 }

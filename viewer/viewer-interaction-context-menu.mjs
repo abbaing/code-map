@@ -36,6 +36,14 @@ function bindMenuActions(context, menu, contextNodeId) {
     close()
     context.operations.exportSubgraphSelection()
   })
+  context.elements.selectionContextSelectAllBtn.addEventListener('click', () => {
+    context.operations.selectVisibleSubgraphNodes()
+    close()
+  })
+  context.elements.selectionContextInvertBtn.addEventListener('click', () => {
+    context.operations.invertVisibleSubgraphSelection()
+    close()
+  })
   context.elements.selectionContextRemoveBtn.addEventListener('click', () => {
     const nodeId = contextNodeId()
     if (nodeId) {

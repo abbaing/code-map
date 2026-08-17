@@ -4,41 +4,15 @@ import { idsInsideRectangle } from '#viewer/viewer-interaction-selection.mjs'
 import { createElement, eventTarget, pointerEvent } from '#tests/viewer-interaction-fixture.mjs'
 
 const calls = []
-const operationNames = [
-  'applyFilters',
-  'applyPan',
-  'clearSelectedNode',
-  'clearSubgraphSelection',
-  'closeSubmapPreview',
-  'discardSubmapChanges',
-  'createTraceSubmap',
-  'createSelectionSubmap',
-  'drillIntoModule',
-  'exportGraph',
-  'exportProjectMap',
-  'exportSubgraphSelection',
-  'importGraph',
-  'importProjectMap',
-  'loadGraph',
-  'loadSubmaps',
-  'openSubmap',
-  'previewSubmap',
-  'populateSettingsTab',
-  'refreshGraph',
-  'render',
-  'renderModuleDetail',
-  'renderSubmaps',
-  'replaceSubgraphSelection',
-  'resetZoom',
-  'saveConfig',
-  'saveSubmapRevision',
-  'selectNode',
-  'setZoom',
-  'showToast',
-  'toggleSubgraphNode',
-  'updateViewUI',
-  'zoomAt'
-]
+const operationNames = `
+  applyFilters applyPan clearSelectedNode clearSubgraphSelection closeSubmapPreview discardSubmapChanges
+  createTraceSubmap createSelectionSubmap drillIntoModule exportGraph exportProjectMap exportSubgraphSelection
+  importGraph importProjectMap invertVisibleSubgraphSelection loadGraph loadSubmaps openSubmap previewSubmap
+  populateSettingsTab refreshGraph render renderModuleDetail renderSubmaps replaceSubgraphSelection resetZoom
+  saveConfig saveSubmapRevision selectVisibleSubgraphNodes selectNode setZoom showToast toggleSubgraphNode updateViewUI zoomAt
+`
+  .trim()
+  .split(/\s+/u)
 const operations = Object.fromEntries(operationNames.map((name) => [name, (...args) => calls.push([name, ...args])]))
 operations.debounce = (operation) => operation
 

@@ -25,7 +25,8 @@ function startSelection(event, canvas, drag) {
     startX: event.clientX,
     startY: event.clientY,
     currentX: event.clientX,
-    currentY: event.clientY
+    currentY: event.clientY,
+    mode: selectionMode(event)
   })
   canvas.setPointerCapture(event.pointerId)
   event.preventDefault()
@@ -51,13 +52,35 @@ function finishSelection(event, context, drag) {
   if (drag.moved) {
     const bounds = rectangle(drag.startX, drag.startY, event.clientX, event.clientY)
     const nodes = context.elements.graph.querySelectorAll('.node[data-id]')
-    context.operations.replaceSubgraphSelection(idsInsideRectangle(nodes, bounds))
+    const inside = idsInsideRectangle(nodes, bounds)
+    context.operations.replaceSubgraphSelection(
+      combineRectangleSelection(context.state.subgraphNodeIds, inside, drag.mode)
+    )
     context.state.suppressOutsideReset = true
   } else {
     context.operations.clearSubgraphSelection()
     context.operations.clearSelectedNode()
   }
   releaseSelection(context, drag)
+}
+
+export function combineRectangleSelection(selectedNodeIds, insideNodeIds, mode) {
+  if (mode === 'replace') {
+    return insideNodeIds
+  }
+  const selected = new Set(selectedNodeIds)
+  for (const nodeId of insideNodeIds) {
+    if (mode === 'toggle' && selected.has(nodeId)) {
+      selected.delete(nodeId)
+    } else {
+      selected.add(nodeId)
+    }
+  }
+  return [...selected]
+}
+
+function selectionMode(event) {
+  return event.shiftKey ? 'add' : event.ctrlKey || event.metaKey ? 'toggle' : 'replace'
 }
 
 function cancelSelection(context, drag) {

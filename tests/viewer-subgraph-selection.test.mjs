@@ -4,7 +4,9 @@ import { configureViewerElements, state } from '#viewer/viewer-state.js'
 import {
   clearSubgraphSelection,
   discardSubmapChanges,
+  invertVisibleSubgraphSelection,
   replaceSubgraphSelection,
+  selectVisibleSubgraphNodes,
   toggleSubgraphNode
 } from '#viewer/viewer-subgraph-selection.js'
 
@@ -18,6 +20,8 @@ const elements = {
   selectionSaveBtn: createElement(),
   selectionDiscardBtn: createElement()
 }
+elements.graph = createElement()
+elements.graph.querySelectorAll = () => [{ dataset: { id: 'node:a' } }, { dataset: { id: 'node:b' } }]
 configureViewerElements(elements)
 Object.assign(state, { view: 'overview', subgraphNodeIds: new Set(), activeSubmap: null })
 
@@ -44,5 +48,12 @@ assert.equal(elements.selectionSaveBtn.disabled, false)
 discardSubmapChanges()
 assert.deepEqual([...state.subgraphNodeIds], ['node:a'])
 assert.equal(elements.selectionSaveBtn.disabled, true)
+
+state.activeSubmap = null
+selectVisibleSubgraphNodes()
+assert.deepEqual([...state.subgraphNodeIds], ['node:a', 'node:b'])
+toggleSubgraphNode('node:a')
+invertVisibleSubgraphSelection()
+assert.deepEqual([...state.subgraphNodeIds], ['node:a'])
 
 console.log('viewer subgraph selection tests passed')

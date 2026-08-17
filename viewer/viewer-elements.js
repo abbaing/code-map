@@ -65,6 +65,8 @@ const elementNames = [
   'selectionContextSaveBtn',
   'selectionContextDiscardBtn',
   'selectionContextExportBtn',
+  'selectionContextSelectAllBtn',
+  'selectionContextInvertBtn',
   'selectionContextRemoveBtn',
   'selectionContextClearBtn',
   'popover',

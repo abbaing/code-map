@@ -28,7 +28,9 @@ import { closeSubmapPreview, loadSubmaps, openSubmap, previewSubmap, renderSubma
 import {
   clearSubgraphSelection,
   discardSubmapChanges,
+  invertVisibleSubgraphSelection,
   replaceSubgraphSelection,
+  selectVisibleSubgraphNodes,
   toggleSubgraphNode
 } from '#viewer/viewer-subgraph-selection.js'
 import { debounce } from '#viewer/viewer-utils.js'
@@ -103,6 +105,7 @@ function viewerOperations() {
     exportSubgraphSelection,
     importGraph,
     importProjectMap,
+    invertVisibleSubgraphSelection,
     loadGraph,
     loadSubmaps,
     openSubmap,
@@ -116,6 +119,7 @@ function viewerOperations() {
     resetZoom,
     saveConfig,
     saveSubmapRevision,
+    selectVisibleSubgraphNodes,
     selectNode,
     setZoom,
     showToast,

@@ -12,6 +12,8 @@ const elements = {
   selectionContextSaveBtn: createElement(),
   selectionContextDiscardBtn: createElement(),
   selectionContextExportBtn: createElement(),
+  selectionContextSelectAllBtn: createElement(),
+  selectionContextInvertBtn: createElement(),
   selectionContextRemoveBtn: createElement(),
   selectionContextClearBtn: createElement()
 }
@@ -28,6 +30,12 @@ const operations = {
   },
   exportSubgraphSelection() {
     calls.push(['export'])
+  },
+  selectVisibleSubgraphNodes() {
+    calls.push(['select-all'])
+  },
+  invertVisibleSubgraphSelection() {
+    calls.push(['invert'])
   },
   toggleSubgraphNode(id) {
     calls.push(['remove', id])
@@ -66,6 +74,10 @@ await canvasWrap.dispatch('contextmenu', {
 assert.equal(elements.selectionContextRemoveBtn.classList.contains('hidden'), true)
 await elements.selectionContextExportBtn.dispatch('click', {})
 assert.deepEqual(calls.pop(), ['export'])
+await elements.selectionContextSelectAllBtn.dispatch('click', {})
+assert.deepEqual(calls.pop(), ['select-all'])
+await elements.selectionContextInvertBtn.dispatch('click', {})
+assert.deepEqual(calls.pop(), ['invert'])
 
 state.activeSubmap = { nodeIds: new Set(['node:a']) }
 await canvasWrap.dispatch('contextmenu', {

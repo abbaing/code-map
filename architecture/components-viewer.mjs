@@ -102,6 +102,7 @@ export const viewerComponents = [
       'viewer/viewer-interaction-navigation.mjs',
       'viewer/viewer-interaction-pointer.mjs',
       'viewer/viewer-interaction-selection.mjs',
+      'viewer/viewer-interaction-shortcuts.mjs',
       'viewer/viewer-interaction-submaps.mjs',
       'viewer/viewer-interactions.mjs',
       'viewer/viewer-module-stats.js',
