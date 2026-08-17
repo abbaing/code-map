@@ -9,6 +9,8 @@ const elements = {
   canvasWrap,
   selectionContextMenu: menu,
   selectionContextCreateBtn: createElement(),
+  selectionContextSaveBtn: createElement(),
+  selectionContextDiscardBtn: createElement(),
   selectionContextExportBtn: createElement(),
   selectionContextRemoveBtn: createElement(),
   selectionContextClearBtn: createElement()
@@ -17,6 +19,12 @@ const calls = []
 const operations = {
   async createSelectionSubmap() {
     calls.push(['create'])
+  },
+  async saveSubmapRevision() {
+    calls.push(['save'])
+  },
+  discardSubmapChanges() {
+    calls.push(['discard'])
   },
   exportSubgraphSelection() {
     calls.push(['export'])
@@ -28,9 +36,10 @@ const operations = {
     calls.push(['clear'])
   }
 }
+const state = { subgraphNodeIds: new Set(['node:a', 'node:b']), activeSubmap: null }
 bindSelectionContextMenu({
   elements,
-  state: { subgraphNodeIds: new Set(['node:a', 'node:b']) },
+  state,
   operations
 })
 
@@ -57,6 +66,18 @@ await canvasWrap.dispatch('contextmenu', {
 assert.equal(elements.selectionContextRemoveBtn.classList.contains('hidden'), true)
 await elements.selectionContextExportBtn.dispatch('click', {})
 assert.deepEqual(calls.pop(), ['export'])
+
+state.activeSubmap = { nodeIds: new Set(['node:a']) }
+await canvasWrap.dispatch('contextmenu', {
+  target: eventTarget(),
+  clientX: 80,
+  clientY: 90,
+  preventDefault() {}
+})
+assert.equal(elements.selectionContextCreateBtn.classList.contains('hidden'), true)
+assert.equal(elements.selectionContextSaveBtn.disabled, false)
+await elements.selectionContextDiscardBtn.dispatch('click', {})
+assert.deepEqual(calls.pop(), ['discard'])
 
 await canvasWrap.dispatch('contextmenu', {
   target: eventTarget({ id: 'node:outside' }),

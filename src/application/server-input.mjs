@@ -95,6 +95,21 @@ export function validateSelectionInput(input) {
   assertNonEmptyStringArray(input.nodeIds, 'nodeIds')
 }
 
+export function validateRevisionInput(input) {
+  if (!isRecord(input)) {
+    throw new ApplicationInputError('Revision request must be a JSON object.')
+  }
+  const unknown = Object.keys(input).filter((key) => !['uid', 'nodeIds'].includes(key))
+  if (unknown.length > 0) {
+    throw new ApplicationInputError(`Unknown revision request properties: ${unknown.sort().join(', ')}.`)
+  }
+  validateSubmapUid(input.uid)
+  if (!Array.isArray(input.nodeIds) || input.nodeIds.length === 0) {
+    throw new ApplicationInputError('A non-empty node selection is required.')
+  }
+  assertNonEmptyStringArray(input.nodeIds, 'nodeIds')
+}
+
 export function validateSubmapUid(uid) {
   if (typeof uid !== 'string' || !/^sha256:[a-f0-9]{64}$/u.test(uid)) {
     throw new ApplicationInputError('Submap uid must be a SHA-256 identifier.')

@@ -53,6 +53,22 @@
   font-size: 12px;
 }
 
+.selection-bar input[readonly] {
+  background: var(--surface-subtle);
+  color: var(--muted);
+}
+
+.selection-state {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.selection-state.dirty {
+  color: var(--warning, #b45309);
+  font-weight: 600;
+}
+
 .selection-context-menu {
   top: 0;
   right: auto;

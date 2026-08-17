@@ -8,7 +8,8 @@ const gateway = Object.freeze({
   listSubmaps() {},
   loadSubmap() {},
   createSelectionSubmap() {},
-  createTraceSubmap() {}
+  createTraceSubmap() {},
+  reviseSubmap() {}
 })
 const documentRef = { addEventListener() {} }
 const browser = { setTimeout, clearTimeout }

@@ -20,6 +20,7 @@ const gateway = {
   listSubmaps() {},
   createTraceSubmap() {},
   createSelectionSubmap() {},
+  reviseSubmap() {},
   async loadSubmap(requestedUid) {
     assert.equal(requestedUid, uid)
     return { submap }
@@ -39,9 +40,13 @@ configureViewerData({
   )
 })
 const elements = {
-  selectionNameInput: { value: '' },
+  selectionNameInput: createElement(),
   selectionBar: createElement(),
-  selectionCount: { textContent: '' }
+  selectionCount: createElement(),
+  selectionState: createElement(),
+  selectionCreateBtn: createElement(),
+  selectionSaveBtn: createElement(),
+  selectionDiscardBtn: createElement()
 }
 configureViewerElements(elements)
 Object.assign(state, {

@@ -9,7 +9,8 @@ const applicationOperations = [
   'listSubmaps',
   'getSubmap',
   'createSelectionSubmap',
-  'createTraceSubmap'
+  'createTraceSubmap',
+  'reviseSubmap'
 ]
 const serviceOperations = Object.freeze({
   scanner: Object.freeze(['scan']),

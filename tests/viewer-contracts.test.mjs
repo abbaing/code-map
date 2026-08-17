@@ -47,6 +47,7 @@ await gateway.createTraceSubmap({ selectedId: 'users' })
 await gateway.listSubmaps()
 await gateway.loadSubmap('sha256:abc')
 await gateway.createSelectionSubmap({ name: 'checkout', nodeIds: ['users'] })
+await gateway.reviseSubmap({ uid: 'sha256:abc', nodeIds: ['users'] })
 assert.deepEqual(
   requests.map(({ resource }) => resource),
   [
@@ -56,7 +57,8 @@ assert.deepEqual(
     '/api/submaps/from-trace',
     '/api/submaps',
     '/api/submaps/sha256%3Aabc',
-    '/api/submaps/from-selection'
+    '/api/submaps/from-selection',
+    '/api/submaps/revisions'
   ]
 )
 assert.equal(requests[2].options.method, 'POST')

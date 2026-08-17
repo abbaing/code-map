@@ -6,6 +6,7 @@ const PROJECT_MAP_RESOURCE = '/api/project-map'
 const TRACE_SUBMAP_RESOURCE = '/api/submaps/from-trace'
 const SUBMAPS_RESOURCE = '/api/submaps'
 const SELECTION_SUBMAP_RESOURCE = '/api/submaps/from-selection'
+const SUBMAP_REVISION_RESOURCE = '/api/submaps/revisions'
 
 export function createGraphGateway({ request = globalThis.fetch } = {}) {
   if (typeof request !== 'function') {
@@ -41,6 +42,9 @@ export function createGraphGateway({ request = globalThis.fetch } = {}) {
     },
     createTraceSubmap(request) {
       return send(TRACE_SUBMAP_RESOURCE, jsonRequest('POST', request))
+    },
+    reviseSubmap(request) {
+      return send(SUBMAP_REVISION_RESOURCE, jsonRequest('POST', request))
     }
   })
 }
@@ -53,7 +57,8 @@ export function assertGraphGateway(gateway) {
     'listSubmaps',
     'loadSubmap',
     'createSelectionSubmap',
-    'createTraceSubmap'
+    'createTraceSubmap',
+    'reviseSubmap'
   ])
   return gateway
 }

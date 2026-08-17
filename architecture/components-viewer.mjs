@@ -89,6 +89,7 @@ export const viewerComponents = [
       'viewer/view-controller.mjs',
       'viewer/viewer-actions.js',
       'viewer/viewer-actions-graph.js',
+      'viewer/viewer-actions-submaps.js',
       'viewer/viewer-actions-settings.js',
       'viewer/viewer-feedback.js',
       'viewer/viewer-findings.js',
@@ -111,6 +112,7 @@ export const viewerComponents = [
       'viewer/viewer-selection-summary.js',
       'viewer/viewer-selection.js',
       'viewer/viewer-subgraph-selection.js',
+      'viewer/viewer-submap-edit-state.js',
       'viewer/viewer-settings-renderer.js',
       'viewer/viewer-submaps.js',
       'viewer/viewer-viewport.js'

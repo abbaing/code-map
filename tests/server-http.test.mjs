@@ -47,7 +47,8 @@ const application = Object.freeze({
       throw traceError
     }
     return { file: `${input.id}.submap.json`, uid: 'trace-uid', statistics: { nodes: input.nodeIds.length } }
-  }
+  },
+  reviseSubmap: (input) => ({ file: 'focused-r2.submap.json', uid: input.uid, revision: 2, statistics: {} })
 })
 
 const sessionToken = 'controlled-session-token'

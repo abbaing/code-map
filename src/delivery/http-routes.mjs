@@ -75,6 +75,12 @@ function createSubmapRoutes(application, responder) {
       method: 'POST',
       matches: (pathname) => pathname === '/api/submaps/from-selection',
       handle: ({ request, response }) => handleSelectionSubmap(request, response, application, responder)
+    }),
+    defineRoute({
+      id: 'api.submap-revision',
+      method: 'POST',
+      matches: (pathname) => pathname === '/api/submaps/revisions',
+      handle: ({ request, response }) => handleSubmapRevision(request, response, application, responder)
     })
   ]
 }
@@ -107,6 +113,11 @@ async function handleTraceSubmap(request, response, application, responder) {
 
 async function handleSelectionSubmap(request, response, application, responder) {
   const result = application.createSelectionSubmap(await readJsonRequest(request))
+  responder.sendJson(response, 200, { ok: true, ...result })
+}
+
+async function handleSubmapRevision(request, response, application, responder) {
+  const result = application.reviseSubmap(await readJsonRequest(request))
   responder.sendJson(response, 200, { ok: true, ...result })
 }
 

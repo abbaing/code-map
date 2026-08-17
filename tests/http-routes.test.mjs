@@ -60,7 +60,8 @@ const application = Object.freeze({
   listSubmaps: () => [],
   getSubmap: () => ({}),
   createSelectionSubmap: () => ({}),
-  createTraceSubmap: () => ({})
+  createTraceSubmap: () => ({}),
+  reviseSubmap: () => ({})
 })
 const server = startServer({ port: 0, application, routeRegistry: delegatedRegistry, log: () => {} })
 await new Promise((resolve, reject) => {

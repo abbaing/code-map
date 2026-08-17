@@ -1,7 +1,6 @@
 import { applyFilters, initializeFilters, loadGraph, requireGraphGateway } from '#viewer/viewer-data.js'
 import { buttonBusy, buttonIdle, showToast } from '#viewer/viewer-feedback.js'
 import { els, state } from '#viewer/viewer-state.js'
-import { clearSubgraphSelection } from '#viewer/viewer-subgraph-selection.js'
 
 export async function refreshGraph() {
   buttonBusy(els.refreshBtn)
@@ -63,58 +62,6 @@ export function selectedGraph(graph, selectedNodeIds) {
   })
 }
 
-export async function createTraceSubmap() {
-  els.actionsMenu.classList.add('hidden')
-  const trace = state.trace
-  if (!trace?.nodeIds?.size) {
-    showToast('Select a component or table first', 'error')
-    return
-  }
-  els.createTraceSubmapBtn.disabled = true
-  try {
-    const selected = state.graph.nodes.find((node) => node.id === trace.selectedId)
-    const base = traceBaseName(selected)
-    const result = await requireGraphGateway().createTraceSubmap({
-      id: `trace-${base || 'selection'}`,
-      nodeIds: [...trace.nodeIds],
-      edgeIds: [...trace.edgeIds],
-      selectedNodeId: trace.selectedId,
-      complete: trace.complete
-    })
-    if (!result.ok) {
-      throw new Error(result.error)
-    }
-    showToast(`Submap created: ${result.file}`)
-  } catch (error) {
-    showToast(`Submap failed: ${error.message}`, 'error')
-  } finally {
-    els.createTraceSubmapBtn.disabled = false
-  }
-}
-
-export async function createSelectionSubmap() {
-  closeSelectionContextMenu()
-  const name = els.selectionNameInput.value.trim()
-  if (!name || !state.subgraphNodeIds.size) {
-    showToast('Enter a name and select at least one node', 'error')
-    return
-  }
-  els.selectionCreateBtn.disabled = true
-  try {
-    const result = await requireGraphGateway().createSelectionSubmap({
-      name,
-      nodeIds: [...state.subgraphNodeIds]
-    })
-    showToast(`Submap created: ${result.file}`)
-    els.selectionNameInput.value = ''
-    clearSubgraphSelection()
-  } catch (error) {
-    showToast(`Submap failed: ${error.message}`, 'error')
-  } finally {
-    els.selectionCreateBtn.disabled = false
-  }
-}
-
 function closeSelectionContextMenu() {
   els.selectionContextMenu?.classList.add('hidden')
 }
@@ -155,14 +102,6 @@ function resetImport(error) {
   }
   els.importLabel.classList.remove('disabled')
   els.importFile.value = ''
-}
-
-function traceBaseName(selected) {
-  return (selected?.label ?? 'trace')
-    .replace(/\.[^.]+$/, '')
-    .replace(/[^a-z0-9]+/gi, '-')
-    .replace(/^-|-$/g, '')
-    .toLowerCase()
 }
 
 function downloadJson(value, filename) {

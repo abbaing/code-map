@@ -3,12 +3,17 @@
             <div id="selectionBox" class="selection-box hidden" aria-hidden="true"></div>
             <div id="selectionBar" class="selection-bar hidden" role="region" aria-label="Submap selection">
               <strong id="selectionCount">0 nodes selected</strong>
+              <span id="selectionState" class="selection-state"></span>
               <input id="selectionNameInput" type="text" maxlength="100" placeholder="Submap name" />
               <button id="selectionCreateBtn" class="btn btn-primary">Create submap</button>
+              <button id="selectionSaveBtn" class="btn btn-primary hidden">Save revision</button>
+              <button id="selectionDiscardBtn" class="btn hidden">Discard</button>
               <button id="selectionClearBtn" class="btn">Clear</button>
             </div>
             <div id="selectionContextMenu" class="action-menu selection-context-menu hidden" role="menu">
               <button id="selectionContextCreateBtn" role="menuitem">Create named submap</button>
+              <button id="selectionContextSaveBtn" class="hidden" role="menuitem">Save revision</button>
+              <button id="selectionContextDiscardBtn" class="hidden" role="menuitem">Discard changes</button>
               <button id="selectionContextExportBtn" role="menuitem">Export selected graph</button>
               <button id="selectionContextRemoveBtn" role="menuitem">Remove this node</button>
               <div class="action-menu-separator"></div>

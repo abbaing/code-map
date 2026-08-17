@@ -63,7 +63,8 @@ try {
     'listSubmaps',
     'getSubmap',
     'createSelectionSubmap',
-    'createTraceSubmap'
+    'createTraceSubmap',
+    'reviseSubmap'
   ])
   const graphPath = path.join(tempRoot, '.code-map', 'graph.json')
   assert.equal(application.graphPath(), graphPath)
@@ -81,6 +82,9 @@ try {
   assert.equal(application.getSubmap(selection.uid).uid, selection.uid)
   assert.throws(() => application.getSubmap('invalid'), ApplicationInputError)
   assert.throws(() => application.getSubmap(`sha256:${'0'.repeat(64)}`), ApplicationNotFoundError)
+  const revisionResult = application.reviseSubmap({ uid: selection.uid, nodeIds: [selectedNodeId] })
+  const revision = JSON.parse(fs.readFileSync(path.join(tempRoot, revisionResult.file), 'utf8'))
+  assert.deepEqual([revision.revision, revision.parentUid], [2, selection.uid])
   const traceResult = application.createTraceSubmap({
     id: 'direct-trace',
     nodeIds: [selectedNodeId, selectedNodeId],
@@ -107,7 +111,7 @@ try {
   const listedSubmaps = application.listSubmaps()
   assert.deepEqual(
     listedSubmaps.map(({ name }) => name),
-    ['direct-trace', 'Payment flow']
+    ['direct-trace', 'Payment flow', 'Payment flow']
   )
 
   for (const [input, message] of [

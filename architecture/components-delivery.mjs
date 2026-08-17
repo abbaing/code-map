@@ -28,7 +28,8 @@ export const deliveryComponents = [
     files: [
       'src/application/server-app.mjs',
       'src/application/server-contracts.mjs',
-      'src/application/server-input.mjs'
+      'src/application/server-input.mjs',
+      'src/application/server-submaps.mjs'
     ],
     contracts: ['ServerApplication'],
     compositionRoot: false,

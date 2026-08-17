@@ -21,6 +21,8 @@ function bindGraphActions({ elements, state, operations }) {
   elements.exportBtn.addEventListener('click', operations.exportGraph)
   elements.createTraceSubmapBtn.addEventListener('click', operations.createTraceSubmap)
   elements.selectionCreateBtn.addEventListener('click', operations.createSelectionSubmap)
+  elements.selectionSaveBtn.addEventListener('click', operations.saveSubmapRevision)
+  elements.selectionDiscardBtn.addEventListener('click', operations.discardSubmapChanges)
   elements.selectionClearBtn.addEventListener('click', operations.clearSubgraphSelection)
   elements.submapSearch.addEventListener('input', operations.renderSubmaps)
   elements.zoomInBtn.addEventListener('click', () => operations.setZoom(state.zoom + 0.15))

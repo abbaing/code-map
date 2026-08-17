@@ -1,3 +1,5 @@
+import { isSubmapSelectionDirty } from '#viewer/viewer-submap-edit-state.js'
+
 export function bindSelectionContextMenu(context) {
   const { canvasWrap, selectionContextMenu: menu } = context.elements
   let contextNodeId = null
@@ -9,6 +11,7 @@ export function bindSelectionContextMenu(context) {
     event.preventDefault()
     contextNodeId = nodeId
     positionMenu(menu, canvasWrap, event.clientX, event.clientY)
+    updateRevisionActions(context)
     context.elements.selectionContextRemoveBtn.classList.toggle('hidden', !nodeId)
     menu.classList.remove('hidden')
   })
@@ -20,6 +23,14 @@ function bindMenuActions(context, menu, contextNodeId) {
   context.elements.selectionContextCreateBtn.addEventListener('click', () => {
     close()
     void context.operations.createSelectionSubmap()
+  })
+  context.elements.selectionContextSaveBtn.addEventListener('click', () => {
+    close()
+    void context.operations.saveSubmapRevision()
+  })
+  context.elements.selectionContextDiscardBtn.addEventListener('click', () => {
+    close()
+    context.operations.discardSubmapChanges()
   })
   context.elements.selectionContextExportBtn.addEventListener('click', () => {
     close()
@@ -36,6 +47,17 @@ function bindMenuActions(context, menu, contextNodeId) {
     context.operations.clearSubgraphSelection()
     close()
   })
+}
+
+function updateRevisionActions({ elements, state }) {
+  const active = Boolean(state.activeSubmap)
+  const selected = state.subgraphNodeIds
+  const dirty = isSubmapSelectionDirty(state.activeSubmap, selected)
+  elements.selectionContextCreateBtn.classList.toggle('hidden', active)
+  elements.selectionContextSaveBtn.classList.toggle('hidden', !active)
+  elements.selectionContextDiscardBtn.classList.toggle('hidden', !active)
+  elements.selectionContextSaveBtn.disabled = !dirty || selected.size === 0
+  elements.selectionContextDiscardBtn.disabled = !dirty
 }
 
 function canOpen(selectedNodeIds, contextNodeId) {

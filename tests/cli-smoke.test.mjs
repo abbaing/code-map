@@ -127,7 +127,8 @@ const localServer = startServer({
     listSubmaps: () => [],
     getSubmap: () => ({}),
     createSelectionSubmap: () => ({ file: '', uid: '', statistics: {} }),
-    createTraceSubmap: () => ({ file: '', uid: '', statistics: {} })
+    createTraceSubmap: () => ({ file: '', uid: '', statistics: {} }),
+    reviseSubmap: () => ({ file: '', uid: '', revision: 2, statistics: {} })
   },
   log: (message) => localServerMessages.push(message)
 })

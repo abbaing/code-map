@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { createSelectionSubmap } from '#viewer/viewer-actions.js'
+import { createSelectionSubmap, saveSubmapRevision } from '#viewer/viewer-actions.js'
 import { selectedGraph } from '#viewer/viewer-actions-graph.js'
 import { configureViewerData } from '#viewer/viewer-data.js'
 import { configureViewerElements, state } from '#viewer/viewer-state.js'
@@ -13,6 +13,10 @@ const gateway = {
   listSubmaps() {},
   loadSubmap() {},
   createTraceSubmap() {},
+  async reviseSubmap(request) {
+    requests.push(request)
+    return { file: 'checkout-flow-r2.submap.json', uid: 'sha256:revision', revision: 2 }
+  },
   async createSelectionSubmap(request) {
     requests.push(request)
     return { ok: true, file: 'checkout-flow.submap.json' }
@@ -35,8 +39,11 @@ const selectionBar = createElement()
 const toast = createElement()
 Object.assign(toast, { textContent: '' })
 const elements = {
-  selectionNameInput: { value: 'Checkout flow' },
-  selectionCreateBtn: { disabled: false },
+  selectionNameInput: Object.assign(createElement(), { value: 'Checkout flow' }),
+  selectionCreateBtn: createElement(),
+  selectionSaveBtn: createElement(),
+  selectionDiscardBtn: createElement(),
+  selectionState: createElement(),
   selectionBar,
   selectionCount: { textContent: '' },
   toast
@@ -52,6 +59,21 @@ assert.equal(state.subgraphNodeIds.size, 0)
 assert.equal(elements.selectionNameInput.value, '')
 assert.equal(elements.selectionCreateBtn.disabled, false)
 assert.match(toast.textContent, /checkout-flow\.submap\.json/u)
+
+state.activeSubmap = {
+  uid: 'sha256:original',
+  revision: 1,
+  nodeIds: new Set(['page:checkout']),
+  name: 'Checkout flow'
+}
+state.subgraphNodeIds = new Set(['page:checkout', 'api:checkout'])
+await saveSubmapRevision()
+assert.deepEqual(requests.at(-1), {
+  uid: 'sha256:original',
+  nodeIds: ['page:checkout', 'api:checkout']
+})
+assert.deepEqual([state.activeSubmap.uid, state.activeSubmap.revision], ['sha256:revision', 2])
+assert.match(toast.textContent, /revision 2 saved/u)
 
 const projected = selectedGraph(
   {

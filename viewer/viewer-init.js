@@ -11,6 +11,7 @@ import {
   refreshGraph,
   resetZoom,
   saveConfig,
+  saveSubmapRevision,
   setZoom,
   showToast,
   zoomAt
@@ -26,6 +27,7 @@ import { configureViewerElements, els, state } from '#viewer/viewer-state.js'
 import { loadSubmaps, openSubmap, renderSubmaps } from '#viewer/viewer-submaps.js'
 import {
   clearSubgraphSelection,
+  discardSubmapChanges,
   replaceSubgraphSelection,
   toggleSubgraphNode
 } from '#viewer/viewer-subgraph-selection.js'
@@ -90,6 +92,7 @@ function viewerOperations() {
     applyPan,
     clearSelectedNode,
     clearSubgraphSelection,
+    discardSubmapChanges,
     createSelectionSubmap,
     createTraceSubmap,
     debounce,
@@ -110,6 +113,7 @@ function viewerOperations() {
     replaceSubgraphSelection,
     resetZoom,
     saveConfig,
+    saveSubmapRevision,
     selectNode,
     setZoom,
     showToast,

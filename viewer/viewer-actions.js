@@ -1,11 +1,5 @@
-export {
-  createSelectionSubmap,
-  createTraceSubmap,
-  exportGraph,
-  exportSubgraphSelection,
-  importGraph,
-  refreshGraph
-} from '#viewer/viewer-actions-graph.js'
+export { exportGraph, exportSubgraphSelection, importGraph, refreshGraph } from '#viewer/viewer-actions-graph.js'
+export { createSelectionSubmap, createTraceSubmap, saveSubmapRevision } from '#viewer/viewer-actions-submaps.js'
 export { showToast } from '#viewer/viewer-feedback.js'
 export { exportProjectMap, importProjectMap, saveConfig } from '#viewer/viewer-actions-settings.js'
 export { populateSettingsTab } from '#viewer/viewer-settings-renderer.js'
