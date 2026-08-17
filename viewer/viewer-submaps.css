@@ -16,7 +16,7 @@
 .submap-table-head,
 .submap-row {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) 140px 72px 72px 80px 170px;
+  grid-template-columns: minmax(220px, 1fr) 140px 72px 72px 130px 170px;
   align-items: center;
   gap: 12px;
   padding: 9px 16px;

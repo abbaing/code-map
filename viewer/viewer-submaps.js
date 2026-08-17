@@ -2,6 +2,8 @@ import { requireGraphGateway } from '#viewer/viewer-data.js'
 import { showToast } from '#viewer/viewer-feedback.js'
 import { els, state } from '#viewer/viewer-state.js'
 import { replaceSubgraphSelection } from '#viewer/viewer-subgraph-selection.js'
+import { renderSubmapPreview } from '#viewer/viewer-submap-preview.js'
+import { latestSubmapRevisions } from '#viewer/viewer-submap-revisions.js'
 import { escapeHtml } from '#viewer/viewer-utils.js'
 
 let previewGeneration = 0
@@ -20,7 +22,7 @@ export async function loadSubmaps() {
 
 export function renderSubmaps() {
   const query = els.submapSearch.value.trim().toLowerCase()
-  const visible = state.submaps.filter((submap) => submap.name.toLowerCase().includes(query))
+  const visible = latestSubmapRevisions(state.submaps).filter((submap) => submap.name.toLowerCase().includes(query))
   els.submapList.innerHTML = visible.length
     ? visible.map(submapRowHtml).join('')
     : '<div class="submap-empty">No named submaps match this search.</div>'
@@ -55,11 +57,12 @@ export async function previewSubmap(uid) {
   els.submapPreviewBody.innerHTML = ''
   try {
     const { submap } = await requireGraphGateway().loadSubmap(uid)
+    const parent = await loadParentRevision(submap)
     if (generation !== previewGeneration) {
       return false
     }
     state.previewSubmap = submap
-    renderSubmapPreview(submap)
+    renderSubmapPreview(els, submap, parent, state.submaps)
     return true
   } catch (error) {
     if (generation !== previewGeneration) {
@@ -77,30 +80,6 @@ export function closeSubmapPreview() {
   els.submapPreview.classList.add('hidden')
 }
 
-export function renderSubmapPreview(submap) {
-  const name = submap.metadata?.name ?? submap.id
-  els.submapPreviewTitle.textContent = name
-  els.submapPreviewMeta.textContent = `${submap.metadata?.kind ?? 'selection'} · revision ${submap.revision}`
-  els.submapPreviewBody.innerHTML = submapPreviewHtml(submap)
-  els.submapPreviewOpenBtn.dataset.submapUid = submap.uid
-}
-
-export function submapPreviewHtml(submap) {
-  const nodes = submap.nodes.slice(0, 20)
-  const remaining = submap.nodes.length - nodes.length
-  return `
-    <div class="submap-preview-stats">
-      ${previewStat(submap.nodes.length, 'Nodes')}
-      ${previewStat(submap.edges.length, 'Edges')}
-      ${previewStat(submap.boundaries?.length ?? 0, 'Boundaries')}
-    </div>
-    <div class="submap-preview-nodes">
-      ${nodes.map(previewNode).join('')}
-    </div>
-    ${remaining > 0 ? `<p class="submap-preview-more">${remaining} more nodes</p>` : ''}
-  `
-}
-
 export function submapRowHtml(submap) {
   const statistics = submap.statistics ?? {}
   return `
@@ -109,7 +88,7 @@ export function submapRowHtml(submap) {
       <span>${escapeHtml(submap.kind)}</span>
       <span>${escapeHtml(statistics.nodes ?? 0)}</span>
       <span>${escapeHtml(statistics.edges ?? 0)}</span>
-      <span>r${escapeHtml(submap.revision)}</span>
+      <span>r${escapeHtml(submap.revision)} · ${escapeHtml(revisionLabel(submap.revisionCount ?? 1))}</span>
       <time datetime="${escapeHtml(submap.createdAt)}">${escapeHtml(formatDate(submap.createdAt))}</time>
     </button>
   `
@@ -125,6 +104,10 @@ function formatDate(value) {
   return Number.isNaN(date.valueOf()) ? value : date.toLocaleString()
 }
 
+function revisionLabel(count) {
+  return `${count} ${count === 1 ? 'revision' : 'revisions'}`
+}
+
 async function loadSubmapDocument(uid) {
   if (state.previewSubmap?.uid === uid) {
     return state.previewSubmap
@@ -133,12 +116,10 @@ async function loadSubmapDocument(uid) {
   return submap
 }
 
-function previewStat(value, label) {
-  return `<span><strong>${escapeHtml(value)}</strong><small>${label}</small></span>`
-}
-
-function previewNode(node) {
-  return `<div class="submap-preview-node"><strong>${escapeHtml(node.label ?? node.id)}</strong><small>${escapeHtml(
-    node.type ?? node.layer ?? 'node'
-  )}</small></div>`
+async function loadParentRevision(submap) {
+  if (!submap.parentUid) {
+    return null
+  }
+  const { submap: parent } = await requireGraphGateway().loadSubmap(submap.parentUid)
+  return parent
 }

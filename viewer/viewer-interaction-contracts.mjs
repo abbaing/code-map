@@ -80,6 +80,7 @@ const interactiveElementNames = [
   'settingsSaveBtn',
   'submapList',
   'submapPreviewCloseBtn',
+  'submapPreviewBody',
   'submapPreviewOpenBtn',
   'submapSearch',
   'submapsPane',

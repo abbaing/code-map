@@ -12,4 +12,10 @@ export function bindSubmapNavigation({ elements, operations }, changeView) {
     }
   })
   elements.submapPreviewCloseBtn.addEventListener('click', operations.closeSubmapPreview)
+  elements.submapPreviewBody.addEventListener('click', (event) => {
+    const revision = event.target.closest('[data-submap-revision-uid]')
+    if (revision) {
+      void operations.previewSubmap(revision.dataset.submapRevisionUid)
+    }
+  })
 }

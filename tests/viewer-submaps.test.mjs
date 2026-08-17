@@ -3,6 +3,7 @@ import { configureViewerElements, state } from '#viewer/viewer-state.js'
 import { renderSubmaps, submapRowHtml } from '#viewer/viewer-submaps.js'
 
 const submap = {
+  id: 'payments',
   name: '<payments>',
   uid: 'sha256:payments',
   revision: 2,
@@ -13,11 +14,17 @@ const submap = {
 }
 const elements = { submapSearch: { value: '' }, submapList: { innerHTML: '' } }
 configureViewerElements(elements)
-state.submaps = [submap, { ...submap, name: 'orders', uid: 'sha256:orders', file: 'orders.submap.json' }]
+state.submaps = [
+  submap,
+  { ...submap, revision: 1, uid: 'sha256:payments-r1' },
+  { ...submap, id: 'orders', name: 'orders', uid: 'sha256:orders', file: 'orders.submap.json' }
+]
 
 renderSubmaps()
 assert.match(elements.submapList.innerHTML, /&lt;payments&gt;/u)
 assert.match(elements.submapList.innerHTML, />4<\/span>/u)
+assert.match(elements.submapList.innerHTML, /2 revisions/u)
+assert.doesNotMatch(elements.submapList.innerHTML, /payments-r1/u)
 assert.doesNotMatch(submapRowHtml(submap), /<payments>/u)
 
 elements.submapSearch.value = 'orders'

@@ -112,9 +112,11 @@ function getSubmap(uid, { state, paths, services, root }) {
 
 function submapSummary(submap, filePath) {
   return {
+    id: submap.id,
     name: submap.metadata?.name ?? submap.id,
     uid: submap.uid,
     revision: submap.revision,
+    parentUid: submap.parentUid,
     createdAt: submap.createdAt,
     projectName: submap.source?.projectName,
     statistics: submap.statistics,

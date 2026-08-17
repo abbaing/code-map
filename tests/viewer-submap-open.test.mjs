@@ -6,10 +6,12 @@ import { configureViewerElements, state } from '#viewer/viewer-state.js'
 import { closeSubmapPreview, currentNodeIds, openSubmap, previewSubmap } from '#viewer/viewer-submaps.js'
 
 const uid = `sha256:${'a'.repeat(64)}`
+const parentUid = `sha256:${'b'.repeat(64)}`
 const submap = {
   uid,
   id: 'checkout-flow',
   revision: 2,
+  parentUid,
   metadata: { name: 'Checkout flow' },
   nodes: [
     { id: 'page:checkout', label: 'Checkout <page>', type: 'page' },
@@ -18,6 +20,13 @@ const submap = {
   ],
   edges: [],
   boundaries: []
+}
+const parent = {
+  ...submap,
+  uid: parentUid,
+  revision: 1,
+  parentUid: undefined,
+  nodes: [submap.nodes[0], { id: 'legacy:checkout', label: 'Legacy checkout', type: 'page' }]
 }
 let loads = 0
 const gateway = {
@@ -30,8 +39,8 @@ const gateway = {
   reviseSubmap() {},
   async loadSubmap(requestedUid) {
     loads += 1
-    assert.equal(requestedUid, uid)
-    return { submap }
+    assert.equal([uid, parentUid].includes(requestedUid), true)
+    return { submap: requestedUid === uid ? submap : parent }
   }
 }
 configureViewerData({
@@ -70,7 +79,11 @@ Object.assign(state, {
   graph: { nodes: [{ id: 'page:checkout' }, { id: 'api:checkout' }] },
   subgraphNodeIds: new Set(),
   fitView: false,
-  activeSubmap: null
+  activeSubmap: null,
+  submaps: [
+    { id: submap.id, uid, revision: 2, createdAt: '2030-01-02T00:00:00.000Z' },
+    { id: submap.id, uid: parentUid, revision: 1, createdAt: '2030-01-01T00:00:00.000Z' }
+  ]
 })
 
 assert.equal(await openSubmap(uid), true)
@@ -84,6 +97,9 @@ assert.deepEqual(currentNodeIds(submap, state.graph), ['page:checkout', 'api:che
 assert.equal(await previewSubmap(uid), true)
 assert.equal(elements.submapPreviewTitle.textContent, 'Checkout flow')
 assert.match(elements.submapPreviewBody.innerHTML, /Checkout &lt;page&gt;/u)
+assert.match(elements.submapPreviewBody.innerHTML, /Changes from r1/u)
+assert.match(elements.submapPreviewBody.innerHTML, /\+2 nodes/u)
+assert.match(elements.submapPreviewBody.innerHTML, /−1 nodes/u)
 assert.equal(elements.submapPreviewOpenBtn.dataset.submapUid, uid)
 closeSubmapPreview()
 assert.equal(state.previewSubmap, null)
@@ -97,6 +113,7 @@ bindSubmapNavigation(
   {
     elements: {
       submapList,
+      submapPreviewBody: elements.submapPreviewBody,
       submapPreviewOpenBtn: elements.submapPreviewOpenBtn,
       submapPreviewCloseBtn: elements.submapPreviewCloseBtn
     },
@@ -113,8 +130,12 @@ await submapList.dispatch('click', {
 })
 assert.deepEqual(views, [])
 assert.deepEqual(previewed, [uid])
+await elements.submapPreviewBody.dispatch('click', {
+  target: { closest: () => ({ dataset: { submapRevisionUid: parentUid } }) }
+})
+assert.deepEqual(previewed, [uid, parentUid])
 await elements.submapPreviewOpenBtn.dispatch('click', {})
 assert.deepEqual(views, ['graph'])
-assert.equal(loads, 3, 'opening the previewed revision must reuse the loaded document')
+assert.equal(loads, 5, 'opening the previewed revision must reuse the loaded document')
 
 console.log('viewer submap opening tests passed')

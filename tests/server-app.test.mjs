@@ -109,10 +109,12 @@ try {
     traceEdgeIds: []
   })
   const listedSubmaps = application.listSubmaps()
+  const paymentRevisions = listedSubmaps.filter(({ name }) => name === 'Payment flow')
   assert.deepEqual(
-    listedSubmaps.map(({ name }) => name),
-    ['direct-trace', 'Payment flow', 'Payment flow']
+    paymentRevisions.map(({ revision }) => revision),
+    [2, 1]
   )
+  assert.equal(paymentRevisions[0].parentUid, selection.uid)
 
   for (const [input, message] of [
     [null, /Trace request must be a JSON object/u],
