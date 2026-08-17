@@ -114,6 +114,13 @@
     align-items: flex-start;
     flex-direction: column;
   }
+  .submap-preview {
+    position: absolute;
+    z-index: 20;
+    inset: 0;
+    width: 100%;
+    border-left: 0;
+  }
   .collection-actions {
     width: 100%;
   }

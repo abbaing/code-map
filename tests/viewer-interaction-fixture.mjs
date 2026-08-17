@@ -4,6 +4,7 @@ export function createElement({ bounds = { left: 0, top: 0, width: 0, height: 0 
   const capturedPointers = new Set()
   return {
     value: '',
+    dataset: {},
     style: {},
     listeners,
     releasedPointers: new Set(),

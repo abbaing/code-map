@@ -4,6 +4,8 @@ import { els, state } from '#viewer/viewer-state.js'
 import { replaceSubgraphSelection } from '#viewer/viewer-subgraph-selection.js'
 import { escapeHtml } from '#viewer/viewer-utils.js'
 
+let previewGeneration = 0
+
 export async function loadSubmaps() {
   els.submapList.innerHTML = '<div class="submap-empty">Loading submaps...</div>'
   try {
@@ -26,7 +28,7 @@ export function renderSubmaps() {
 
 export async function openSubmap(uid) {
   try {
-    const { submap } = await requireGraphGateway().loadSubmap(uid)
+    const submap = await loadSubmapDocument(uid)
     const nodeIds = currentNodeIds(submap, state.graph)
     state.activeSubmap = {
       uid: submap.uid,
@@ -45,10 +47,64 @@ export async function openSubmap(uid) {
   }
 }
 
+export async function previewSubmap(uid) {
+  const generation = ++previewGeneration
+  els.submapPreview.classList.remove('hidden')
+  els.submapPreviewTitle.textContent = 'Loading...'
+  els.submapPreviewMeta.textContent = ''
+  els.submapPreviewBody.innerHTML = ''
+  try {
+    const { submap } = await requireGraphGateway().loadSubmap(uid)
+    if (generation !== previewGeneration) {
+      return false
+    }
+    state.previewSubmap = submap
+    renderSubmapPreview(submap)
+    return true
+  } catch (error) {
+    if (generation !== previewGeneration) {
+      return false
+    }
+    closeSubmapPreview()
+    showToast(`Submap preview failed: ${error.message}`, 'error')
+    return false
+  }
+}
+
+export function closeSubmapPreview() {
+  previewGeneration += 1
+  state.previewSubmap = null
+  els.submapPreview.classList.add('hidden')
+}
+
+export function renderSubmapPreview(submap) {
+  const name = submap.metadata?.name ?? submap.id
+  els.submapPreviewTitle.textContent = name
+  els.submapPreviewMeta.textContent = `${submap.metadata?.kind ?? 'selection'} · revision ${submap.revision}`
+  els.submapPreviewBody.innerHTML = submapPreviewHtml(submap)
+  els.submapPreviewOpenBtn.dataset.submapUid = submap.uid
+}
+
+export function submapPreviewHtml(submap) {
+  const nodes = submap.nodes.slice(0, 20)
+  const remaining = submap.nodes.length - nodes.length
+  return `
+    <div class="submap-preview-stats">
+      ${previewStat(submap.nodes.length, 'Nodes')}
+      ${previewStat(submap.edges.length, 'Edges')}
+      ${previewStat(submap.boundaries?.length ?? 0, 'Boundaries')}
+    </div>
+    <div class="submap-preview-nodes">
+      ${nodes.map(previewNode).join('')}
+    </div>
+    ${remaining > 0 ? `<p class="submap-preview-more">${remaining} more nodes</p>` : ''}
+  `
+}
+
 export function submapRowHtml(submap) {
   const statistics = submap.statistics ?? {}
   return `
-    <button class="submap-row" data-submap-uid="${escapeHtml(submap.uid)}">
+    <button class="submap-row" data-submap-uid="${escapeHtml(submap.uid)}" aria-label="Preview ${escapeHtml(submap.name)}">
       <span class="submap-name"><strong>${escapeHtml(submap.name)}</strong><small>${escapeHtml(submap.file)}</small></span>
       <span>${escapeHtml(submap.kind)}</span>
       <span>${escapeHtml(statistics.nodes ?? 0)}</span>
@@ -67,4 +123,22 @@ export function currentNodeIds(submap, graph) {
 function formatDate(value) {
   const date = new Date(value)
   return Number.isNaN(date.valueOf()) ? value : date.toLocaleString()
+}
+
+async function loadSubmapDocument(uid) {
+  if (state.previewSubmap?.uid === uid) {
+    return state.previewSubmap
+  }
+  const { submap } = await requireGraphGateway().loadSubmap(uid)
+  return submap
+}
+
+function previewStat(value, label) {
+  return `<span><strong>${escapeHtml(value)}</strong><small>${label}</small></span>`
+}
+
+function previewNode(node) {
+  return `<div class="submap-preview-node"><strong>${escapeHtml(node.label ?? node.id)}</strong><small>${escapeHtml(
+    node.type ?? node.layer ?? 'node'
+  )}</small></div>`
 }

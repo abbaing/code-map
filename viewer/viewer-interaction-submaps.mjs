@@ -1,8 +1,15 @@
 export function bindSubmapNavigation({ elements, operations }, changeView) {
-  elements.submapList.addEventListener('click', async (event) => {
+  elements.submapList.addEventListener('click', (event) => {
     const row = event.target.closest('[data-submap-uid]')
-    if (row && (await operations.openSubmap(row.dataset.submapUid))) {
+    if (row) {
+      void operations.previewSubmap(row.dataset.submapUid)
+    }
+  })
+  elements.submapPreviewOpenBtn.addEventListener('click', async () => {
+    const uid = elements.submapPreviewOpenBtn.dataset.submapUid
+    if (uid && (await operations.openSubmap(uid))) {
       changeView('graph')
     }
   })
+  elements.submapPreviewCloseBtn.addEventListener('click', operations.closeSubmapPreview)
 }
