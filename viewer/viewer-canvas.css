@@ -14,67 +14,6 @@
   cursor: grabbing;
 }
 
-.selection-box {
-  position: absolute;
-  z-index: 7;
-  border: 1px solid #60a5fa;
-  background: rgba(59, 130, 246, 0.16);
-  pointer-events: none;
-}
-
-.selection-bar {
-  position: absolute;
-  top: 14px;
-  left: 50%;
-  z-index: 18;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
-  transform: translateX(-50%);
-}
-
-.selection-bar strong {
-  padding: 0 5px;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.selection-bar input {
-  width: 180px;
-  min-height: 30px;
-  padding: 5px 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 12px;
-}
-
-.selection-bar input[readonly] {
-  background: var(--surface-subtle);
-  color: var(--muted);
-}
-
-.selection-state {
-  color: var(--muted);
-  font-size: 11px;
-  white-space: nowrap;
-}
-
-.selection-state.dirty {
-  color: var(--warning, #b45309);
-  font-weight: 600;
-}
-
-.selection-context-menu {
-  top: 0;
-  right: auto;
-  width: 200px;
-}
-
 #graph {
   display: block;
   width: 100%;

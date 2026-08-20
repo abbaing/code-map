@@ -2,13 +2,26 @@
             <svg id="graph" role="img" aria-label="Code dependency graph"></svg>
             <div id="selectionBox" class="selection-box hidden" aria-hidden="true"></div>
             <div id="selectionBar" class="selection-bar hidden" role="region" aria-label="Submap selection">
-              <strong id="selectionCount">0 nodes selected</strong>
-              <span id="selectionState" class="selection-state"></span>
-              <input id="selectionNameInput" type="text" maxlength="100" placeholder="Submap name" />
-              <button id="selectionCreateBtn" class="btn btn-primary">Create submap</button>
-              <button id="selectionSaveBtn" class="btn btn-primary hidden">Save revision</button>
-              <button id="selectionDiscardBtn" class="btn hidden">Discard</button>
-              <button id="selectionClearBtn" class="btn">Clear</button>
+              <div class="selection-summary">
+                <span class="selection-indicator" aria-hidden="true">
+                  <svg viewBox="0 0 20 20"><path d="m5.5 10 3 3 6-6" /></svg>
+                </span>
+                <div>
+                  <span class="selection-label">Selection</span>
+                  <strong id="selectionCount">0 nodes selected</strong>
+                </div>
+                <span id="selectionState" class="selection-state"></span>
+              </div>
+              <div class="selection-actions">
+                <label class="selection-name">
+                  <span class="visually-hidden">Submap name</span>
+                  <input id="selectionNameInput" type="text" maxlength="100" placeholder="Name this submap" />
+                </label>
+                <button id="selectionCreateBtn" class="btn btn-primary">Create submap</button>
+                <button id="selectionSaveBtn" class="btn btn-primary hidden">Save revision</button>
+                <button id="selectionDiscardBtn" class="btn hidden">Discard</button>
+                <button id="selectionClearBtn" class="btn selection-clear" aria-label="Clear selection">Clear</button>
+              </div>
             </div>
             <div id="selectionContextMenu" class="action-menu selection-context-menu hidden" role="menu">
               <button id="selectionContextCreateBtn" role="menuitem">Create named submap</button>
