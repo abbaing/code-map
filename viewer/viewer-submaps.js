@@ -3,6 +3,7 @@ import { showToast } from '#viewer/viewer-feedback.js'
 import { els, state } from '#viewer/viewer-state.js'
 import { replaceSubgraphSelection, updateSelectionBar } from '#viewer/viewer-subgraph-selection.js'
 import { submapAvailability } from '#viewer/viewer-submap-availability.js'
+import { resetSubmapGraphContext } from '#viewer/viewer-submap-context.js'
 import { latestSubmapRevisions, revisionsForSubmap } from '#viewer/viewer-submap-revisions.js'
 import { escapeHtml } from '#viewer/viewer-utils.js'
 
@@ -36,6 +37,7 @@ export async function openSubmap(uid) {
     if (!nodeIds.length) {
       throw new Error('None of this Submap’s nodes exist in the current graph.')
     }
+    resetSubmapGraphContext()
     state.activeSubmap = {
       uid: submap.uid,
       id: submap.id,
@@ -45,7 +47,6 @@ export async function openSubmap(uid) {
     }
     els.selectionNameInput.value = state.activeSubmap.name
     replaceSubgraphSelection(nodeIds)
-    state.fitView = true
     if (availability.missingNodes.length) {
       showToast(`${availability.missingNodes.length} unavailable nodes were omitted`, 'error')
     }

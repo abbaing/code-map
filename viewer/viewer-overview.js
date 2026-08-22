@@ -132,9 +132,11 @@ function updateViewUI() {
     overview: ['Overview', 'Repository health and module inventory'],
     graph: [
       'Graph',
-      state.activeModule
-        ? `Exploring ${formatModule(state.activeModule)}`
-        : 'Dependencies between repository components'
+      state.activeSubmap
+        ? `Focused on ${state.activeSubmap.name}`
+        : state.activeModule
+          ? `Exploring ${formatModule(state.activeModule)}`
+          : 'Dependencies between repository components'
     ],
     domain: ['Domain model', 'Entities and their structural relationships'],
     findings: ['Findings', 'Architecture violations and maintainability risks'],

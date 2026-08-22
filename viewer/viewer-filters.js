@@ -39,6 +39,7 @@ export function isCoverable(node, projectMap = state.graph.projectMap) {
 function buildFilterPredicate() {
   const context = filterContext()
   const predicates = [
+    (node) => !context.submapIds || context.submapIds.has(node.id),
     (node) => !context.domainIds || context.domainIds.has(node.id),
     (node) => state.selectedTypes.has(node.type),
     (node) => !context.moduleIds || context.moduleIds.has(node.id),
@@ -58,6 +59,7 @@ function filterContext() {
   const overview = state.view === 'overview'
   return {
     orphanIds: new Set(state.graph.orphans.map((orphan) => orphan.id)),
+    submapIds: state.view === 'graph' || state.view === 'domain' ? (state.activeSubmap?.nodeIds ?? null) : null,
     healthActive: state.selectedHealth.size < 6,
     domainIds: state.view === 'domain' ? domainModelNodeIds() : null,
     moduleIds: module === 'all' ? null : moduleTraceNodeIds(state.graph, module),

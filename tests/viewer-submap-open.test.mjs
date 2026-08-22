@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { createElement } from '#tests/viewer-interaction-fixture.mjs'
 import { configureViewerData } from '#viewer/viewer-data.js'
+import { applyFilters } from '#viewer/viewer-filters.js'
 import { bindSubmapNavigation } from '#viewer/viewer-interaction-submaps.mjs'
 import { configureViewerElements, state } from '#viewer/viewer-state.js'
 import { currentNodeIds, deleteSubmap, openSubmap, submapRowHtml } from '#viewer/viewer-submaps.js'
@@ -60,14 +61,40 @@ const elements = {
   selectionDiscardBtn: createElement(),
   submapList: createElement(),
   submapSearch: createElement(),
+  graphSearch: createElement(),
+  typeChecks: createElement(),
+  healthChecks: createElement(),
+  graphFilterPanel: createElement(),
+  graphFilterBtn: createElement(),
+  orphansOnly: createElement(),
+  uncoveredOnly: createElement(),
+  reviewOnly: createElement(),
+  findingsOnly: createElement(),
+  hideAuxiliary: createElement(),
   toast: createElement()
 }
 configureViewerElements(elements)
 globalThis.window = { clearTimeout() {}, setTimeout() {} }
 Object.assign(state, {
   view: 'submaps',
-  graph: { nodes: [{ id: 'page:checkout' }, { id: 'api:checkout' }] },
-  subgraphNodeIds: new Set(),
+  graph: {
+    nodes: [
+      { id: 'page:checkout', type: 'page' },
+      { id: 'api:checkout', type: 'endpoint' },
+      { id: 'unrelated', type: 'service' }
+    ],
+    orphans: []
+  },
+  subgraphNodeIds: new Set(['unrelated']),
+  selectedId: 'unrelated',
+  trace: { nodeIds: new Set(['unrelated']) },
+  activeModule: 'legacy',
+  showAllTrace: true,
+  selectedTypes: new Set(['service']),
+  selectedHealth: new Set(['critical']),
+  zoom: 2,
+  panX: 400,
+  panY: -200,
   fitView: false,
   activeSubmap: null,
   submaps: [
@@ -83,6 +110,17 @@ assert.deepEqual([...state.activeSubmap.nodeIds], ['page:checkout', 'api:checkou
 assert.equal(state.activeSubmap.revision, 2)
 assert.equal(elements.selectionNameInput.value, 'Checkout flow')
 assert.equal(state.fitView, true)
+assert.equal(state.selectedId, null)
+assert.equal(state.trace, null)
+assert.equal(state.activeModule, null)
+assert.equal(state.showAllTrace, false)
+assert.deepEqual([state.zoom, state.panX, state.panY], [1, 0, 0])
+state.view = 'graph'
+applyFilters()
+assert.deepEqual(
+  state.filteredNodes.map(({ id }) => id),
+  ['page:checkout', 'api:checkout']
+)
 assert.match(elements.toast.textContent, /1 unavailable nodes were omitted/u)
 assert.deepEqual(currentNodeIds(submap, state.graph), ['page:checkout', 'api:checkout'])
 

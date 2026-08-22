@@ -8,7 +8,7 @@ import { applyTraceFocusLayout, buildModuleTraceContext, buildTraceContext } fro
 export function render() {
   const svg = els.graph
   const dimensions = viewDimensions(svg)
-  if (state.view === 'graph' && !state.activeModule && !state.selectedId) {
+  if (state.view === 'graph' && !state.activeSubmap && !state.activeModule && !state.selectedId) {
     renderSystemModuleGraph(svg, dimensions)
     return
   }
