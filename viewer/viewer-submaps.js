@@ -101,14 +101,22 @@ export function submapRowHtml(submap) {
     return invalidSubmapRowHtml(submap)
   }
   const statistics = submap.statistics ?? {}
+  const revisionCount = submap.revisionCount ?? 1
   return `
     <button class="submap-row" data-submap-uid="${escapeHtml(submap.uid)}" aria-label="Preview ${escapeHtml(submap.name)}">
-      <span class="submap-name"><strong>${escapeHtml(submap.name)}</strong><small>${escapeHtml(submap.file)}</small></span>
-      <span>${escapeHtml(submap.kind)}</span>
-      <span>${escapeHtml(statistics.nodes ?? 0)}</span>
-      <span>${escapeHtml(statistics.edges ?? 0)}</span>
-      <span>r${escapeHtml(submap.revision)} · ${escapeHtml(revisionLabel(submap.revisionCount ?? 1))}</span>
-      <time datetime="${escapeHtml(submap.createdAt)}">${escapeHtml(formatDate(submap.createdAt))}</time>
+      <span class="submap-name">
+        <strong>${escapeHtml(submap.name)}</strong>
+        <small class="submap-kind">${escapeHtml(kindLabel(submap.kind))}</small>
+      </span>
+      <span class="submap-scope"><strong>${escapeHtml(contentLabel(statistics.nodes ?? 0))}</strong></span>
+      <span class="submap-history">
+        <strong>${escapeHtml(revisionLabel(revisionCount))}</strong>
+        <small>Latest r${escapeHtml(submap.revision)}</small>
+      </span>
+      <time class="submap-updated" datetime="${escapeHtml(submap.createdAt)}">${escapeHtml(formatDate(submap.createdAt))}</time>
+      <span class="submap-row-arrow" aria-hidden="true">
+        <svg viewBox="0 0 20 20"><path d="m8 5 5 5-5 5" /></svg>
+      </span>
     </button>
   `
 }
@@ -119,11 +127,22 @@ export function currentNodeIds(submap, graph) {
 
 function formatDate(value) {
   const date = new Date(value)
-  return Number.isNaN(date.valueOf()) ? value : date.toLocaleString()
+  if (Number.isNaN(date.valueOf())) {
+    return value
+  }
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function revisionLabel(count) {
-  return `${count} ${count === 1 ? 'revision' : 'revisions'}`
+  return `${count} saved ${count === 1 ? 'version' : 'versions'}`
+}
+
+function contentLabel(count) {
+  return `${count} ${count === 1 ? 'component' : 'components'}`
+}
+
+function kindLabel(kind) {
+  return kind === 'trace' ? 'Saved trace' : 'Manual selection'
 }
 
 async function loadSubmapDocument(uid) {
@@ -150,7 +169,7 @@ function invalidSubmapRowHtml(submap) {
   return `
     <div class="submap-row invalid" role="status">
       <span class="submap-name"><strong>${escapeHtml(submap.name)}</strong><small>${escapeHtml(submap.file)}</small></span>
-      <span>invalid</span>
+      <span class="submap-kind">Unavailable</span>
       <span class="submap-row-issue">${escapeHtml(submap.issue?.message ?? 'Unable to read Submap')}</span>
     </div>
   `

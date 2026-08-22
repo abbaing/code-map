@@ -22,8 +22,11 @@ state.submaps = [
 
 renderSubmaps()
 assert.match(elements.submapList.innerHTML, /&lt;payments&gt;/u)
-assert.match(elements.submapList.innerHTML, />4<\/span>/u)
-assert.match(elements.submapList.innerHTML, /2 revisions/u)
+assert.match(elements.submapList.innerHTML, /4 components/u)
+assert.match(elements.submapList.innerHTML, /2 saved versions/u)
+assert.match(elements.submapList.innerHTML, /Manual selection/u)
+assert.doesNotMatch(elements.submapList.innerHTML, /3 relationships/u)
+assert.doesNotMatch(elements.submapList.innerHTML, /payments\.submap\.json/u)
 assert.doesNotMatch(elements.submapList.innerHTML, /payments-r1/u)
 assert.doesNotMatch(submapRowHtml(submap), /<payments>/u)
 const invalidRow = submapRowHtml({
