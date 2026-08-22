@@ -34,17 +34,23 @@
               <div class="action-menu-separator"></div>
               <button id="selectionContextClearBtn" role="menuitem">Clear selection</button>
             </div>
-            <aside class="interaction-help" aria-label="Graph interaction help">
-              <strong>Build a submap</strong>
-              <span><kbd>Drag</kbd> select an area</span>
-              <span><kbd>Ctrl/Cmd</kbd> + click to adjust</span>
-              <span><kbd>Shift</kbd> + drag to add</span>
-              <span><kbd>Ctrl/Cmd</kbd> + drag to toggle</span>
-              <span><kbd>Ctrl/Cmd</kbd> + <kbd>A</kbd> select visible</span>
-              <span><kbd>Ctrl/Cmd</kbd> + <kbd>Enter</kbd> create or save</span>
-              <span><kbd>Alt</kbd> + drag or middle-drag to pan</span>
-              <span><kbd>Right-click</kbd> selection actions</span>
-            </aside>
+            <details class="interaction-help">
+              <summary aria-label="Graph interaction help" title="Graph interaction help">?</summary>
+              <div class="interaction-help-panel">
+                <header>
+                  <strong>Graph shortcuts</strong>
+                  <small>Select, navigate and save focused submaps</small>
+                </header>
+                <span><kbd>Drag</kbd> Select an area</span>
+                <span><kbd>Ctrl/Cmd</kbd> + click Adjust selection</span>
+                <span><kbd>Shift</kbd> + drag Add to selection</span>
+                <span><kbd>Ctrl/Cmd</kbd> + drag Toggle selection</span>
+                <span><kbd>Ctrl/Cmd</kbd> + <kbd>A</kbd> Select visible</span>
+                <span><kbd>Ctrl/Cmd</kbd> + <kbd>Enter</kbd> Create or save</span>
+                <span><kbd>Alt</kbd> + drag Pan the graph</span>
+                <span><kbd>Right-click</kbd> Selection actions</span>
+              </div>
+            </details>
 
             <div class="graph-toolbar" aria-label="Graph controls">
               <button id="graphFilterBtn" class="graph-tool" aria-label="Graph filters" title="Filters">

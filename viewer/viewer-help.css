@@ -2,31 +2,87 @@
   position: absolute;
   right: 14px;
   bottom: 14px;
-  z-index: 6;
-  display: grid;
-  grid-template-columns: repeat(2, auto);
-  gap: 6px 14px;
-  max-width: 460px;
-  padding: 9px 11px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 6px;
-  background: rgba(15, 35, 42, 0.88);
+  z-index: 12;
   color: #cbd5db;
-  font-size: 11px;
-  pointer-events: none;
 }
 
-.interaction-help strong {
+.interaction-help summary {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  margin-left: auto;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  background: rgba(15, 35, 42, 0.88);
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  list-style: none;
+  place-items: center;
+  box-shadow: 0 3px 10px rgba(5, 23, 30, 0.2);
+}
+
+.interaction-help summary::-webkit-details-marker {
+  display: none;
+}
+
+.interaction-help summary:hover,
+.interaction-help summary:focus-visible,
+.interaction-help[open] summary {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(22, 50, 60, 0.98);
+  color: #fff;
+  outline: none;
+}
+
+.interaction-help summary:focus-visible {
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.35);
+}
+
+.interaction-help-panel {
+  position: absolute;
+  right: 0;
+  bottom: 40px;
+  display: grid;
+  width: min(390px, calc(100vw - 28px));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  padding: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 9px;
+  background: rgba(15, 35, 42, 0.96);
+  box-shadow: 0 12px 30px rgba(5, 23, 30, 0.28);
+  backdrop-filter: blur(10px);
+}
+
+.interaction-help-panel header {
   grid-column: 1 / -1;
+  margin-bottom: 2px;
+}
+
+.interaction-help-panel strong,
+.interaction-help-panel small {
+  display: block;
+}
+
+.interaction-help-panel strong {
   color: #f8fafc;
   font-size: 12px;
 }
 
-.interaction-help span {
+.interaction-help-panel small {
+  margin-top: 2px;
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.interaction-help-panel span {
+  font-size: 11px;
   white-space: nowrap;
 }
 
-.interaction-help kbd {
+.interaction-help-panel kbd {
   padding: 1px 4px;
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 3px;
@@ -39,13 +95,11 @@
 @media (max-width: 760px) {
   .interaction-help {
     right: 10px;
-    bottom: 54px;
-    left: 10px;
-    grid-template-columns: 1fr;
-    max-width: none;
+    bottom: 10px;
   }
 
-  .interaction-help strong {
-    grid-column: auto;
+  .interaction-help-panel {
+    grid-template-columns: 1fr;
+    gap: 7px;
   }
 }
