@@ -65,6 +65,12 @@ function createSubmapRoutes(application, responder) {
         responder.sendJson(response, 200, { submap: application.getSubmap(decodeSubmapUid(url.pathname)) })
     }),
     defineRoute({
+      id: 'api.delete-submap',
+      method: 'POST',
+      matches: (pathname) => pathname === '/api/submaps/delete',
+      handle: ({ request, response }) => handleDeleteSubmap(request, response, application, responder)
+    }),
+    defineRoute({
       id: 'api.trace-submap',
       method: 'POST',
       matches: (pathname) => pathname === '/api/submaps/from-trace',
@@ -119,6 +125,11 @@ async function handleSelectionSubmap(request, response, application, responder) 
 async function handleSubmapRevision(request, response, application, responder) {
   const result = application.reviseSubmap(await readJsonRequest(request))
   responder.sendJson(response, 200, { ok: true, ...result })
+}
+
+async function handleDeleteSubmap(request, response, application, responder) {
+  const input = await readJsonRequest(request)
+  responder.sendJson(response, 200, { ok: true, ...application.deleteSubmap(input?.uid) })
 }
 
 function publicError(error) {

@@ -8,6 +8,7 @@ const applicationOperations = [
   'saveProjectMap',
   'listSubmaps',
   'getSubmap',
+  'deleteSubmap',
   'createSelectionSubmap',
   'createTraceSubmap',
   'reviseSubmap'
@@ -15,7 +16,7 @@ const applicationOperations = [
 const serviceOperations = Object.freeze({
   scanner: Object.freeze(['scan']),
   projectMaps: Object.freeze(['validate', 'load', 'write', 'restore']),
-  submaps: Object.freeze(['create', 'filename', 'list', 'read', 'validate', 'write'])
+  submaps: Object.freeze(['create', 'filename', 'list', 'read', 'validate', 'write', 'remove'])
 })
 
 export function assertServerApplication(application) {

@@ -8,11 +8,11 @@ assert.deepEqual(combineRectangleSelection(new Set(['a']), ['b'], 'add'), ['a', 
 assert.deepEqual(combineRectangleSelection(new Set(['a', 'b']), ['b', 'c'], 'toggle'), ['a', 'c'])
 
 const document = createElement()
+let openSubmapMenus = []
 const elements = {
   selectionContextMenu: createElement(),
-  submapPreview: createElement()
+  submapList: { querySelectorAll: () => openSubmapMenus }
 }
-elements.submapPreview.classList.add('hidden')
 const calls = []
 const operation = (name) => () => calls.push(name)
 const state = {
@@ -29,7 +29,6 @@ bindViewerShortcuts({
     invertVisibleSubgraphSelection: operation('invert'),
     createSelectionSubmap: operation('create'),
     saveSubmapRevision: operation('save'),
-    closeSubmapPreview: operation('close-preview'),
     clearSubgraphSelection: operation('clear')
   }
 })
@@ -45,13 +44,14 @@ const editable = { closest: () => ({ tagName: 'INPUT' }) }
 await document.dispatch('keydown', shortcut('a', { target: editable }))
 assert.equal(calls.length, 4, 'text editing shortcuts must remain native')
 
+let menuClosed = false
+openSubmapMenus = [{ removeAttribute: () => (menuClosed = true) }]
+await document.dispatch('keydown', shortcut('Escape', { ctrlKey: false }))
+assert.equal(menuClosed, true)
+openSubmapMenus = []
 await document.dispatch('keydown', shortcut('Escape', { ctrlKey: false }))
 assert.equal(elements.selectionContextMenu.classList.contains('hidden'), true)
-elements.submapPreview.classList.remove('hidden')
-await document.dispatch('keydown', shortcut('Escape', { ctrlKey: false }))
-assert.equal(calls.at(-1), 'close-preview')
 state.activeSubmap = null
-elements.submapPreview.classList.add('hidden')
 await document.dispatch('keydown', shortcut('Escape', { ctrlKey: false }))
 assert.equal(calls.at(-1), 'clear')
 

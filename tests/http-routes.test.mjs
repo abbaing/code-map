@@ -59,6 +59,7 @@ const application = Object.freeze({
   saveProjectMap: () => ({}),
   listSubmaps: () => [],
   getSubmap: () => ({}),
+  deleteSubmap: () => ({}),
   createSelectionSubmap: () => ({}),
   createTraceSubmap: () => ({}),
   reviseSubmap: () => ({})

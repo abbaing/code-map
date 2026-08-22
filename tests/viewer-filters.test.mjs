@@ -67,7 +67,8 @@ configureViewerData({
     loadSubmap() {},
     createSelectionSubmap() {},
     createTraceSubmap() {},
-    reviseSubmap() {}
+    reviseSubmap() {},
+    deleteSubmap() {}
   },
   operations: {
     hidePopover: operation('hidePopover'),

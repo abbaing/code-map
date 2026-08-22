@@ -27,6 +27,7 @@ export const nodeServerApplicationServices = Object.freeze({
     list: nodeSubmapRepository.list,
     read: nodeSubmapRepository.read,
     validate: validateSubmap,
-    write: nodeSubmapRepository.write
+    write: nodeSubmapRepository.write,
+    remove: nodeSubmapRepository.remove
   })
 })

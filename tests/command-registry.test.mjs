@@ -48,7 +48,7 @@ const cliRegistry = createCommandRegistry(
       environment: { args: () => [], variable: () => undefined },
       fileSystem: { exists: () => false }
     },
-    repository: { read() {}, list: () => [], write() {} },
+    repository: { read() {}, list: () => [], write() {}, remove() {} },
     writer: { writeText() {} },
     detector: { detect() {}, summarize() {} },
     scanner: { scan() {} },

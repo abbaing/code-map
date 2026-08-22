@@ -50,7 +50,7 @@ try {
   assert.deepEqual(serverApplicationServicesContract, {
     scanner: ['scan'],
     projectMaps: ['validate', 'load', 'write', 'restore'],
-    submaps: ['create', 'filename', 'list', 'read', 'validate', 'write']
+    submaps: ['create', 'filename', 'list', 'read', 'validate', 'write', 'remove']
   })
   const application = createServerApplication({ projectContext, services: delegatedServices })
   assert.equal(Object.isFrozen(application), true)
@@ -62,6 +62,7 @@ try {
     'saveProjectMap',
     'listSubmaps',
     'getSubmap',
+    'deleteSubmap',
     'createSelectionSubmap',
     'createTraceSubmap',
     'reviseSubmap'
@@ -115,7 +116,6 @@ try {
     [2, 1]
   )
   assert.equal(paymentRevisions[0].parentUid, selection.uid)
-
   for (const [input, message] of [
     [null, /Trace request must be a JSON object/u],
     [{ id: 'trace', nodeIds: [selectedNodeId], extra: true }, /Unknown trace request properties: extra/u],

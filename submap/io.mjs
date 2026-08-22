@@ -56,8 +56,25 @@ export function listSubmapFiles(directory) {
     .sort()
 }
 
+export function removeSubmap(filePath) {
+  const resolved = path.resolve(filePath)
+  try {
+    fs.unlinkSync(resolved)
+    return resolved
+  } catch (error) {
+    const missing = error.code === 'ENOENT'
+    throw new SubmapError(
+      missing ? 'SUBMAP_FILE_NOT_FOUND' : 'SUBMAP_REMOVE_FAILED',
+      `Unable to remove submap: ${error.message}`,
+      { path: resolved },
+      missing ? 3 : 1
+    )
+  }
+}
+
 export const nodeSubmapRepository = Object.freeze({
   read: readSubmap,
   list: listSubmapFiles,
-  write: writeSubmap
+  write: writeSubmap,
+  remove: removeSubmap
 })

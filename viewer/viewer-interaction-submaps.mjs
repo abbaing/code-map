@@ -1,21 +1,41 @@
-export function bindSubmapNavigation({ elements, operations }, changeView) {
-  elements.submapList.addEventListener('click', (event) => {
-    const row = event.target.closest('[data-submap-uid]')
-    if (row) {
-      void operations.previewSubmap(row.dataset.submapUid)
+export function bindSubmapNavigation({ elements, operations, document }, changeView) {
+  elements.submapList.addEventListener('click', async (event) => {
+    const options = event.target.closest('.submap-options')
+    closeOtherMenus(elements.submapList, options)
+    const deleteButton = event.target.closest('[data-delete-submap-uid]')
+    if (deleteButton) {
+      deleteButton.disabled = true
+      try {
+        await operations.deleteSubmap(deleteButton.dataset.deleteSubmapUid)
+      } finally {
+        deleteButton.disabled = false
+        options?.removeAttribute('open')
+      }
+      return
     }
-  })
-  elements.submapPreviewOpenBtn.addEventListener('click', async () => {
-    const uid = elements.submapPreviewOpenBtn.dataset.submapUid
-    if (uid && (await operations.openSubmap(uid))) {
+    const versionButton = event.target.closest('[data-open-submap-uid]')
+    if (versionButton) {
+      if (await operations.openSubmap(versionButton.dataset.openSubmapUid)) {
+        changeView('graph')
+      }
+      return
+    }
+    const row = event.target.closest('[data-submap-uid]')
+    if (row && (await operations.openSubmap(row.dataset.submapUid))) {
       changeView('graph')
     }
   })
-  elements.submapPreviewCloseBtn.addEventListener('click', operations.closeSubmapPreview)
-  elements.submapPreviewBody.addEventListener('click', (event) => {
-    const revision = event.target.closest('[data-submap-revision-uid]')
-    if (revision) {
-      void operations.previewSubmap(revision.dataset.submapRevisionUid)
+  document?.addEventListener('click', (event) => {
+    if (!event.target.closest('.submap-options')) {
+      closeOtherMenus(elements.submapList)
     }
   })
+}
+
+function closeOtherMenus(list, exception) {
+  for (const menu of list.querySelectorAll?.('.submap-options[open]') ?? []) {
+    if (menu !== exception) {
+      menu.removeAttribute('open')
+    }
+  }
 }

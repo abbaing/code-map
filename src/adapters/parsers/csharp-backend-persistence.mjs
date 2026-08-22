@@ -65,40 +65,38 @@ export function entityProperties(tree) {
   return properties
 }
 
-export function entityUsage(root, entity, dbSet) {
-  let usage = null
+export function entityUsages(root, entities, dbSets) {
+  const entityNames = new Set(entities)
+  const entityByDbSet = new Map([...dbSets].map(([entity, dbSet]) => [dbSet, entity]))
+  const usages = new Map()
   walkCSharp(root, (node) => {
-    usage = usage?.confidence === 'high' ? usage : usageForNode(node, entity, dbSet, usage)
+    collectGenericUsages(node, entityNames, usages)
+    if (node.type === 'member_access_expression') {
+      for (const child of node.namedChildren) {
+        const entity = entityByDbSet.get(child.text)
+        if (entity) {
+          usages.set(entity, { reason: `DbSet ${child.text}`, confidence: 'high', persistence: true })
+        }
+      }
+    }
+    if (node.type === 'identifier' && entityNames.has(node.text) && !usages.has(node.text)) {
+      usages.set(node.text, { reason: `entity ${node.text}`, confidence: 'medium', persistence: false })
+    }
   })
-  return usage
+  return usages
 }
 
-function usageForNode(node, entity, dbSet, current) {
-  const generic = genericUsage(node, entity)
-  if (generic) {
-    return generic
-  }
-  if (dbSet && node.type === 'member_access_expression' && node.namedChildren.some((child) => child.text === dbSet)) {
-    return { reason: `DbSet ${dbSet}`, confidence: 'high', persistence: true }
-  }
-  return !current && node.type === 'identifier' && node.text === entity
-    ? { reason: `entity ${entity}`, confidence: 'medium', persistence: false }
-    : current
-}
-
-function genericUsage(node, entity) {
+function collectGenericUsages(node, entityNames, usages) {
   if (node.type !== 'generic_name') {
-    return null
+    return
   }
   const name = csharpSimpleTypeName(node)
   const argumentsList = csharpDescendants(node, 'type_argument_list').flatMap(csharpTypeIdentifiers)
-  if (!argumentsList.includes(entity)) {
-    return null
+  for (const entity of argumentsList.filter((candidate) => entityNames.has(candidate))) {
+    if (name === 'Set') {
+      usages.set(entity, { reason: `ORM Set<${entity}>`, confidence: 'high', persistence: true })
+    } else if (['IRepository', 'IReadRepository', 'Repository'].includes(name)) {
+      usages.set(entity, { reason: `repository ${entity}`, confidence: 'high', persistence: true })
+    }
   }
-  if (name === 'Set') {
-    return { reason: `ORM Set<${entity}>`, confidence: 'high', persistence: true }
-  }
-  return ['IRepository', 'IReadRepository', 'Repository'].includes(name)
-    ? { reason: `repository ${entity}`, confidence: 'high', persistence: true }
-    : null
 }

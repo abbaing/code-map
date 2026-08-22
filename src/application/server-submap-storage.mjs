@@ -30,6 +30,52 @@ export function getStoredSubmap(uid, { state, paths, services, root }) {
   throw new ApplicationNotFoundError('Submap not found.')
 }
 
+export function deleteStoredSubmap(uid, context) {
+  const target = getStoredSubmap(uid, context)
+  const { state, paths, services, root } = context
+  const directory = submapsDirectory(state.context, paths, root)
+  const targets = []
+  for (const filePath of services.submaps.list(directory)) {
+    let submap
+    try {
+      submap = readValidSubmap(filePath, services.submaps)
+    } catch (error) {
+      if (!recoverableStoredError(error)) {
+        throw error
+      }
+      continue
+    }
+    if (submap.id === target.id) {
+      targets.push({ filePath, submap })
+    }
+  }
+  removeStoredTargets(targets, services.submaps)
+  return { id: target.id, deleted: targets.length }
+}
+
+function removeStoredTargets(targets, submaps) {
+  const removed = []
+  try {
+    for (const target of targets) {
+      submaps.remove(target.filePath)
+      removed.push(target)
+    }
+  } catch (removeError) {
+    restoreStoredTargets(removed, submaps, removeError)
+  }
+}
+
+function restoreStoredTargets(targets, submaps, removeError) {
+  try {
+    for (const target of targets) {
+      submaps.write(target.filePath, target.submap)
+    }
+  } catch (restoreError) {
+    throw new AggregateError([removeError, restoreError], 'Submap deletion failed and could not be rolled back.')
+  }
+  throw removeError
+}
+
 export function submapsDirectory(context, paths, root) {
   return paths.projectPath(
     path.resolve(root, context.projectMap.project.submapsDirectory ?? '.code-map/submaps'),

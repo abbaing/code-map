@@ -21,6 +21,13 @@ try {
   })
   const validPath = path.join(directory, services.submaps.filename(submap))
   services.submaps.write(validPath, submap)
+  const revision = services.submaps.create(graph, {
+    id: submap.id,
+    revision: 2,
+    parentUid: submap.uid,
+    selectors: { nodeIds: [graph.nodes[0].id] }
+  })
+  services.submaps.write(path.join(directory, services.submaps.filename(revision)), revision)
   fs.writeFileSync(path.join(directory, 'broken.submap.json'), '{ invalid JSON', 'utf8')
 
   const operations = createServerSubmapOperations({
@@ -39,8 +46,45 @@ try {
     code: 'SUBMAP_INVALID_JSON',
     message: 'File does not contain valid JSON.'
   })
-  assert.equal(listed.find(({ status }) => status === 'valid').uid, submap.uid)
+  assert.equal(
+    listed.some(({ uid }) => uid === submap.uid),
+    true
+  )
   assert.equal(operations.getSubmap(submap.uid).uid, submap.uid)
+
+  let removalCount = 0
+  const rollbackOperations = createServerSubmapOperations({
+    state: {
+      context: { projectMap: { project: { submapsDirectory: 'submaps' } } }
+    },
+    paths: createProjectPathPolicy(root, nodePlatform.fileSystem),
+    services: {
+      ...services,
+      submaps: {
+        ...services.submaps,
+        remove(filePath) {
+          removalCount += 1
+          if (removalCount === 2) {
+            throw new Error('controlled removal failure')
+          }
+          return services.submaps.remove(filePath)
+        }
+      }
+    },
+    fileSystem: nodePlatform.fileSystem,
+    root
+  })
+  assert.throws(() => rollbackOperations.deleteSubmap(submap.uid), /controlled removal failure/u)
+  assert.equal(
+    operations.listSubmaps().filter(({ id }) => id === submap.id).length,
+    2,
+    'a failed history deletion must restore revisions already removed'
+  )
+  assert.deepEqual(operations.deleteSubmap(submap.uid), { id: submap.id, deleted: 2 })
+  assert.equal(
+    operations.listSubmaps().some(({ id }) => id === submap.id),
+    false
+  )
 } finally {
   fs.rmSync(root, { recursive: true, force: true })
 }

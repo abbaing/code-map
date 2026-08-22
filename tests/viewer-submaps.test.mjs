@@ -27,8 +27,10 @@ assert.match(elements.submapList.innerHTML, /2 saved versions/u)
 assert.match(elements.submapList.innerHTML, /Manual selection/u)
 assert.doesNotMatch(elements.submapList.innerHTML, /3 relationships/u)
 assert.doesNotMatch(elements.submapList.innerHTML, /payments\.submap\.json/u)
-assert.doesNotMatch(elements.submapList.innerHTML, /payments-r1/u)
+assert.equal((elements.submapList.innerHTML.match(/class="submap-row-wrap"/gu) ?? []).length, 2)
 assert.doesNotMatch(submapRowHtml(submap), /<payments>/u)
+assert.match(submapRowHtml({ ...submap, kind: 'execution-trace' }), /Saved trace/u)
+assert.match(submapRowHtml(submap, state.submaps.slice(0, 2)), /data-open-submap-uid="sha256:payments-r1"/u)
 const invalidRow = submapRowHtml({
   status: 'invalid',
   name: '<broken>',

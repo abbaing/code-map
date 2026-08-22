@@ -80,6 +80,8 @@ function exerciseRepositoryContract(name, repository, directory) {
   )
   assert.equal(repository.write(filePath, { ...submap, revision: 2 }, { force: true }), path.resolve(filePath))
   assert.equal(repository.read(filePath).revision, 2)
+  assert.equal(repository.remove(filePath), path.resolve(filePath))
+  assert.deepEqual(repository.list(directory), [])
 }
 
 function createMemoryRepository() {
@@ -104,6 +106,13 @@ function createMemoryRepository() {
         throw new SubmapError('SUBMAP_OUTPUT_EXISTS', 'Output file already exists.', { path: resolved }, 6)
       }
       documents.set(resolved, jsonClone(value))
+      return resolved
+    },
+    remove(filePath) {
+      const resolved = path.resolve(filePath)
+      if (!documents.delete(resolved)) {
+        throw new SubmapError('SUBMAP_FILE_NOT_FOUND', 'Unable to remove submap.', { path: resolved }, 3)
+      }
       return resolved
     }
   })

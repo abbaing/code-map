@@ -17,6 +17,7 @@ const gateway = {
     requests.push(request)
     return { file: 'checkout-flow-r2.submap.json', uid: 'sha256:revision', revision: 2 }
   },
+  async deleteSubmap() {},
   async createSelectionSubmap(request) {
     requests.push(request)
     return { ok: true, file: 'checkout-flow.submap.json' }

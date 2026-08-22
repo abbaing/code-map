@@ -6,6 +6,10 @@ export interface SubmapRepository {
   write(filePath: string, submap: Submap, options?: { force?: boolean }): string
 }
 
-export const nodeSubmapRepository: Readonly<SubmapRepository>
+export interface RemovableSubmapRepository {
+  remove(filePath: string): string
+}
+
+export const nodeSubmapRepository: Readonly<SubmapRepository & RemovableSubmapRepository>
 export const submapRepositoryContract: readonly ['read', 'list', 'write']
 export function assertSubmapRepository(repository: unknown): SubmapRepository

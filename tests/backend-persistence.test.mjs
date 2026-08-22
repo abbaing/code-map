@@ -34,6 +34,7 @@ public class AccountPersistenceMap : IEntityTypeConfiguration<Account>
   'back/Infrastructure/Repositories/AccountRepository.cs': `
 public class AccountRepository
 {
+    private readonly IRepository<Owner> _owners;
     public object Find(AppDbContext db) => db.Accounts.Where(account => account.Name != null);
 }
 `
@@ -66,13 +67,22 @@ for (const filePath of Object.keys(files)) {
   })
 }
 
-const sourceDocuments = createSourceDocumentStore({
+const documents = createSourceDocumentStore({
   parserRegistry: createParserRegistry([csharpBackendParser]),
   sourceReader
 })
+let entityUsageReads = 0
+const sourceDocuments = {
+  ...documents,
+  factsOf(file, factName, input) {
+    entityUsageReads += factName === 'entityUsages' ? 1 : 0
+    return documents.factsOf(file, factName, input)
+  }
+}
 const session = createBackScanSession(Object.keys(files), sourceDocuments)
 scanDatabase(graph, Object.keys(files), projectContext, session, sourceDocuments)
 assert.equal(sourceReads, Object.keys(files).length, 'backend syntax documents must be parsed once per scan session')
+assert.equal(entityUsageReads, 1, 'entity usage must traverse each classified source document once')
 
 const entityId = 'file:back/Domain/Entities/Accounts/Account.cs'
 const ownerId = 'file:back/Domain/Entities/Accounts/Owner.cs'
@@ -94,6 +104,7 @@ assert.equal(hasEdge(entityId, tableId, 'maps-to-table'), true)
 assert.equal(hasEdge(entityId, ownerId, 'domain-relation'), true)
 assert.equal(hasEdge('file:back/Infrastructure/Repositories/AccountRepository.cs', entityId, 'uses-entity'), true)
 assert.equal(hasEdge('file:back/Infrastructure/Repositories/AccountRepository.cs', tableId, 'queries-table'), true)
+assert.equal(hasEdge('file:back/Infrastructure/Repositories/AccountRepository.cs', ownerId, 'uses-entity'), true)
 
 console.log('backend persistence scanner tests passed')
 

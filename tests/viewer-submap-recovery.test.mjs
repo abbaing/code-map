@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
 import { submapAvailability } from '#viewer/viewer-submap-availability.js'
-import { submapPreviewHtml } from '#viewer/viewer-submap-preview.js'
 
 const submap = {
   id: 'checkout',
@@ -24,18 +23,8 @@ assert.deepEqual(
 )
 assert.equal(Object.isFrozen(availability), true)
 
-const html = submapPreviewHtml(
-  submap,
-  null,
-  [{ id: submap.id, uid: submap.uid, revision: 2 }],
-  availability,
-  'Parent revision is unavailable.'
-)
-assert.match(html, /1 unavailable nodes/u)
-assert.match(html, /will be omitted when opened/u)
-assert.match(html, /Parent revision is unavailable/u)
-
 const unavailable = submapAvailability(submap, { nodes: [] })
-assert.match(submapPreviewHtml(submap, null, [], unavailable), /leave nothing available to open/u)
+assert.equal(unavailable.availableNodes.length, 0)
+assert.equal(unavailable.missingNodes.length, 2)
 
 console.log('viewer submap recovery tests passed')

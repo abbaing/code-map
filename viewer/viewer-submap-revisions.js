@@ -9,15 +9,6 @@ export function revisionsForSubmap(submaps, id) {
   return submaps.filter((submap) => submap.id === id).sort(compareRevisions)
 }
 
-export function compareSubmapRevisions(current, parent) {
-  return Object.freeze({
-    addedNodes: difference(current.nodes, parent.nodes),
-    removedNodes: difference(parent.nodes, current.nodes),
-    addedEdges: difference(current.edges, parent.edges),
-    removedEdges: difference(parent.edges, current.edges)
-  })
-}
-
 function groupedRevisions(submaps) {
   const groups = new Map()
   for (const submap of submaps) {
@@ -30,9 +21,4 @@ function groupedRevisions(submaps) {
 
 function compareRevisions(left, right) {
   return right.revision - left.revision || String(right.createdAt ?? '').localeCompare(String(left.createdAt ?? ''))
-}
-
-function difference(candidates, excluded) {
-  const excludedIds = new Set(excluded.map(({ id }) => id))
-  return candidates.filter(({ id }) => !excludedIds.has(id))
 }

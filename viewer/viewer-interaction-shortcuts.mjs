@@ -58,10 +58,11 @@ function escapeShortcut({ event, context, key }) {
 }
 
 function closeOverlayOrSelection(event, { elements, state, operations }) {
-  if (!elements.selectionContextMenu.classList.contains('hidden')) {
+  const openSubmapMenu = elements.submapList.querySelectorAll?.('.submap-options[open]')?.[0]
+  if (openSubmapMenu) {
+    openSubmapMenu.removeAttribute('open')
+  } else if (!elements.selectionContextMenu.classList.contains('hidden')) {
     elements.selectionContextMenu.classList.add('hidden')
-  } else if (!elements.submapPreview.classList.contains('hidden')) {
-    operations.closeSubmapPreview()
   } else if (!state.activeSubmap && state.subgraphNodeIds.size) {
     operations.clearSubgraphSelection()
   } else {

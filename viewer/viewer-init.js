@@ -24,7 +24,7 @@ import { createViewerUiController } from '#viewer/viewer-interactions.mjs'
 import { drillIntoModule, renderModuleDetail, renderOverview, updateViewUI } from '#viewer/viewer-overview.js'
 import { clearSelectedNode, configureViewerSelection, hidePopover, selectNode } from '#viewer/viewer-selection.js'
 import { configureViewerElements, els, state } from '#viewer/viewer-state.js'
-import { closeSubmapPreview, loadSubmaps, openSubmap, previewSubmap, renderSubmaps } from '#viewer/viewer-submaps.js'
+import { deleteSubmap, loadSubmaps, openSubmap, renderSubmaps } from '#viewer/viewer-submaps.js'
 import {
   clearSubgraphSelection,
   discardSubmapChanges,
@@ -94,7 +94,7 @@ function viewerOperations() {
     applyPan,
     clearSelectedNode,
     clearSubgraphSelection,
-    closeSubmapPreview,
+    deleteSubmap,
     discardSubmapChanges,
     createSelectionSubmap,
     createTraceSubmap,
@@ -109,7 +109,6 @@ function viewerOperations() {
     loadGraph,
     loadSubmaps,
     openSubmap,
-    previewSubmap,
     populateSettingsTab,
     refreshGraph,
     render,

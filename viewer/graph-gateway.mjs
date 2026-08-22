@@ -5,6 +5,7 @@ const SCAN_RESOURCE = '/api/scan'
 const PROJECT_MAP_RESOURCE = '/api/project-map'
 const TRACE_SUBMAP_RESOURCE = '/api/submaps/from-trace'
 const SUBMAPS_RESOURCE = '/api/submaps'
+const DELETE_SUBMAP_RESOURCE = '/api/submaps/delete'
 const SELECTION_SUBMAP_RESOURCE = '/api/submaps/from-selection'
 const SUBMAP_REVISION_RESOURCE = '/api/submaps/revisions'
 
@@ -37,6 +38,9 @@ export function createGraphGateway({ request = globalThis.fetch } = {}) {
     loadSubmap(uid) {
       return send(`${SUBMAPS_RESOURCE}/${encodeURIComponent(uid)}`, { cache: 'no-store' })
     },
+    deleteSubmap(uid) {
+      return send(DELETE_SUBMAP_RESOURCE, jsonRequest('POST', { uid }))
+    },
     createSelectionSubmap(request) {
       return send(SELECTION_SUBMAP_RESOURCE, jsonRequest('POST', request))
     },
@@ -56,6 +60,7 @@ export function assertGraphGateway(gateway) {
     'updateProjectMap',
     'listSubmaps',
     'loadSubmap',
+    'deleteSubmap',
     'createSelectionSubmap',
     'createTraceSubmap',
     'reviseSubmap'

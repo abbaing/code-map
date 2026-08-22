@@ -46,6 +46,7 @@ await gateway.updateProjectMap({ modules: {} })
 await gateway.createTraceSubmap({ selectedId: 'users' })
 await gateway.listSubmaps()
 await gateway.loadSubmap('sha256:abc')
+await gateway.deleteSubmap('sha256:abc')
 await gateway.createSelectionSubmap({ name: 'checkout', nodeIds: ['users'] })
 await gateway.reviseSubmap({ uid: 'sha256:abc', nodeIds: ['users'] })
 assert.deepEqual(
@@ -57,12 +58,14 @@ assert.deepEqual(
     '/api/submaps/from-trace',
     '/api/submaps',
     '/api/submaps/sha256%3Aabc',
+    '/api/submaps/delete',
     '/api/submaps/from-selection',
     '/api/submaps/revisions'
   ]
 )
 assert.equal(requests[2].options.method, 'POST')
 assert.equal(requests[3].options.method, 'POST')
+assert.equal(requests[6].options.method, 'POST')
 assert.throws(() => createGraphGateway({ request: null }), /request must be a function/u)
 assert.throws(() => configureViewerData({ gateway, operations: {} }), /hidePopover/u)
 const failingGateway = createGraphGateway({

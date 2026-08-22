@@ -1,11 +1,17 @@
 import path from 'node:path'
 import { validateRevisionInput, validateSelectionInput, validateTraceInput } from '#app/server-input.mjs'
-import { getStoredSubmap, listStoredSubmaps, submapsDirectory } from '#app/server-submap-storage.mjs'
+import {
+  deleteStoredSubmap,
+  getStoredSubmap,
+  listStoredSubmaps,
+  submapsDirectory
+} from '#app/server-submap-storage.mjs'
 
 export function createServerSubmapOperations(context) {
   return Object.freeze({
     listSubmaps: () => listStoredSubmaps(context),
     getSubmap: (uid) => getStoredSubmap(uid, context),
+    deleteSubmap: (uid) => deleteStoredSubmap(uid, context),
     createSelectionSubmap: (input) => createSelectionSubmap(input, context),
     createTraceSubmap: (input) => createTraceSubmap(input, context),
     reviseSubmap: (input) => reviseSubmap(input, context)

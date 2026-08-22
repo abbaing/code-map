@@ -126,6 +126,7 @@ const localServer = startServer({
     saveProjectMap: () => ({ projectMap: arbitraryGraph.projectMap, stats: arbitraryGraph.stats }),
     listSubmaps: () => [],
     getSubmap: () => ({}),
+    deleteSubmap: () => ({ id: '', deleted: 0 }),
     createSelectionSubmap: () => ({ file: '', uid: '', statistics: {} }),
     createTraceSubmap: () => ({ file: '', uid: '', statistics: {} }),
     reviseSubmap: () => ({ file: '', uid: '', revision: 2, statistics: {} })

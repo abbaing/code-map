@@ -39,6 +39,7 @@ const application = Object.freeze({
   },
   listSubmaps: () => [{ name: 'focused', revision: 1 }],
   getSubmap: (uid) => ({ uid, id: 'focused', nodes: [] }),
+  deleteSubmap: (uid) => ({ id: uid === 'missing' ? 'missing' : 'focused', deleted: 2 }),
   createSelectionSubmap(input) {
     return { file: `${input.name}.submap.json`, uid: 'selection-uid', statistics: { nodes: input.nodeIds.length } }
   },
@@ -138,7 +139,6 @@ try {
   assert.equal(JSON.parse(selection.body).file, 'checkout.submap.json')
   const uid = `sha256:${'a'.repeat(64)}`
   assert.equal(JSON.parse((await request(port, 'GET', `/api/submaps/${encodeURIComponent(uid)}`)).body).submap.uid, uid)
-
   assert.equal((await request(port, 'POST', '/api/project-map', '', session)).status, 400)
   assert.equal(
     (await request(port, 'POST', '/api/project-map', '{}', { ...session, 'Content-Length': 1024 * 1024 + 1 })).status,

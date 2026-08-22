@@ -1,18 +1,14 @@
 import { requireGraphGateway } from '#viewer/viewer-data.js'
 import { showToast } from '#viewer/viewer-feedback.js'
 import { els, state } from '#viewer/viewer-state.js'
-import { replaceSubgraphSelection } from '#viewer/viewer-subgraph-selection.js'
+import { replaceSubgraphSelection, updateSelectionBar } from '#viewer/viewer-subgraph-selection.js'
 import { submapAvailability } from '#viewer/viewer-submap-availability.js'
-import { renderSubmapPreview } from '#viewer/viewer-submap-preview.js'
-import { latestSubmapRevisions } from '#viewer/viewer-submap-revisions.js'
+import { latestSubmapRevisions, revisionsForSubmap } from '#viewer/viewer-submap-revisions.js'
 import { escapeHtml } from '#viewer/viewer-utils.js'
 
-let previewGeneration = 0
+const pendingDeletes = new Set()
 
 export async function loadSubmaps() {
-  if (els.submapPreview) {
-    closeSubmapPreview()
-  }
   els.submapList.innerHTML = '<div class="submap-empty">Loading submaps...</div>'
   try {
     const result = await requireGraphGateway().listSubmaps()
@@ -28,7 +24,7 @@ export function renderSubmaps() {
   const query = els.submapSearch.value.trim().toLowerCase()
   const visible = latestSubmapRevisions(state.submaps).filter((submap) => submap.name.toLowerCase().includes(query))
   els.submapList.innerHTML = visible.length
-    ? visible.map(submapRowHtml).join('')
+    ? visible.map((submap) => submapRowHtml(submap, revisionsForSubmap(state.submaps, submap.id))).join('')
     : '<div class="submap-empty">No named submaps match this search.</div>'
 }
 
@@ -60,64 +56,64 @@ export async function openSubmap(uid) {
   }
 }
 
-export async function previewSubmap(uid) {
-  const generation = ++previewGeneration
-  els.submapPreview.classList.remove('hidden')
-  els.submapPreviewTitle.textContent = 'Loading...'
-  els.submapPreviewMeta.textContent = ''
-  els.submapPreviewBody.innerHTML = ''
+export async function deleteSubmap(uid, confirmDeletion = globalThis.confirm) {
+  if (pendingDeletes.has(uid)) {
+    return false
+  }
+  const summary = state.submaps.find((submap) => submap.uid === uid)
+  const name = summary?.name ?? 'this submap'
+  if (typeof confirmDeletion !== 'function' || !confirmDeletion(`Delete "${name}" and all saved versions?`)) {
+    return false
+  }
+  pendingDeletes.add(uid)
   try {
-    const { submap } = await requireGraphGateway().loadSubmap(uid)
-    const parentState = await loadParentRevision(submap)
-    if (generation !== previewGeneration) {
-      return false
+    const result = await requireGraphGateway().deleteSubmap(uid)
+    state.submaps = state.submaps.filter((submap) => submap.id !== result.id)
+    if (state.activeSubmap?.id === result.id) {
+      state.activeSubmap = null
+      updateSelectionBar()
     }
-    state.previewSubmap = submap
-    renderSubmapPreview(els, {
-      submap,
-      ...parentState,
-      summaries: state.submaps,
-      graph: state.graph
-    })
+    renderSubmaps()
+    showToast(`Deleted ${name}`, 'success')
     return true
   } catch (error) {
-    if (generation !== previewGeneration) {
-      return false
-    }
-    closeSubmapPreview()
-    showToast(`Submap preview failed: ${error.message}`, 'error')
+    showToast(`Submap deletion failed: ${error.message}`, 'error')
     return false
+  } finally {
+    pendingDeletes.delete(uid)
   }
 }
 
-export function closeSubmapPreview() {
-  previewGeneration += 1
-  state.previewSubmap = null
-  els.submapPreview.classList.add('hidden')
-}
-
-export function submapRowHtml(submap) {
+export function submapRowHtml(submap, revisions = [submap]) {
   if (submap.status === 'invalid') {
     return invalidSubmapRowHtml(submap)
   }
   const statistics = submap.statistics ?? {}
   const revisionCount = submap.revisionCount ?? 1
+  const name = escapeHtml(submap.name)
   return `
-    <button class="submap-row" data-submap-uid="${escapeHtml(submap.uid)}" aria-label="Preview ${escapeHtml(submap.name)}">
-      <span class="submap-name">
-        <strong>${escapeHtml(submap.name)}</strong>
-        <small class="submap-kind">${escapeHtml(kindLabel(submap.kind))}</small>
-      </span>
-      <span class="submap-scope"><strong>${escapeHtml(contentLabel(statistics.nodes ?? 0))}</strong></span>
-      <span class="submap-history">
-        <strong>${escapeHtml(revisionLabel(revisionCount))}</strong>
-        <small>Latest r${escapeHtml(submap.revision)}</small>
-      </span>
-      <time class="submap-updated" datetime="${escapeHtml(submap.createdAt)}">${escapeHtml(formatDate(submap.createdAt))}</time>
-      <span class="submap-row-arrow" aria-hidden="true">
-        <svg viewBox="0 0 20 20"><path d="m8 5 5 5-5 5" /></svg>
-      </span>
-    </button>
+    <div class="submap-row-wrap">
+      <button class="submap-row" data-submap-uid="${escapeHtml(submap.uid)}" aria-label="Open ${name} in graph">
+        <span class="submap-name">
+          <strong>${name}</strong>
+          <small class="submap-kind">${escapeHtml(kindLabel(submap.kind))}</small>
+        </span>
+        <span class="submap-scope"><strong>${escapeHtml(contentLabel(statistics.nodes ?? 0))}</strong></span>
+        <span class="submap-history">
+          <strong>${escapeHtml(revisionLabel(revisionCount))}</strong>
+          <small>Latest r${escapeHtml(submap.revision)}</small>
+        </span>
+        <time class="submap-updated" datetime="${escapeHtml(submap.createdAt)}">${escapeHtml(formatDate(submap.createdAt))}</time>
+        <span></span>
+      </button>
+      <details class="submap-options">
+        <summary aria-label="Options for ${name}">&#8943;</summary>
+        <div class="submap-options-menu" role="menu">
+          ${revisionOptionsHtml(revisions, submap.uid)}
+          <button class="submap-option submap-option-danger" role="menuitem" data-delete-submap-uid="${escapeHtml(submap.uid)}">Delete submap</button>
+        </div>
+      </details>
+    </div>
   `
 }
 
@@ -142,27 +138,33 @@ function contentLabel(count) {
 }
 
 function kindLabel(kind) {
-  return kind === 'trace' ? 'Saved trace' : 'Manual selection'
+  return kind === 'execution-trace' || kind === 'trace' ? 'Saved trace' : 'Manual selection'
+}
+
+function revisionOptionsHtml(revisions, latestUid) {
+  if (revisions.length < 2) {
+    return ''
+  }
+  return `
+    <span class="submap-options-label">Open version</span>
+    ${revisions.map((revision) => revisionOptionHtml(revision, latestUid)).join('')}
+    <span class="submap-options-separator"></span>
+  `
+}
+
+function revisionOptionHtml(revision, latestUid) {
+  const current = revision.uid === latestUid
+  return `
+    <button class="submap-option submap-version-option" role="menuitem" data-open-submap-uid="${escapeHtml(revision.uid)}">
+      <span>Revision ${escapeHtml(revision.revision)}${current ? ' · latest' : ''}</span>
+      <small>${escapeHtml(formatDate(revision.createdAt))}</small>
+    </button>
+  `
 }
 
 async function loadSubmapDocument(uid) {
-  if (state.previewSubmap?.uid === uid) {
-    return state.previewSubmap
-  }
   const { submap } = await requireGraphGateway().loadSubmap(uid)
   return submap
-}
-
-async function loadParentRevision(submap) {
-  if (!submap.parentUid) {
-    return { parent: null, parentIssue: null }
-  }
-  try {
-    const { submap: parent } = await requireGraphGateway().loadSubmap(submap.parentUid)
-    return { parent, parentIssue: null }
-  } catch {
-    return { parent: null, parentIssue: 'Parent revision is unavailable, so changes cannot be compared.' }
-  }
 }
 
 function invalidSubmapRowHtml(submap) {

@@ -5,9 +5,9 @@ import { createElement, eventTarget, pointerEvent } from '#tests/viewer-interact
 
 const calls = []
 const operationNames = `
-  applyFilters applyPan clearSelectedNode clearSubgraphSelection closeSubmapPreview discardSubmapChanges
+  applyFilters applyPan clearSelectedNode clearSubgraphSelection deleteSubmap discardSubmapChanges
   createTraceSubmap createSelectionSubmap drillIntoModule exportGraph exportProjectMap exportSubgraphSelection
-  importGraph importProjectMap invertVisibleSubgraphSelection loadGraph loadSubmaps openSubmap previewSubmap
+  importGraph importProjectMap invertVisibleSubgraphSelection loadGraph loadSubmaps openSubmap
   populateSettingsTab refreshGraph render renderModuleDetail renderSubmaps replaceSubgraphSelection resetZoom
   saveConfig saveSubmapRevision selectVisibleSubgraphNodes selectNode setZoom showToast toggleSubgraphNode updateViewUI zoomAt
 `

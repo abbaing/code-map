@@ -13,10 +13,13 @@ export function extractEntityUsage({
   )
   for (const file of usageFiles) {
     const repoPath = toRepoPath(file)
-    for (const [entity, entityId] of entityNodeByName) {
-      const dbSet = dbSetByEntity.get(entity)
-      const usage = sourceDocuments.factsOf(file, 'entityUsage', { entity, dbSet })
-      if (!usage) {
+    const usages = sourceDocuments.factsOf(file, 'entityUsages', {
+      entities: [...entityNodeByName.keys()],
+      dbSets: dbSetByEntity
+    })
+    for (const [entity, usage] of usages ?? []) {
+      const entityId = entityNodeByName.get(entity)
+      if (!entityId) {
         continue
       }
       const sourceId = `file:${repoPath}`
