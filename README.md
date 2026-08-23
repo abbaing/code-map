@@ -10,7 +10,7 @@ code-map scans React and .NET source trees and turns them into a local, interact
 
 ## Quick start
 
-Requires Node.js 20 or later and has no runtime dependencies.
+Requires Node.js 20 or later. Analysis runs locally without building or executing the target application.
 
 ```bash
 npm install --save-dev @abbaing/code-map
