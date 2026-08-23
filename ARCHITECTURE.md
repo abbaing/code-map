@@ -11,6 +11,7 @@ server.mjs -> application/server-app -+-> core -> rules/templates
 config -> scan -----------------------+          +-> submap
 
 graph.json -> viewer
+           -> MCP tools -> stdio clients
 ```
 
 - `src/core/graph.mjs` owns only the in-memory graph model and has no dependencies.
@@ -34,6 +35,7 @@ graph.json -> viewer
 - `src/application/server-app.mjs` coordinates injected scan, configuration, and submap capabilities. `server.mjs`
   selects Node adapters and dispatches through a validated route registry.
 - `viewer/` consumes the serialized graph and does not reach into Node.js modules.
+- `mcp/` exposes bounded, read-only graph and submap queries through dual-era MCP JSON-RPC over stdio.
 - `platform/` defines runtime capabilities and contains the Node adapter selected by executable boundaries.
 - `cli.mjs` assembles validated commands and runtime-independent command selection and exit results.
 

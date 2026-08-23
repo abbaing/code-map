@@ -6,7 +6,7 @@
 
 code-map scans React and .NET source trees and turns them into a local, interactive dependency graph. It highlights boundary violations, coupling hotspots, orphaned files, missing test signals, and frontend-to-backend execution paths without building or instrumenting the application.
 
-[Quick start](#quick-start) · [Supported stacks](#supported-stacks) · [Configuration](#project-mapjson) · [CLI](#cli) · [Submaps](#submaps)
+[Quick start](#quick-start) · [Supported stacks](#supported-stacks) · [Configuration](#project-mapjson) · [CLI](#cli) · [Submaps](#submaps) · [MCP](#mcp-server)
 
 ## Quick start
 
@@ -483,6 +483,40 @@ Project maps, graphs, and submaps currently support version `1`. Documents decla
 | `6`  | Output file already exists              |
 
 Submaps describe access intent but do not enforce filesystem permissions. External tools remain responsible for controlling writes.
+
+## MCP server
+
+`code-map-mcp` exposes a generated graph to local AI clients over newline-delimited stdio. It is read-only: tools can query the graph and create an in-memory submap result, but they do not scan, edit source files, or persist artifacts.
+
+Generate a current graph before starting the server:
+
+```bash
+npx code-map --scan
+npx --no-install code-map-mcp --graph .code-map/graph.json
+```
+
+Example client configuration when the client starts in the repository root:
+
+```json
+{
+  "mcpServers": {
+    "code-map": {
+      "command": "npx",
+      "args": ["--no-install", "code-map-mcp", "--graph", ".code-map/graph.json"]
+    }
+  }
+}
+```
+
+`CODE_MAP_GRAPH` can provide the graph path instead of `--graph`. The server supports MCP `2026-07-28` discovery and the legacy `2025-11-25` initialization flow.
+
+| Tool            | Result                                                          |
+| --------------- | --------------------------------------------------------------- |
+| `find_node`     | Bounded node search by text, type, or module.                   |
+| `dependencies`  | Incoming, outgoing, or bidirectional dependency traversal.      |
+| `impact`        | Nodes that transitively depend on a selected node.              |
+| `trace`         | Bounded paths to a target node or architectural boundary.       |
+| `create_submap` | A portable submap returned in memory without filesystem writes. |
 
 ## FAQ
 

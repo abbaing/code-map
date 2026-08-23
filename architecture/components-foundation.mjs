@@ -1,5 +1,4 @@
 import { designStatus } from '#architecture/component-model.mjs'
-
 export const foundationComponents = [
   {
     id: 'public-api',
@@ -151,6 +150,7 @@ export const foundationComponents = [
     role: 'adapter',
     files: [
       'src/adapters/parsers/csharp.mjs',
+      'src/adapters/parsers/csharp-constants.mjs',
       'src/adapters/parsers/csharp-backend.mjs',
       'src/adapters/parsers/csharp-backend-dependencies.mjs',
       'src/adapters/parsers/csharp-backend-persistence.mjs',

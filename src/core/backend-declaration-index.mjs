@@ -1,12 +1,13 @@
 export function createBackendDeclarationIndex(entries) {
-  const indexes = { files: new Map(), types: new Map(), implementations: new Map() }
+  const indexes = { files: new Map(), types: new Map(), implementations: new Map(), constants: new Map() }
   for (const entry of entries) {
     indexEntry(indexes, validateEntry(entry))
   }
   return Object.freeze({
     filesNamed: (name) => values(indexes.files, name.toLowerCase()),
     declarationsNamed: (name) => values(indexes.types, name),
-    implementationsOf: (name) => values(indexes.implementations, name)
+    implementationsOf: (name) => values(indexes.implementations, name),
+    valueOf: (name) => values(indexes.constants, name)[0]
   })
 }
 
@@ -26,6 +27,10 @@ function validateEntry(entry) {
 
 function indexEntry(indexes, entry) {
   add(indexes.files, entry.fileName.toLowerCase(), entry.file)
+  for (const constant of entry.constants ?? []) {
+    add(indexes.constants, constant.name, constant.value)
+    add(indexes.constants, constant.qualifiedName, constant.value)
+  }
   for (const declaration of entry.declarations) {
     indexDeclaration(indexes, entry.file, declaration)
   }

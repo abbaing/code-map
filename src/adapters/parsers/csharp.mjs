@@ -116,16 +116,17 @@ export function csharpStringValue(node) {
   return literal ? csharpStringValue(literal) : null
 }
 
-export function csharpAttributes(node) {
+export function csharpAttributes(node, constantValue = () => undefined) {
   const attributes = []
   for (const list of node.namedChildren.filter((child) => child.type === 'attribute_list')) {
     for (const attribute of list.namedChildren.filter((child) => child.type === 'attribute')) {
       const nameNode = attribute.namedChildren.find((child) =>
         ['identifier', 'qualified_name', 'alias_qualified_name'].includes(child.type)
       )
+      const argument = csharpArguments(attribute)[0]
       attributes.push({
         name: nameNode?.text.split('.').at(-1) ?? '',
-        value: csharpStringValue(attribute),
+        value: csharpStringValue(attribute) ?? constantValue(argument?.text),
         node: attribute
       })
     }

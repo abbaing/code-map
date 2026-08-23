@@ -1,4 +1,5 @@
 import { csharpParser } from '#parsers/csharp.mjs'
+import { csharpStringConstants } from '#parsers/csharp-constants.mjs'
 import { backendSemantics } from '#parsers/csharp-backend-semantics.mjs'
 import { constructorDependencies } from '#parsers/csharp-backend-dependencies.mjs'
 import { collectDispatchedRequests, controllerAnalysis } from '#parsers/csharp-backend-requests.mjs'
@@ -13,7 +14,8 @@ import {
 export const csharpBackendFacts = Object.freeze({
   backendSemantics,
   constructorDependencies: ({ syntax }) => constructorDependencies(syntax),
-  controller: ({ syntax }) => controllerAnalysis(syntax.tree),
+  controller: ({ syntax }, input) => controllerAnalysis(syntax.tree, input?.constants),
+  stringConstants: ({ syntax }) => csharpStringConstants(syntax.tree),
   dispatchedRequests: ({ syntax }) => [...collectDispatchedRequests(syntax.tree.rootNode)],
   dbSets: ({ syntax }) => dbSets(syntax),
   persistenceCollections: ({ syntax }) =>

@@ -33,8 +33,20 @@ const groups = [
     id: 'architecture',
     includes: (file) => file.startsWith('architecture/'),
     thresholds: { lines: 99, statements: 99, branches: 100, functions: 50 }
+  },
+  {
+    id: 'mcp',
+    includes: (file) => file === 'mcp-server.mjs' || file.startsWith('mcp/'),
+    thresholds: { lines: 85, statements: 85, branches: 75, functions: 90 }
   }
 ]
+
+const criticalFiles = {
+  'submap/cli-diff.mjs': { lines: 90, functions: 100 },
+  'viewer/viewer-actions-settings.js': { lines: 45, functions: 40 },
+  'viewer/viewer-layout-domain-grid.js': { lines: 90, functions: 100 },
+  'viewer/viewer-overview.js': { lines: 70, functions: 65 }
+}
 
 const reportPath = path.resolve('coverage/coverage-summary.json')
 const summary = JSON.parse(fs.readFileSync(reportPath, 'utf8'))
@@ -58,6 +70,23 @@ for (const group of groups) {
   }
   console.log(
     `${group.id} coverage passed: ${metrics.map((metric) => `${metric} ${coverage[metric].toFixed(2)}%`).join(', ')}`
+  )
+}
+
+for (const [file, thresholds] of Object.entries(criticalFiles)) {
+  const coverage = files.find(([candidate]) => candidate === file)?.[1]
+  if (!coverage) {
+    throw new Error(`Critical coverage file ${file} is missing from the report.`)
+  }
+  for (const [metric, threshold] of Object.entries(thresholds)) {
+    if (coverage[metric].pct < threshold) {
+      throw new Error(`${file} ${metric} coverage ${coverage[metric].pct}% is below ${threshold}%.`)
+    }
+  }
+  console.log(
+    `${file} critical coverage passed: ${Object.keys(thresholds)
+      .map((metric) => `${metric} ${coverage[metric].pct.toFixed(2)}%`)
+      .join(', ')}`
   )
 }
 

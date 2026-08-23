@@ -14,33 +14,35 @@ export function moduleReferencesOf(content, fileName = 'source.ts', parsedSource
   const references = []
 
   function visit(node) {
-    if (
-      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
-      node.moduleSpecifier &&
-      ts.isStringLiteralLike(node.moduleSpecifier)
-    ) {
-      references.push({
-        specifier: node.moduleSpecifier.text,
-        index: node.getStart(sourceFile),
-        kind: 'static'
-      })
-    } else if (
-      ts.isCallExpression(node) &&
-      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-      node.arguments.length === 1 &&
-      ts.isStringLiteralLike(node.arguments[0])
-    ) {
-      references.push({
-        specifier: node.arguments[0].text,
-        index: node.expression.getStart(sourceFile),
-        kind: 'dynamic'
-      })
+    const reference = moduleReferenceOf(node, sourceFile)
+    if (reference) {
+      references.push(reference)
     }
     ts.forEachChild(node, visit)
   }
 
   visit(sourceFile)
   return references.sort((left, right) => left.index - right.index)
+}
+
+function moduleReferenceOf(node, sourceFile) {
+  if (
+    (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+    node.moduleSpecifier &&
+    ts.isStringLiteralLike(node.moduleSpecifier)
+  ) {
+    return { specifier: node.moduleSpecifier.text, index: node.getStart(sourceFile), kind: 'static' }
+  }
+  if (!ts.isCallExpression(node) || node.arguments.length !== 1 || !ts.isStringLiteralLike(node.arguments[0])) {
+    return null
+  }
+  if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+    return { specifier: node.arguments[0].text, index: node.expression.getStart(sourceFile), kind: 'dynamic' }
+  }
+  if (ts.isIdentifier(node.expression) && node.expression.text === 'require') {
+    return { specifier: node.arguments[0].text, index: node.expression.getStart(sourceFile), kind: 'static' }
+  }
+  return null
 }
 
 export function parseTypeScript(content, fileName = 'source.ts') {

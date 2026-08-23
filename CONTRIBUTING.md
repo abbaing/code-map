@@ -31,6 +31,14 @@ npm run test:coverage
 
 Coverage thresholds are enforced separately for the application, server, submap, viewer, platform, and architecture modules in a dedicated Linux/Node.js 24 CI job. This keeps weaker presentation coverage from masking regressions in the application baseline. New behavior should include regression tests instead of lowering the thresholds.
 
+Run the representative 1,000-file performance fixture:
+
+```bash
+npm run benchmark
+```
+
+Use `npm run benchmark -- --all` for the 1k, 5k, and 20k suite. The manual GitHub Actions workflow runs the full suite as an informational job; timings are reported without machine-dependent pass/fail thresholds.
+
 Rebuild the local viewer utility stylesheet after changing classes in `viewer/`:
 
 ```bash

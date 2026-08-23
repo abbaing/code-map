@@ -40,6 +40,11 @@ export function resolveFrontendUrlExpression(expression, sourceFile, bindings, b
     return expandFrontendUrl(expanded, baseUrl)
   }
 
+  const concatenated = concatenateUrlExpression(expression, sourceFile, bindings)
+  if (concatenated !== null) {
+    return expandFrontendUrl(concatenated, baseUrl)
+  }
+
   const name = ts.isIdentifier(expression)
     ? expression.text
     : ts.isPropertyAccessExpression(expression) && expression.expression.kind === ts.SyntaxKind.ThisKeyword
@@ -47,6 +52,37 @@ export function resolveFrontendUrlExpression(expression, sourceFile, bindings, b
       : null
   const bound = name ? bindings.get(name) : null
   return bound ? expandFrontendUrl(bound, baseUrl) : null
+}
+
+function concatenateUrlExpression(expression, sourceFile, bindings) {
+  if (!ts.isBinaryExpression(expression) || expression.operatorToken.kind !== ts.SyntaxKind.PlusToken) {
+    return null
+  }
+  const parts = flattenConcatenation(expression)
+  if (!parts.some((part) => typeScriptLiteralValue(part, sourceFile)?.includes('/api'))) {
+    const boundValues = parts.map((part) => boundUrlValue(part, bindings)).filter(Boolean)
+    if (!boundValues.some((value) => value.startsWith('/api'))) {
+      return null
+    }
+  }
+  return parts.map((part) => typeScriptLiteralValue(part, sourceFile) ?? boundUrlValue(part, bindings) ?? '{}').join('')
+}
+
+function flattenConcatenation(expression) {
+  if (ts.isBinaryExpression(expression) && expression.operatorToken.kind === ts.SyntaxKind.PlusToken) {
+    return [...flattenConcatenation(expression.left), ...flattenConcatenation(expression.right)]
+  }
+  return [expression]
+}
+
+function boundUrlValue(expression, bindings) {
+  if (ts.isIdentifier(expression)) {
+    return bindings.get(expression.text) ?? null
+  }
+  if (ts.isPropertyAccessExpression(expression) && expression.expression.kind === ts.SyntaxKind.ThisKeyword) {
+    return bindings.get(expression.name.text) ?? null
+  }
+  return null
 }
 
 export function expandFrontendUrl(value, baseUrl) {

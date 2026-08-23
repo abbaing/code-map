@@ -5,14 +5,17 @@ import {
   csharpSimpleTypeName,
   walkCSharp
 } from '#parsers/csharp.mjs'
+import { csharpStringConstants } from '#parsers/csharp-constants.mjs'
 
-export function controllerAnalysis(tree) {
+export function controllerAnalysis(tree, constants = {}) {
   const controller = firstNode(tree.rootNode, 'class_declaration')
-  const route = csharpAttributes(controller).find((attribute) => attribute.name === 'Route')?.value
+  const localConstants = new Map(csharpStringConstants(tree).flatMap(constantEntries))
+  const constantValue = (name) => localConstants.get(name) ?? constants.valueOf?.(name)
+  const route = csharpAttributes(controller, constantValue).find((attribute) => attribute.name === 'Route')?.value
   return {
     name: csharpName(controller),
     route,
-    actions: parseControllerActions(controller).map((action) => ({
+    actions: parseControllerActions(controller, constantValue).map((action) => ({
       method: action.method,
       route: action.route,
       name: action.name,
@@ -21,11 +24,11 @@ export function controllerAnalysis(tree) {
   }
 }
 
-function parseControllerActions(controller) {
+function parseControllerActions(controller, constantValue) {
   const body = controller?.namedChildren.find((child) => child.type === 'declaration_list')
   const actions = []
   for (const method of body?.namedChildren.filter((child) => child.type === 'method_declaration') ?? []) {
-    const http = csharpAttributes(method).find((attribute) =>
+    const http = csharpAttributes(method, constantValue).find((attribute) =>
       ['HttpGet', 'HttpPost', 'HttpPut', 'HttpPatch', 'HttpDelete'].includes(attribute.name)
     )
     if (http) {
@@ -38,6 +41,13 @@ function parseControllerActions(controller) {
     }
   }
   return actions
+}
+
+function constantEntries(constant) {
+  return [
+    [constant.name, constant.value],
+    [constant.qualifiedName, constant.value]
+  ]
 }
 
 function dispatchedRequestsForAction(controller, action) {

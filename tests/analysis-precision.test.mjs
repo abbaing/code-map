@@ -34,7 +34,11 @@ const importCases = [
     source: "const module = import('./dynamic.js')",
     expected: [{ specifier: './dynamic.js', kind: 'dynamic' }]
   },
-  { id: 'TS-07', source: "const module = require('./commonjs.js')", expected: [] },
+  {
+    id: 'TS-07',
+    source: "const module = require('./commonjs.js')",
+    expected: [{ specifier: './commonjs.js', kind: 'static' }]
+  },
   { id: 'TS-08', source: "const module = import('./features/' + name)", expected: [] }
 ]
 
@@ -70,7 +74,7 @@ const endpointCases = [
   {
     id: 'HTTP-05',
     source: "const baseUrl = '/api/accounts'\nfetch(baseUrl + '/' + accountId)",
-    expected: []
+    expected: [{ url: '/api/accounts/{}', method: 'GET' }]
   },
   {
     id: 'HTTP-06',
@@ -120,10 +124,16 @@ public class AccountsController : ControllerBase
 [Route(ApiRoutes.Accounts)]
 public class AccountsController : ControllerBase
 {
-    [HttpGet]
+    [HttpGet(ApiRoutes.ById)]
     public IActionResult Get() => Ok();
 }`,
-    expected: []
+    support: `
+public static class ApiRoutes
+{
+    public const string Accounts = "api/accounts";
+    public const string ById = "{id}";
+}`,
+    expected: [{ url: '/api/accounts/{id}', method: 'GET', action: 'Get' }]
   },
   {
     id: 'CS-04',
@@ -145,15 +155,16 @@ public class PlainController : ControllerBase
 ]
 
 for (const fixture of controllerCases) {
-  assert.deepEqual(extractControllerEndpoints(fixture.source), fixture.expected, fixture.id)
+  assert.deepEqual(extractControllerEndpoints(fixture.source, fixture.support), fixture.expected, fixture.id)
 }
 
 assert.equal(importCases.length + endpointCases.length + controllerCases.length, 20)
 console.log('analysis precision fixtures passed')
 
-function extractControllerEndpoints(source) {
+function extractControllerEndpoints(source, support) {
   const file = 'back/Demo.API/Controllers/AccountsController.cs'
-  const sourceReader = { readText: () => source }
+  const supportFile = 'back/Demo.API/ApiRoutes.cs'
+  const sourceReader = { readText: (filePath) => (filePath === supportFile ? support : source) }
   const projectContext = {
     toRepoPath: (filePath) => filePath,
     projectMap: normalizeProjectMap({
@@ -167,7 +178,7 @@ function extractControllerEndpoints(source) {
     parserRegistry: createParserRegistry([csharpBackendParser]),
     sourceReader
   })
-  const session = createBackScanSession([file], sourceDocuments)
+  const session = createBackScanSession(support ? [supportFile, file] : [file], sourceDocuments)
   return scanControllers(graph, [file], projectContext, session, sourceDocuments).map(({ url, method, action }) => ({
     url,
     method,

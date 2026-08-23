@@ -3,6 +3,7 @@
   "include": [
     "*.mjs",
     "architecture/**/*.mjs",
+    "mcp/**/*.mjs",
     "platform/**/*.mjs",
     "rules/**/*.mjs",
     "src/**/*.mjs",

@@ -18,7 +18,7 @@ export function scanControllers(...args) {
 function scanControllerFile(file, { graph, projectContext, session, sourceDocuments, endpoints }) {
   const { toRepoPath } = projectContext
   const repoPath = toRepoPath(file)
-  const controller = sourceDocuments.factsOf(file, 'controller')
+  const controller = sourceDocuments.factsOf(file, 'controller', { constants: session })
   const module = featureFromRepoPath(repoPath, projectContext)
   const id = `file:${repoPath}`
   const controllerName = controller.name ?? path.basename(file, '.cs')

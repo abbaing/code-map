@@ -81,6 +81,9 @@ Contracts are structural JavaScript objects or functions. Their exact signatures
 | `LayoutStrategy`                | Produce positions for one graph view without touching the DOM                   |
 | `NodeRenderer` / `EdgeRenderer` | Render one supported graph primitive                                            |
 | `ViewController`                | Bind one view's interactions to store operations and effects                    |
+| `GraphQuery`                    | Execute bounded, deterministic queries over a serialized graph                  |
+| `McpTool`                       | Expose one validated, read-only graph operation to MCP clients                  |
+| `MCP` / `JSON-RPC`              | Discover and invoke tools over newline-delimited stdio messages                 |
 
 Ports must remain capability-oriented. A new method is added only when every consumer of that port needs it; otherwise a new smaller port is introduced.
 
@@ -91,6 +94,7 @@ Concrete dependencies may be assembled only in these locations:
 - `cli.mjs`: root CLI commands and Node adapters;
 - `server.mjs`: HTTP routes, server application, security policy, and Node HTTP adapter;
 - `src/adapters/node/scan-node.mjs`: direct Node scan execution and adapter selection;
+- `mcp-server.mjs`: local graph loading, MCP request dispatch, and stdio transport;
 - `templates/registry.mjs`: ordered template and capability composition;
 - `viewer/viewer-init.js`: browser store, gateways, controllers, and render strategies;
 - tests: fakes, fixtures, clocks, and failure adapters.

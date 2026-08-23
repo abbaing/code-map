@@ -9,6 +9,7 @@
     "#core/*": "./src/core/*",
     "#delivery/*": "./src/delivery/*",
     "#entry/*": "./*",
+    "#mcp/*": "./mcp/*",
     "#node/*": "./src/adapters/node/*",
     "#parsers/*": "./src/adapters/parsers/*",
     "#platform/*": "./platform/*",
@@ -28,7 +29,8 @@
   },
   "homepage": "https://github.com/abbaing/code-map#readme",
   "bin": {
-    "code-map": "./cli.mjs"
+    "code-map": "./cli.mjs",
+    "code-map-mcp": "./mcp-server.mjs"
   },
   "types": "./index.d.ts",
   "exports": {
@@ -47,6 +49,7 @@
   },
   "scripts": {
     "audit:dependencies": "npm audit --audit-level=high && npm audit signatures",
+    "benchmark": "node tests/benchmarks/run.mjs",
     "build:viewer-css": "tailwindcss -i ./viewer/tailwind.input.css -o ./viewer/tailwind.css --minify",
     "check": "npm run lint && npm run format:check && npm test",
     "format": "prettier . --write",
@@ -74,6 +77,8 @@
     "server.mjs",
     "src/",
     "platform/",
+    "mcp/",
+    "mcp-server.mjs",
     "submap/",
     "LICENSE",
     "COMMERCIAL.md",

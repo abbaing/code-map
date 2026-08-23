@@ -4,6 +4,7 @@ import { deliveryComponents } from '#architecture/components-delivery.mjs'
 import { extensionComponents } from '#architecture/components-extensions.mjs'
 import { submapComponents } from '#architecture/components-submap.mjs'
 import { viewerComponents } from '#architecture/components-viewer.mjs'
+import { mcpComponents } from '#architecture/components-mcp.mjs'
 
 export { componentRoles, componentStatusValues } from '#architecture/component-model.mjs'
 
@@ -13,5 +14,6 @@ export const components = [
   ...extensionComponents,
   ...deliveryComponents,
   ...submapComponents,
+  ...mcpComponents,
   ...viewerComponents
 ]
