@@ -1,6 +1,19 @@
 import { csharpDescendants, csharpName, csharpStringValue, walkCSharp } from '#parsers/csharp.mjs'
 
 export function csharpStringConstants(tree) {
+  return resolvedConstantsOf(constantDeclarationsOf(tree))
+}
+
+export function csharpStringConstantExpressions(tree) {
+  return constantDeclarationsOf(tree).flatMap((declaration) => {
+    const parts = stringExpressionParts(declaration.initializer)
+    return parts
+      ? [{ name: declaration.name, owner: declaration.owner, qualifiedName: declaration.qualifiedName, parts }]
+      : []
+  })
+}
+
+function constantDeclarationsOf(tree) {
   const declarations = []
   walkCSharp(tree.rootNode, (node) => {
     if (node.type !== 'field_declaration' || !node.children.some((child) => child.text === 'const')) {
@@ -15,7 +28,28 @@ export function csharpStringConstants(tree) {
       }
     }
   })
-  return resolvedConstantsOf(declarations)
+  return declarations
+}
+
+function stringExpressionParts(node) {
+  if (!node) {
+    return null
+  }
+  if (['string_literal', 'verbatim_string_literal', 'raw_string_literal'].includes(node.type)) {
+    const value = csharpStringValue(node)
+    return value === null ? null : [{ kind: 'literal', value }]
+  }
+  if (node.type === 'parenthesized_expression') {
+    return stringExpressionParts(node.namedChildren[0])
+  }
+  if (node.type === 'binary_expression' && node.children.some((child) => child.type === '+')) {
+    const left = stringExpressionParts(node.namedChildren[0])
+    const right = stringExpressionParts(node.namedChildren[1])
+    return left && right ? [...left, ...right] : null
+  }
+  return ['identifier', 'member_access_expression', 'qualified_name'].includes(node.type)
+    ? [{ kind: 'reference', name: node.text }]
+    : null
 }
 
 function resolvedConstantsOf(declarations) {

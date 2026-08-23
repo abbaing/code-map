@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { csharpAttributes, csharpDescendants, parseCSharp } from '#parsers/csharp.mjs'
-import { csharpStringConstants } from '#parsers/csharp-constants.mjs'
+import { csharpStringConstantExpressions, csharpStringConstants } from '#parsers/csharp-constants.mjs'
+import { createBackScanSession } from '#scanners/scan-back-session.mjs'
 
 const tree = parseCSharp(`
 public static class ApiRoutes
@@ -31,5 +32,21 @@ public class ReportsController : ControllerBase {}
 `)
 const controller = csharpDescendants(controllerTree.rootNode, 'class_declaration')[0]
 assert.equal(csharpAttributes(controller, (reference) => valueByName.get(reference))[0].value, 'api/reports')
+
+const featureTree = parseCSharp(`
+public static class FeatureRoutes
+{
+    public const string Accounts = ApiRoutes.Root + "accounts";
+}
+`)
+const expressionsByFile = new Map([
+  ['ApiRoutes.cs', csharpStringConstantExpressions(tree)],
+  ['FeatureRoutes.cs', csharpStringConstantExpressions(featureTree)]
+])
+const sourceDocuments = {
+  factsOf: (file, factName) => (factName === 'typeDeclarations' ? [] : expressionsByFile.get(file))
+}
+const session = createBackScanSession([...expressionsByFile.keys()], sourceDocuments)
+assert.equal(session.valueOf('FeatureRoutes.Accounts'), 'api/accounts')
 
 console.log('C# string expression tests passed')

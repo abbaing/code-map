@@ -1,14 +1,74 @@
 export function createBackendDeclarationIndex(entries) {
   const indexes = { files: new Map(), types: new Map(), implementations: new Map(), constants: new Map() }
-  for (const entry of entries) {
-    indexEntry(indexes, validateEntry(entry))
+  const validatedEntries = entries.map(validateEntry)
+  for (const entry of validatedEntries) {
+    indexEntry(indexes, entry)
   }
+  indexConstantExpressions(indexes.constants, validatedEntries)
   return Object.freeze({
     filesNamed: (name) => values(indexes.files, name.toLowerCase()),
     declarationsNamed: (name) => values(indexes.types, name),
     implementationsOf: (name) => values(indexes.implementations, name),
     valueOf: (name) => values(indexes.constants, name)[0]
   })
+}
+
+function indexConstantExpressions(index, entries) {
+  const declarations = entries.flatMap((entry) => entry.constantExpressions ?? [])
+  const byQualifiedName = uniqueDeclarationsBy(declarations, (declaration) => declaration.qualifiedName)
+  const byName = uniqueDeclarationsBy(declarations, (declaration) => declaration.name)
+  const cache = new Map()
+  const resolving = new Set()
+
+  function resolve(declaration) {
+    if (!declaration || resolving.has(declaration)) {
+      return undefined
+    }
+    if (cache.has(declaration)) {
+      return cache.get(declaration)
+    }
+    resolving.add(declaration)
+    const values = declaration.parts.map((part) =>
+      part.kind === 'literal'
+        ? part.value
+        : resolve(referenceDeclaration(part.name, declaration.owner, byQualifiedName, byName))
+    )
+    resolving.delete(declaration)
+    const value = values.some((part) => typeof part !== 'string') ? undefined : values.join('')
+    cache.set(declaration, value)
+    return value
+  }
+
+  for (const declaration of declarations) {
+    const value = resolve(declaration)
+    if (value !== undefined) {
+      add(index, declaration.name, value)
+      add(index, declaration.qualifiedName, value)
+    }
+  }
+}
+
+function uniqueDeclarationsBy(declarations, keyOf) {
+  const unique = new Map()
+  const ambiguous = new Set()
+  for (const declaration of declarations) {
+    const key = keyOf(declaration)
+    if (unique.has(key)) {
+      ambiguous.add(key)
+    } else {
+      unique.set(key, declaration)
+    }
+  }
+  for (const key of ambiguous) {
+    unique.delete(key)
+  }
+  return unique
+}
+
+function referenceDeclaration(reference, owner, byQualifiedName, byName) {
+  return reference.includes('.')
+    ? byQualifiedName.get(reference)
+    : (byQualifiedName.get(`${owner}.${reference}`) ?? byName.get(reference))
 }
 
 function validateEntry(entry) {
