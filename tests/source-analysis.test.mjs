@@ -98,10 +98,16 @@ const lazySource = `
 const example = "import('./string.js')"
 // import('./comment.js')
 const lazy = import(\`./lazy.js\`)
+const concatenated = import('./features/' + 'account.js')
 const computed = import('./features/' + name)
 `
 assert.deepEqual(moduleReferencesOf(lazySource, 'lazy.tsx'), [
-  { specifier: './lazy.js', index: lazySource.indexOf('import(`'), kind: 'dynamic' }
+  { specifier: './lazy.js', index: lazySource.indexOf('import(`'), kind: 'dynamic' },
+  {
+    specifier: './features/account.js',
+    index: lazySource.indexOf("import('./features/"),
+    kind: 'dynamic'
+  }
 ])
 assert.match(stripTsComments(typeScriptSource), /https:\/\/example\.test/u)
 assert.doesNotMatch(stripTsComments(typeScriptSource), /ignored/u)

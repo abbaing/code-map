@@ -33,14 +33,34 @@ function moduleReferenceOf(node, sourceFile) {
   ) {
     return { specifier: node.moduleSpecifier.text, index: node.getStart(sourceFile), kind: 'static' }
   }
-  if (!ts.isCallExpression(node) || node.arguments.length !== 1 || !ts.isStringLiteralLike(node.arguments[0])) {
+  if (!ts.isCallExpression(node) || node.arguments.length !== 1) {
     return null
   }
   if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
-    return { specifier: node.arguments[0].text, index: node.expression.getStart(sourceFile), kind: 'dynamic' }
+    const specifier = staticStringValueOf(node.arguments[0])
+    return specifier === null ? null : { specifier, index: node.expression.getStart(sourceFile), kind: 'dynamic' }
   }
-  if (ts.isIdentifier(node.expression) && node.expression.text === 'require') {
+  if (
+    ts.isIdentifier(node.expression) &&
+    node.expression.text === 'require' &&
+    ts.isStringLiteralLike(node.arguments[0])
+  ) {
     return { specifier: node.arguments[0].text, index: node.expression.getStart(sourceFile), kind: 'static' }
+  }
+  return null
+}
+
+function staticStringValueOf(node) {
+  if (ts.isStringLiteralLike(node)) {
+    return node.text
+  }
+  if (ts.isParenthesizedExpression(node)) {
+    return staticStringValueOf(node.expression)
+  }
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
+    const left = staticStringValueOf(node.left)
+    const right = staticStringValueOf(node.right)
+    return left === null || right === null ? null : left + right
   }
   return null
 }
