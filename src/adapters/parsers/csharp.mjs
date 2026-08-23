@@ -103,17 +103,16 @@ export function csharpStringValue(node) {
     const lastQuote = node.text.lastIndexOf('"')
     return firstQuote >= 0 && lastQuote > firstQuote ? node.text.slice(firstQuote + 1, lastQuote) : null
   }
-  let literal = null
-  walkCSharp(node, (candidate) => {
-    if (
-      !literal &&
-      candidate !== node &&
-      ['string_literal', 'verbatim_string_literal', 'raw_string_literal'].includes(candidate.type)
-    ) {
-      literal = candidate
-    }
-  })
-  return literal ? csharpStringValue(literal) : null
+  if (node.type === 'parenthesized_expression') {
+    return csharpStringValue(node.namedChildren[0])
+  }
+  if (node.type === 'binary_expression' && node.children.some((child) => child.type === '+')) {
+    const [leftNode, rightNode] = node.namedChildren
+    const left = csharpStringValue(leftNode)
+    const right = csharpStringValue(rightNode)
+    return left === null || right === null ? null : left + right
+  }
+  return null
 }
 
 export function csharpAttributes(node, constantValue = () => undefined) {
@@ -126,7 +125,7 @@ export function csharpAttributes(node, constantValue = () => undefined) {
       const argument = csharpArguments(attribute)[0]
       attributes.push({
         name: nameNode?.text.split('.').at(-1) ?? '',
-        value: csharpStringValue(attribute) ?? constantValue(argument?.text),
+        value: csharpStringValue(argument) ?? constantValue(argument?.text),
         node: attribute
       })
     }

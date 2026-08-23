@@ -34,6 +34,7 @@ code-map uses parser-backed static analysis without building or executing the ta
 | CS-03   | .NET API      | Supported        | Literal and concatenated route string constants resolve.         |
 | CS-04   | .NET API      | Supported        | Commented controller syntax is ignored.                          |
 | CS-05   | .NET API      | Supported        | Controller syntax inside string values is ignored.               |
+| CS-06   | .NET API      | Supported        | Literal concatenations in route attributes are resolved.         |
 
 The fixtures live in `tests/analysis-precision.test.mjs`. When support changes, update the fixture and this matrix together. A known limitation becoming supported should be an explicit compatibility decision rather than an incidental regex change.
 

@@ -110,10 +110,7 @@ const controllerCases = [
 public class AccountsController : ControllerBase
 {
     [HttpGet("{id}")]
-    public IActionResult Get(string id)
-    {
-        return Ok(id);
-    }
+    public IActionResult Get(string id) { return Ok(id); }
 }`,
     expected: [{ url: '/api/accounts/{id}', method: 'GET', action: 'Get' }]
   },
@@ -121,22 +118,14 @@ public class AccountsController : ControllerBase
     id: 'CS-02',
     source: `
 [Route("api/accounts")]
-public class AccountsController : ControllerBase
-{
-    [HttpPost]
-    public IActionResult Create() => Ok();
-}`,
+public class AccountsController : ControllerBase { [HttpPost] public IActionResult Create() => Ok(); }`,
     expected: [{ url: '/api/accounts', method: 'POST', action: 'Create' }]
   },
   {
     id: 'CS-03',
     source: `
 [Route(ApiRoutes.ConcatenatedAccounts)]
-public class AccountsController : ControllerBase
-{
-    [HttpGet(ApiRoutes.ConcatenatedById)]
-    public IActionResult Get() => Ok();
-}`,
+public class AccountsController : ControllerBase { [HttpGet(ApiRoutes.ConcatenatedById)] public IActionResult Get() => Ok(); }`,
     support: `
 public static class ApiRoutes
 {
@@ -163,6 +152,17 @@ public class PlainController : ControllerBase
     private const string Example = "[Route(\\"api/ignored\\")] [HttpGet]";
 }`,
     expected: []
+  },
+  {
+    id: 'CS-06',
+    source: `
+[Route("api/" + "reports")]
+public class ReportsController : ControllerBase
+{
+    [HttpGet(("daily/") + "{id}")]
+    public IActionResult Get() => Ok();
+}`,
+    expected: [{ url: '/api/reports/daily/{id}', method: 'GET', action: 'Get' }]
   }
 ]
 
@@ -170,7 +170,7 @@ for (const fixture of controllerCases) {
   assert.deepEqual(extractControllerEndpoints(fixture.source, fixture.support), fixture.expected, fixture.id)
 }
 
-assert.equal(importCases.length + endpointCases.length + controllerCases.length, 22)
+assert.equal(importCases.length + endpointCases.length + controllerCases.length, 23)
 console.log('analysis precision fixtures passed')
 
 function extractControllerEndpoints(source, support) {
