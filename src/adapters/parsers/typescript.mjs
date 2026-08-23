@@ -55,6 +55,9 @@ function staticStringValueOf(node, constantBindings, resolving = new Set()) {
   if (ts.isStringLiteralLike(node)) {
     return node.text
   }
+  if (ts.isTemplateExpression(node)) {
+    return staticTemplateValueOf(node, constantBindings, resolving)
+  }
   if (ts.isParenthesizedExpression(node)) {
     return staticStringValueOf(node.expression, constantBindings, resolving)
   }
@@ -68,6 +71,18 @@ function staticStringValueOf(node, constantBindings, resolving = new Set()) {
     return staticStringValueOf(constantBindings.get(node.text), constantBindings, nextResolving)
   }
   return null
+}
+
+function staticTemplateValueOf(node, constantBindings, resolving) {
+  let value = node.head.text
+  for (const span of node.templateSpans) {
+    const expression = staticStringValueOf(span.expression, constantBindings, resolving)
+    if (expression === null) {
+      return null
+    }
+    value += expression + span.literal.text
+  }
+  return value
 }
 
 function topLevelConstantBindingsOf(sourceFile) {

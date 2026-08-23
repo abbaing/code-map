@@ -21,7 +21,8 @@ code-map uses parser-backed static analysis without building or executing the ta
 | TS-07   | Imports       | Supported        | Literal CommonJS `require()` calls produce dependency edges.     |
 | TS-08   | Imports       | Supported        | Literal concatenations in dynamic imports are resolved.          |
 | TS-09   | Imports       | Supported        | Top-level string constants in dynamic imports are resolved.      |
-| TS-10   | Imports       | Known limitation | Runtime-dependent dynamic import specifiers are not resolved.    |
+| TS-10   | Imports       | Supported        | Constant substitutions in dynamic import templates resolve.      |
+| TS-11   | Imports       | Known limitation | Runtime-dependent dynamic import specifiers are not resolved.    |
 | HTTP-01 | Frontend HTTP | Supported        | Literal `fetch()` calls and literal methods are detected.        |
 | HTTP-02 | Frontend HTTP | Supported        | Bound base URLs in instance methods are detected.                |
 | HTTP-03 | Frontend HTTP | Heuristic        | Template parameters are normalized to `{}`.                      |
@@ -37,7 +38,7 @@ code-map uses parser-backed static analysis without building or executing the ta
 | CS-06   | .NET API      | Supported        | Literal concatenations in route attributes are resolved.         |
 | CS-07   | .NET API      | Supported        | Route constants can reference constants across backend files.    |
 
-The fixtures live in `tests/analysis-precision.test.mjs`. When support changes, update the fixture and this matrix together. A known limitation becoming supported should be an explicit compatibility decision rather than an incidental regex change.
+The fixtures live in `tests/analysis-precision.test.mjs` and focused parser tests. When support changes, update the fixture and this matrix together. A known limitation becoming supported should be an explicit compatibility decision rather than an incidental regex change.
 
 ## General limits
 

@@ -98,10 +98,13 @@ const lazySource = `
 const example = "import('./string.js')"
 // import('./comment.js')
 const featureDirectory = './features/'
+const featureName = 'profile'
 const lazy = import(\`./lazy.js\`)
 const concatenated = import('./features/' + 'account.js')
 const bound = import(featureDirectory + 'settings.js')
+const templated = import(\`./features/\${featureName}.js\`)
 const computed = import('./features/' + name)
+const computedTemplate = import(\`./features/\${name}.js\`)
 `
 assert.deepEqual(moduleReferencesOf(lazySource, 'lazy.tsx'), [
   { specifier: './lazy.js', index: lazySource.indexOf('import(`'), kind: 'dynamic' },
@@ -113,6 +116,11 @@ assert.deepEqual(moduleReferencesOf(lazySource, 'lazy.tsx'), [
   {
     specifier: './features/settings.js',
     index: lazySource.indexOf('import(featureDirectory'),
+    kind: 'dynamic'
+  },
+  {
+    specifier: './features/profile.js',
+    index: lazySource.indexOf('import(`./features/${'),
     kind: 'dynamic'
   }
 ])
