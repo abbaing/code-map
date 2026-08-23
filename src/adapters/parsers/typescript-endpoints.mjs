@@ -8,7 +8,12 @@ import {
   extractPositionalMethods,
   extractRequestObjects
 } from '#parsers/typescript-endpoint-strategies.mjs'
-import { parseTypeScript, typescript as ts, walkTypeScript } from '#parsers/typescript.mjs'
+import {
+  parseTypeScript,
+  typeScriptConstantStringBindings,
+  typescript as ts,
+  walkTypeScript
+} from '#parsers/typescript.mjs'
 
 export { expandFrontendUrl } from '#parsers/typescript-endpoint-urls.mjs'
 
@@ -36,6 +41,7 @@ export function extractFrontendEndpoints(
     sourceFile,
     calls: callExpressions(sourceFile),
     urlBindings,
+    methodBindings: typeScriptConstantStringBindings(sourceFile),
     baseUrl: primaryBaseUrl(urlBindings)
   })
 }

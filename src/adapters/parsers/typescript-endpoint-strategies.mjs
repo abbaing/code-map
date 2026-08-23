@@ -53,7 +53,7 @@ function objectProperty(object, name) {
   return property?.initializer ?? null
 }
 
-export function extractRequestObjects({ sourceFile, calls, urlBindings, baseUrl }) {
+export function extractRequestObjects({ sourceFile, calls, urlBindings, methodBindings, baseUrl }) {
   const endpoints = []
   for (const call of calls) {
     if (
@@ -63,8 +63,7 @@ export function extractRequestObjects({ sourceFile, calls, urlBindings, baseUrl 
     ) {
       continue
     }
-    const method =
-      typeScriptLiteralValue(objectProperty(call.arguments[0], 'method'), sourceFile)?.toUpperCase() ?? 'ANY'
+    const method = resolvedHttpMethod(objectProperty(call.arguments[0], 'method'), sourceFile, methodBindings) ?? 'ANY'
     const url = resolveFrontendUrlExpression(objectProperty(call.arguments[0], 'url'), sourceFile, urlBindings, baseUrl)
     if (url) {
       endpoints.push({ url, method })
@@ -73,14 +72,14 @@ export function extractRequestObjects({ sourceFile, calls, urlBindings, baseUrl 
   return endpoints
 }
 
-export function extractObjectArguments({ sourceFile, calls, urlBindings, baseUrl }) {
+export function extractObjectArguments({ sourceFile, calls, urlBindings, methodBindings, baseUrl }) {
   const endpoints = []
   for (const call of calls) {
     const object = call.arguments[0]
     if (!object || !ts.isObjectLiteralExpression(object)) {
       continue
     }
-    const method = typeScriptLiteralValue(objectProperty(object, 'method'), sourceFile)?.toUpperCase()
+    const method = resolvedHttpMethod(objectProperty(object, 'method'), sourceFile, methodBindings)
     if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
       continue
     }
@@ -92,10 +91,10 @@ export function extractObjectArguments({ sourceFile, calls, urlBindings, baseUrl
   return endpoints
 }
 
-export function extractPositionalMethods({ sourceFile, calls, urlBindings, baseUrl }) {
+export function extractPositionalMethods({ sourceFile, calls, urlBindings, methodBindings, baseUrl }) {
   const endpoints = []
   for (const call of calls) {
-    const method = typeScriptLiteralValue(call.arguments[0], sourceFile)?.toUpperCase()
+    const method = resolvedHttpMethod(call.arguments[0], sourceFile, methodBindings)
     if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
       continue
     }
@@ -107,7 +106,7 @@ export function extractPositionalMethods({ sourceFile, calls, urlBindings, baseU
   return endpoints
 }
 
-export function extractFetchCalls({ sourceFile, calls, urlBindings, baseUrl }) {
+export function extractFetchCalls({ sourceFile, calls, urlBindings, methodBindings, baseUrl }) {
   const endpoints = []
   for (const call of calls) {
     if (!ts.isIdentifier(call.expression) || call.expression.text !== 'fetch') {
@@ -120,9 +119,16 @@ export function extractFetchCalls({ sourceFile, calls, urlBindings, baseUrl }) {
     const options = call.arguments[1]
     const method =
       options && ts.isObjectLiteralExpression(options)
-        ? (typeScriptLiteralValue(objectProperty(options, 'method'), sourceFile)?.toUpperCase() ?? 'GET')
+        ? (resolvedHttpMethod(objectProperty(options, 'method'), sourceFile, methodBindings) ?? 'GET')
         : 'GET'
     endpoints.push({ url, method })
   }
   return endpoints
+}
+
+function resolvedHttpMethod(expression, sourceFile, bindings) {
+  const value =
+    typeScriptLiteralValue(expression, sourceFile) ??
+    (expression && ts.isIdentifier(expression) ? bindings?.get(expression.text) : null)
+  return value?.toUpperCase() ?? null
 }

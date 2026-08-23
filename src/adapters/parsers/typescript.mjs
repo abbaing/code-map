@@ -100,6 +100,18 @@ function topLevelConstantBindingsOf(sourceFile) {
   return bindings
 }
 
+export function typeScriptConstantStringBindings(sourceFile) {
+  const declarations = topLevelConstantBindingsOf(sourceFile)
+  const bindings = new Map()
+  for (const [name, initializer] of declarations) {
+    const value = staticStringValueOf(initializer, declarations)
+    if (value !== null) {
+      bindings.set(name, value)
+    }
+  }
+  return bindings
+}
+
 export function parseTypeScript(content, fileName = 'source.ts') {
   return ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, true, scriptKindOf(fileName))
 }

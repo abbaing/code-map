@@ -4,14 +4,20 @@ import { extractFrontendEndpoints } from '#parsers/typescript-endpoints.mjs'
 
 const source = `
   const baseUrl = '/api/users'
+  const writeMethod = 'PATCH'
+  let runtimeMethod = 'DELETE'
   this.get(baseUrl)
   fetch('/api/users', { method: 'POST' })
+  fetch('/api/users/42', { method: writeMethod })
+  fetch('/api/runtime', { method: runtimeMethod })
   client({ method: 'DELETE', url: '/api/users/42' })
 `
 assert.deepEqual(extractFrontendEndpoints(source), [
   { url: '/api/users', method: 'GET' },
   { url: '/api/users/42', method: 'DELETE' },
-  { url: '/api/users', method: 'POST' }
+  { url: '/api/users', method: 'POST' },
+  { url: '/api/users/42', method: 'PATCH' },
+  { url: '/api/runtime', method: 'GET' }
 ])
 
 const extractorFactories = [
