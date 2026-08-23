@@ -97,8 +97,10 @@ assert.deepEqual(moduleReferencesOf(typeScriptSource), [
 const lazySource = `
 const example = "import('./string.js')"
 // import('./comment.js')
+const featureDirectory = './features/'
 const lazy = import(\`./lazy.js\`)
 const concatenated = import('./features/' + 'account.js')
+const bound = import(featureDirectory + 'settings.js')
 const computed = import('./features/' + name)
 `
 assert.deepEqual(moduleReferencesOf(lazySource, 'lazy.tsx'), [
@@ -106,6 +108,11 @@ assert.deepEqual(moduleReferencesOf(lazySource, 'lazy.tsx'), [
   {
     specifier: './features/account.js',
     index: lazySource.indexOf("import('./features/"),
+    kind: 'dynamic'
+  },
+  {
+    specifier: './features/settings.js',
+    index: lazySource.indexOf('import(featureDirectory'),
     kind: 'dynamic'
   }
 ])

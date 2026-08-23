@@ -44,7 +44,12 @@ const importCases = [
     source: "const module = import(('./features/' + 'account') + '.js')",
     expected: [{ specifier: './features/account.js', kind: 'dynamic' }]
   },
-  { id: 'TS-09', source: "const module = import('./features/' + name)", expected: [] }
+  {
+    id: 'TS-09',
+    source: "const directory = './features/'\nconst page = 'account.js'\nimport(directory + page)",
+    expected: [{ specifier: './features/account.js', kind: 'dynamic' }]
+  },
+  { id: 'TS-10', source: "let name = 'account.js'\nimport('./features/' + name)", expected: [] }
 ]
 
 for (const fixture of importCases) {
@@ -163,7 +168,7 @@ for (const fixture of controllerCases) {
   assert.deepEqual(extractControllerEndpoints(fixture.source, fixture.support), fixture.expected, fixture.id)
 }
 
-assert.equal(importCases.length + endpointCases.length + controllerCases.length, 21)
+assert.equal(importCases.length + endpointCases.length + controllerCases.length, 22)
 console.log('analysis precision fixtures passed')
 
 function extractControllerEndpoints(source, support) {

@@ -20,7 +20,8 @@ code-map uses parser-backed static analysis without building or executing the ta
 | TS-06   | Imports       | Supported        | Literal dynamic `import()` calls produce lazy dependency edges.  |
 | TS-07   | Imports       | Supported        | Literal CommonJS `require()` calls produce dependency edges.     |
 | TS-08   | Imports       | Supported        | Literal concatenations in dynamic imports are resolved.          |
-| TS-09   | Imports       | Known limitation | Runtime-dependent dynamic import specifiers are not resolved.    |
+| TS-09   | Imports       | Supported        | Top-level string constants in dynamic imports are resolved.      |
+| TS-10   | Imports       | Known limitation | Runtime-dependent dynamic import specifiers are not resolved.    |
 | HTTP-01 | Frontend HTTP | Supported        | Literal `fetch()` calls and literal methods are detected.        |
 | HTTP-02 | Frontend HTTP | Supported        | Bound base URLs in instance methods are detected.                |
 | HTTP-03 | Frontend HTTP | Heuristic        | Template parameters are normalized to `{}`.                      |

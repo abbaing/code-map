@@ -11,10 +11,11 @@ export function stripTsComments(content) {
 
 export function moduleReferencesOf(content, fileName = 'source.ts', parsedSourceFile) {
   const sourceFile = parsedSourceFile ?? parseTypeScript(content, fileName)
+  const constantBindings = topLevelConstantBindingsOf(sourceFile)
   const references = []
 
   function visit(node) {
-    const reference = moduleReferenceOf(node, sourceFile)
+    const reference = moduleReferenceOf(node, sourceFile, constantBindings)
     if (reference) {
       references.push(reference)
     }
@@ -25,7 +26,7 @@ export function moduleReferencesOf(content, fileName = 'source.ts', parsedSource
   return references.sort((left, right) => left.index - right.index)
 }
 
-function moduleReferenceOf(node, sourceFile) {
+function moduleReferenceOf(node, sourceFile, constantBindings) {
   if (
     (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
     node.moduleSpecifier &&
@@ -37,7 +38,7 @@ function moduleReferenceOf(node, sourceFile) {
     return null
   }
   if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
-    const specifier = staticStringValueOf(node.arguments[0])
+    const specifier = staticStringValueOf(node.arguments[0], constantBindings)
     return specifier === null ? null : { specifier, index: node.expression.getStart(sourceFile), kind: 'dynamic' }
   }
   if (
@@ -50,19 +51,38 @@ function moduleReferenceOf(node, sourceFile) {
   return null
 }
 
-function staticStringValueOf(node) {
+function staticStringValueOf(node, constantBindings, resolving = new Set()) {
   if (ts.isStringLiteralLike(node)) {
     return node.text
   }
   if (ts.isParenthesizedExpression(node)) {
-    return staticStringValueOf(node.expression)
+    return staticStringValueOf(node.expression, constantBindings, resolving)
   }
   if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
-    const left = staticStringValueOf(node.left)
-    const right = staticStringValueOf(node.right)
+    const left = staticStringValueOf(node.left, constantBindings, resolving)
+    const right = staticStringValueOf(node.right, constantBindings, resolving)
     return left === null || right === null ? null : left + right
   }
+  if (ts.isIdentifier(node) && constantBindings.has(node.text) && !resolving.has(node.text)) {
+    const nextResolving = new Set(resolving).add(node.text)
+    return staticStringValueOf(constantBindings.get(node.text), constantBindings, nextResolving)
+  }
   return null
+}
+
+function topLevelConstantBindingsOf(sourceFile) {
+  const bindings = new Map()
+  for (const statement of sourceFile.statements) {
+    if (!ts.isVariableStatement(statement) || !(statement.declarationList.flags & ts.NodeFlags.Const)) {
+      continue
+    }
+    for (const declaration of statement.declarationList.declarations) {
+      if (ts.isIdentifier(declaration.name) && declaration.initializer) {
+        bindings.set(declaration.name.text, declaration.initializer)
+      }
+    }
+  }
+  return bindings
 }
 
 export function parseTypeScript(content, fileName = 'source.ts') {
