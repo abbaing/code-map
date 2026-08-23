@@ -131,15 +131,17 @@ public class AccountsController : ControllerBase
   {
     id: 'CS-03',
     source: `
-[Route(ApiRoutes.Accounts)]
+[Route(ApiRoutes.ConcatenatedAccounts)]
 public class AccountsController : ControllerBase
 {
-    [HttpGet(ApiRoutes.ById)]
+    [HttpGet(ApiRoutes.ConcatenatedById)]
     public IActionResult Get() => Ok();
 }`,
     support: `
 public static class ApiRoutes
 {
+    public const string ConcatenatedAccounts = "api/" + "accounts";
+    public const string ConcatenatedById = ("{" + "id}");
     public const string Accounts = "api/accounts";
     public const string ById = "{id}";
 }`,
