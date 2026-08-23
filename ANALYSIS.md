@@ -35,6 +35,7 @@ code-map uses parser-backed static analysis without building or executing the ta
 | CS-04   | .NET API      | Supported        | Commented controller syntax is ignored.                          |
 | CS-05   | .NET API      | Supported        | Controller syntax inside string values is ignored.               |
 | CS-06   | .NET API      | Supported        | Literal concatenations in route attributes are resolved.         |
+| CS-07   | .NET API      | Supported        | Same-file route constants can reference other constants.         |
 
 The fixtures live in `tests/analysis-precision.test.mjs`. When support changes, update the fixture and this matrix together. A known limitation becoming supported should be an explicit compatibility decision rather than an incidental regex change.
 
@@ -45,6 +46,6 @@ The fixtures live in `tests/analysis-precision.test.mjs`. When support changes, 
 - C# declarations, attributes, methods, properties, calls, and object creation use the Tree-sitter C# grammar.
 - Computed HTTP methods fall back to the extractor default when no literal method is available.
 - Concatenated frontend URLs preserve literal and bound base segments while replacing other expressions with `{}`.
-- C# route constants resolve literal and literal-concatenated `const string` fields across the scanned backend; references to other constants, runtime-computed expressions, and non-string values remain unsupported.
+- C# route constants resolve literal and concatenated `const string` fields across the scanned backend. References between constants resolve within one file; constant expressions spanning files, runtime-computed expressions, and non-string values remain unsupported.
 - Confidence metadata distinguishes confirmed and inferred graph relationships where the scanner has enough evidence.
 - Serialized edges retain `confidence`, `source`, and `evidence`; the viewer exposes all three on connected relations.

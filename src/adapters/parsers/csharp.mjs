@@ -88,31 +88,36 @@ export function csharpTypeIdentifiers(node) {
   return [...new Set(names)]
 }
 
-export function csharpStringValue(node) {
+export function csharpStringValue(node, constantValue = () => undefined) {
   if (!node) {
     return null
   }
   if (['string_literal', 'verbatim_string_literal', 'raw_string_literal'].includes(node.type)) {
-    const content = csharpDescendants(node, 'string_literal_content')
-      .map((part) => part.text)
-      .join('')
-    if (content) {
-      return content
-    }
-    const firstQuote = node.text.indexOf('"')
-    const lastQuote = node.text.lastIndexOf('"')
-    return firstQuote >= 0 && lastQuote > firstQuote ? node.text.slice(firstQuote + 1, lastQuote) : null
+    return csharpLiteralStringValue(node)
   }
   if (node.type === 'parenthesized_expression') {
-    return csharpStringValue(node.namedChildren[0])
+    return csharpStringValue(node.namedChildren[0], constantValue)
   }
   if (node.type === 'binary_expression' && node.children.some((child) => child.type === '+')) {
     const [leftNode, rightNode] = node.namedChildren
-    const left = csharpStringValue(leftNode)
-    const right = csharpStringValue(rightNode)
+    const left = csharpStringValue(leftNode, constantValue)
+    const right = csharpStringValue(rightNode, constantValue)
     return left === null || right === null ? null : left + right
   }
-  return null
+  const resolved = constantValue(node.text)
+  return typeof resolved === 'string' ? resolved : null
+}
+
+function csharpLiteralStringValue(node) {
+  const content = csharpDescendants(node, 'string_literal_content')
+    .map((part) => part.text)
+    .join('')
+  if (content) {
+    return content
+  }
+  const firstQuote = node.text.indexOf('"')
+  const lastQuote = node.text.lastIndexOf('"')
+  return firstQuote >= 0 && lastQuote > firstQuote ? node.text.slice(firstQuote + 1, lastQuote) : null
 }
 
 export function csharpAttributes(node, constantValue = () => undefined) {
@@ -125,7 +130,7 @@ export function csharpAttributes(node, constantValue = () => undefined) {
       const argument = csharpArguments(attribute)[0]
       attributes.push({
         name: nameNode?.text.split('.').at(-1) ?? '',
-        value: csharpStringValue(argument) ?? constantValue(argument?.text),
+        value: csharpStringValue(argument, constantValue),
         node: attribute
       })
     }
