@@ -4,7 +4,7 @@ import { configureViewerData } from '#viewer/viewer-data.js'
 import { applyFilters } from '#viewer/viewer-filters.js'
 import { bindSubmapNavigation } from '#viewer/viewer-interaction-submaps.mjs'
 import { configureViewerElements, state } from '#viewer/viewer-state.js'
-import { currentNodeIds, deleteSubmap, openSubmap, submapRowHtml } from '#viewer/viewer-submaps.js'
+import { deleteSubmap, openSubmap, submapRowHtml } from '#viewer/viewer-submaps.js'
 
 const uid = `sha256:${'a'.repeat(64)}`
 const submap = {
@@ -122,8 +122,6 @@ assert.deepEqual(
   ['page:checkout', 'api:checkout']
 )
 assert.match(elements.toast.textContent, /1 unavailable nodes were omitted/u)
-assert.deepEqual(currentNodeIds(submap, state.graph), ['page:checkout', 'api:checkout'])
-
 const rowHtml = submapRowHtml({ ...state.submaps[0], kind: 'selection' }, state.submaps.slice(0, 2))
 assert.match(rowHtml, /aria-label="Open Checkout flow in graph"/u)
 assert.match(rowHtml, /<details class="submap-options">/u)

@@ -45,7 +45,7 @@ export function createCommandRegistry(commands) {
   })
 }
 
-export function assertCommand(command) {
+function assertCommand(command) {
   if (!command || typeof command !== 'object') {
     throw new TypeError('Command implementation is required.')
   }
@@ -59,15 +59,3 @@ export function assertCommand(command) {
   }
   return command
 }
-
-export function assertCommandRegistry(registry) {
-  if (!registry || typeof registry !== 'object' || typeof registry.resolve !== 'function') {
-    throw new TypeError('Command registry must implement resolve(input).')
-  }
-  if (typeof registry.execute !== 'function') {
-    throw new TypeError('Command registry must implement execute(input).')
-  }
-  return registry
-}
-
-export const commandContract = Object.freeze(['id', ...commandOperations])

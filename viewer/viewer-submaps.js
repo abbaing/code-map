@@ -118,10 +118,6 @@ export function submapRowHtml(submap, revisions = [submap]) {
   `
 }
 
-export function currentNodeIds(submap, graph) {
-  return submapAvailability(submap, graph).availableNodes.map(({ id }) => id)
-}
-
 function formatDate(value) {
   const date = new Date(value)
   if (Number.isNaN(date.valueOf())) {

@@ -26,18 +26,6 @@ export function createEdgeRendererRegistry(renderers) {
   return createRendererRegistry(renderers, 'EdgeRenderer')
 }
 
-export function assertLayoutStrategy(strategy) {
-  return assertImplementation(strategy, 'LayoutStrategy', 'layout')
-}
-
-export function assertNodeRenderer(renderer) {
-  return assertImplementation(renderer, 'NodeRenderer', 'render')
-}
-
-export function assertEdgeRenderer(renderer) {
-  return assertImplementation(renderer, 'EdgeRenderer', 'render')
-}
-
 function createRendererRegistry(renderers, name) {
   const entries = validateImplementations(renderers, name, 'render')
   const byId = new Map(entries.map((renderer) => [renderer.id, renderer]))

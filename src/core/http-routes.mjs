@@ -54,5 +54,3 @@ export function assertRouteRegistry(registry) {
   }
   return registry
 }
-
-export const routeContract = Object.freeze(['id', 'method', ...routeOperations])

@@ -1,12 +1,6 @@
 import assert from 'node:assert/strict'
 import http from 'node:http'
-import {
-  assertRoute,
-  assertRouteRegistry,
-  createRouteRegistry,
-  defineRoute,
-  routeContract
-} from '#core/http-routes.mjs'
+import { assertRouteRegistry, createRouteRegistry, defineRoute } from '#core/http-routes.mjs'
 import { startServer } from '#entry/server.mjs'
 
 const customRoute = defineRoute({
@@ -36,11 +30,9 @@ const delegatedRegistry = Object.freeze({
   }
 })
 
-assert.deepEqual(routeContract, ['id', 'method', 'matches', 'handle'])
 assert.equal(Object.isFrozen(customRoute), true)
 assert.equal(Object.isFrozen(defaultRegistry), true)
 assert.equal(Object.isFrozen(defaultRegistry.routes), true)
-assert.equal(assertRoute(customRoute), customRoute)
 assert.equal(assertRouteRegistry(delegatedRegistry), delegatedRegistry)
 assert.deepEqual(defaultRegistry.find('GET', '/custom'), customRoute)
 assert.equal(defaultRegistry.find('POST', '/custom'), undefined)

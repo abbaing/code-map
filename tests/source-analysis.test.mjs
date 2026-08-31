@@ -7,8 +7,8 @@ import {
   kebab,
   normalizePath
 } from '#core/source-analysis.mjs'
-import { importsOf, isTestFile, moduleReferencesOf, stripTsComments, tsExtensions } from '#parsers/typescript.mjs'
-import { isCSharpTestFile, stripCSharpComments, stripCSharpStringLiterals } from '#parsers/csharp.mjs'
+import { importsOf, isTestFile, moduleReferencesOf, tsExtensions } from '#parsers/typescript.mjs'
+import { isCSharpTestFile } from '#parsers/csharp.mjs'
 import {
   SourceFileTooLargeError,
   createSourceReader,
@@ -124,22 +124,6 @@ assert.deepEqual(moduleReferencesOf(lazySource, 'lazy.tsx'), [
     kind: 'dynamic'
   }
 ])
-assert.match(stripTsComments(typeScriptSource), /https:\/\/example\.test/u)
-assert.doesNotMatch(stripTsComments(typeScriptSource), /ignored/u)
-
-const csharpSource = `
-// new IgnoredCommand();
-var url = "https://example.test/path";
-var interpolated = $"new {name} Command";
-/* new HiddenQuery(); */
-new VisibleCommand();
-`
-const withoutStrings = stripCSharpStringLiterals(csharpSource)
-assert.doesNotMatch(withoutStrings, /example\.test|new \{name\} Command/u)
-const withoutComments = stripCSharpComments(csharpSource)
-assert.doesNotMatch(withoutComments, /IgnoredCommand|HiddenQuery/u)
-assert.match(withoutComments, /VisibleCommand/u)
-
 console.log('source analysis tests passed')
 
 function directoryEntry(name) {

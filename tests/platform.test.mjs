@@ -3,11 +3,10 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { loadProjectContext } from '#core/config.mjs'
-import { assertPlatform, platformContract } from '#platform/contracts.mjs'
+import { assertPlatform } from '#platform/contracts.mjs'
 import { createNodePlatform, nodePlatform } from '#platform/node.mjs'
 import { createSubmap } from '#submap/create.mjs'
 
-assert.deepEqual(platformContract.clock, ['nowIso', 'nowMilliseconds'])
 assert.throws(
   () => assertPlatform({}),
   /Platform capability fileSystem is required/u,

@@ -77,10 +77,9 @@ Contracts are structural JavaScript objects or functions. Their exact signatures
 | `Route`                         | Match one HTTP request and adapt it to an application operation                 |
 | `ViewerStore`                   | Read, update, and subscribe to browser application state                        |
 | `GraphGateway`                  | Load and mutate viewer-facing graph resources                                   |
-| `TraceStrategy`                 | Calculate node, module, and system traces from explicit graph inputs            |
+| `TraceContext`                  | Describe node, module, and system traces calculated from explicit graph inputs  |
 | `LayoutStrategy`                | Produce positions for one graph view without touching the DOM                   |
 | `NodeRenderer` / `EdgeRenderer` | Render one supported graph primitive                                            |
-| `ViewController`                | Bind one view's interactions to store operations and effects                    |
 | `GraphQuery`                    | Execute bounded, deterministic queries over a serialized graph                  |
 | `McpTool`                       | Expose one validated, read-only graph operation to MCP clients                  |
 | `MCP` / `JSON-RPC`              | Discover and invoke tools over newline-delimited stdio messages                 |

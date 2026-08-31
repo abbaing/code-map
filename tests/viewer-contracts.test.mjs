@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict'
 import { GraphGatewayError, assertGraphGateway, createGraphGateway } from '#viewer/graph-gateway.mjs'
-import { assertTraceStrategy, createTraceStrategy } from '#viewer/trace-strategy.mjs'
 import { configureViewerData } from '#viewer/viewer-data.js'
-import { assertViewerStore, createViewerStore } from '#viewer/viewer-store.mjs'
+import { createViewerStore } from '#viewer/viewer-store.mjs'
 
 const store = createViewerStore({ selectedId: null, selectedTypes: new Set(['page']) })
-assertViewerStore(store)
 const liveState = store.state
 const changes = []
 const unsubscribe = store.subscribe((state) => changes.push(state))
@@ -23,8 +21,6 @@ assert.deepEqual(
   'subscribers must receive updates until they unsubscribe'
 )
 assert.throws(() => store.subscribe(null), /listener must be a function/u)
-assert.throws(() => assertViewerStore(null), { message: 'ViewerStore must be an object' })
-assert.throws(() => assertViewerStore({ getState() {} }), /update/u)
 
 const requests = []
 const gateway = createGraphGateway({
@@ -86,26 +82,5 @@ await assert.rejects(
     return true
   }
 )
-
-const strategyFactories = [
-  () => ({
-    buildTrace: (graph, selectedId) => ({ graph, selectedId }),
-    buildModuleTrace: (graph, module) => ({ graph, module }),
-    buildSystemGraph: (graph, nodes) => ({ graph, nodes })
-  }),
-  () => ({
-    buildTrace: (_graph, selectedId) => ({ selectedId }),
-    buildModuleTrace: (_graph, module) => ({ module }),
-    buildSystemGraph: (_graph, nodes) => ({ nodes })
-  })
-]
-for (const factory of strategyFactories) {
-  const strategy = createTraceStrategy(factory())
-  assertTraceStrategy(strategy)
-  assert.equal(strategy.buildTrace({}, 'users').selectedId, 'users')
-  assert.equal(strategy.buildModuleTrace({}, 'billing').module, 'billing')
-  assert.deepEqual(strategy.buildSystemGraph({}, ['node']).nodes, ['node'])
-}
-assert.throws(() => createTraceStrategy({ buildTrace() {} }), /buildModuleTrace/u)
 
 console.log('viewer contract tests passed')

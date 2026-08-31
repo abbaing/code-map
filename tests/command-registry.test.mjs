@@ -1,12 +1,6 @@
 import assert from 'node:assert/strict'
 import { createCliCommands } from '#app/cli-commands.mjs'
-import {
-  assertCommand,
-  assertCommandRegistry,
-  commandContract,
-  createCommandRegistry,
-  defineCommand
-} from '#core/command-registry.mjs'
+import { createCommandRegistry, defineCommand } from '#core/command-registry.mjs'
 
 const calls = []
 const selected = defineCommand({
@@ -21,12 +15,9 @@ const selected = defineCommand({
 const fallback = defineCommand({ id: 'fallback', matches: () => true, execute: () => ({ exitCode: null }) })
 const registry = createCommandRegistry([selected, fallback])
 
-assert.deepEqual(commandContract, ['id', 'matches', 'execute'])
 assert.equal(Object.isFrozen(selected), true)
 assert.equal(Object.isFrozen(registry), true)
 assert.equal(Object.isFrozen(registry.commands), true)
-assert.equal(assertCommand(selected), selected)
-assert.equal(assertCommandRegistry(registry), registry)
 assert.deepEqual(await registry.execute({ name: 'selected' }), { commandId: 'selected', exitCode: 7 })
 assert.deepEqual(await registry.execute({ name: 'other' }), { commandId: 'fallback', exitCode: null })
 assert.deepEqual(calls, ['selected'])
@@ -34,7 +25,6 @@ assert.deepEqual(calls, ['selected'])
 assert.throws(() => createCommandRegistry([]), /requires at least one command/u)
 assert.throws(() => createCommandRegistry([selected, selected]), /Command id must be unique/u)
 assert.throws(() => defineCommand({ id: 'invalid', matches: () => true }), /must implement execute/u)
-assert.throws(() => assertCommandRegistry({ resolve() {} }), /must implement execute/u)
 await assert.rejects(() => registry.execute(null), /Command input must be an object/u)
 const invalidResult = createCommandRegistry([
   defineCommand({ id: 'invalid-result', matches: () => true, execute: () => ({ exitCode: 300 }) })

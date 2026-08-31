@@ -9,18 +9,6 @@ export function parseCSharp(content) {
   return parser.parse(content)
 }
 
-export function stripCSharpStringLiterals(content) {
-  return content
-    .replace(/\$?"""[\s\S]*?"""/g, '""')
-    .replace(/@(?:"(?:""|[^"])*")/g, '""')
-    .replace(/\$?"(?:\\.|[^"\\])*"/g, '""')
-    .replace(/'(?:\\.|[^'\\])'/g, "''")
-}
-
-export function stripCSharpComments(content) {
-  return content.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
-}
-
 export function isCSharpTestFile(filePath) {
   return /\/[^/]*\.Tests\//iu.test(normalizePath(filePath))
 }
@@ -136,10 +124,6 @@ export function csharpAttributes(node, constantValue = () => undefined) {
     }
   }
   return attributes
-}
-
-export function csharpTypeDeclarations(content) {
-  return createCSharpDocument(content).declarations
 }
 
 export function csharpTypeDeclarationsFromTree(tree) {

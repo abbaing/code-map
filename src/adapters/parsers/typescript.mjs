@@ -5,10 +5,6 @@ import { resolveTsImport } from '#parsers/typescript-resolver.mjs'
 export { ts as typescript }
 export { isTestFile, tsExtensions } from '#parsers/typescript-files.mjs'
 
-export function stripTsComments(content) {
-  return content.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
-}
-
 export function moduleReferencesOf(content, fileName = 'source.ts', parsedSourceFile) {
   const sourceFile = parsedSourceFile ?? parseTypeScript(content, fileName)
   const constantBindings = topLevelConstantBindingsOf(sourceFile)

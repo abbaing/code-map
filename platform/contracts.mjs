@@ -23,9 +23,3 @@ export function assertPlatform(platform) {
   }
   return platform
 }
-
-export const platformContract = Object.freeze(
-  Object.fromEntries(
-    Object.entries(requiredOperations).map(([name, operations]) => [name, Object.freeze([...operations])])
-  )
-)

@@ -32,7 +32,6 @@ export const viewerComponents = [
     responsibility: 'Calculate execution traces and trace-focused layouts.',
     role: 'core',
     files: [
-      'viewer/trace-strategy.mjs',
       'viewer/viewer-trace.js',
       'viewer/viewer-trace-context.js',
       'viewer/viewer-trace-layout.js',
@@ -42,7 +41,7 @@ export const viewerComponents = [
       'viewer/viewer-trace-search.js',
       'viewer/viewer-trace-system.js'
     ],
-    contracts: ['TraceStrategy'],
+    contracts: ['TraceContext'],
     compositionRoot: false,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision: 'Keep trace calculation pure by passing graph data, visible nodes, labels, and view mode explicitly.'
@@ -86,7 +85,6 @@ export const viewerComponents = [
     responsibility: 'Coordinate browser interactions and render overview, selection, findings, and management views.',
     role: 'composition-root',
     files: [
-      'viewer/view-controller.mjs',
       'viewer/viewer-actions.js',
       'viewer/viewer-actions-graph.js',
       'viewer/viewer-actions-submaps.js',
@@ -121,7 +119,7 @@ export const viewerComponents = [
       'viewer/viewer-submaps.js',
       'viewer/viewer-viewport.js'
     ],
-    contracts: ['ViewerStore', 'ViewController', 'ViewerUiController', 'GraphGateway'],
+    contracts: ['ViewerStore', 'ViewerUiController', 'GraphGateway'],
     compositionRoot: true,
     design: designStatus('pass', 'pass', 'pass', 'pass', 'pass'),
     decision: 'Keep viewer-init as the composition root and inject browser capabilities into the UI controller.'

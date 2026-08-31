@@ -1,5 +1,3 @@
-import { assertViewerOperations } from '#viewer/viewer-operation-contract.mjs'
-
 export function createViewerStore(initialState = {}) {
   assertState(initialState)
   const currentState = clone(initialState)
@@ -28,12 +26,6 @@ export function createViewerStore(initialState = {}) {
       return () => listeners.delete(listener)
     }
   })
-}
-
-export function assertViewerStore(store) {
-  assertViewerOperations(store, 'ViewerStore', ['getState', 'update', 'subscribe'])
-  assertState(store.state)
-  return store
 }
 
 function assertState(state) {
